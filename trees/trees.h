@@ -28,7 +28,7 @@ struct Node **get_path(struct Node *node);
 
 struct Node **get_copath(struct Node *node);
 
-struct Node *init(void **ids, void *(*treeInit)(int));
+struct Node *init(void **ids, int n, void *(*treeInit)(int));
 
 struct Node *add(void *tree, void *data, struct Node * (*tree_add)(void *, void *));
 
@@ -38,7 +38,12 @@ struct Node *update(void *tree, struct Node *node, void (*tree_upd)(void *, stru
 
 void traverse_tree(struct Node *root, void (*f)(void *));
 
-void *lbbt_init(void **ids, int add_strat, int trunc_strat);
+void pretty_traverse_tree(struct Node *root, int space, void (*f)(void *));
+
+//DESTROYS ALL DATA TOO
+void destroy_tree(struct Node *root);
+
+void *lbbt_init(void **ids, int n, int add_strat, int trunc_strat);
 
 struct Node *lbbt_add(void *tree, void *data);
 
