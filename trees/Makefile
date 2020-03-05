@@ -6,17 +6,17 @@ INCLUDES =
 CFLAGS = -g -Wall $(INCLUDES)
 CXXFLAGS = -g -Wall $(INCLUDES)
 
-LDFLAGS = -g
+LDFLAGS = -g -lm
 
 LDLIBS =
 
-LBBT-test: LBBT-test.o LBBT.o ll.o tree_utils.o
+LBBT-test: LBBT-test.o LBBT.o ll.o tree-utils.o
 
-LBBT-test.o: LBBT-test.c trees.h LBBT.o
+LBBT-test.o: LBBT-test.c trees.h LBBT.o ll.h
 
 LBBT.o: LBBT.c trees.h ll.h
 
-tree_utils.o: tree_utils.c trees.h
+tree-utils.o: tree-utils.c trees.h
 
 ll-test: ll-test.o ll.o
 

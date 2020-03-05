@@ -1,20 +1,38 @@
+#include <stdlib.h>
+#include <stdio.h>
 #include <assert.h>
 #include "trees.h"
+#include "ll.h"
 
-static void printDouble(void *p)
+static void printIntLine(void *p)
 {
-  printf("%.1f ", *(double *)p);
+  if (p == NULL)
+    printf("blank \n");
+  else
+    printf("%d \n", *(int *)p);
 }
 
 int main() {
-  double a[] = { 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0 };
-  int n = sizeof(a)/sizeof(a[0]);
-
+  int n = 11;
   int i;
+  void **ids = malloc(sizeof(void *) * n);
+  for (i = 0; i < n; i++) {
+    int *dub = malloc(sizeof(int));
+    *dub = (int) i;
+    *(ids + i) = (void *) dub;
+  }
+
   void *data;
   struct Node *node;
 
-  struct LBBT *lbbt = lbbt_init((void **)a, 0, 0);
-  traverse_tree(lbbt->root, &printDouble);
-  
+  struct LBBT *lbbt = lbbt_init(ids, n, 0, 0);
+  pretty_traverse_tree(lbbt->root, 0, &printIntLine);
+  destroy_tree(lbbt->root);
+  removeAllNodes(lbbt->blanks);
+  free(lbbt->blanks);
+  free(lbbt);
+
+  free(ids);
+
+  return 0;
 }
