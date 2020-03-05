@@ -8,7 +8,15 @@ CXXFLAGS = -g -Wall $(INCLUDES)
 
 LDFLAGS = -g
 
-LDLIBS = 
+LDLIBS =
+
+LBBT-test: LBBT-test.o LBBT.o ll.o tree_utils.o
+
+LBBT-test.o: LBBT-test.c trees.h LBBT.o
+
+LBBT.o: LBBT.c trees.h ll.h
+
+tree_utils.o: tree_utils.c trees.h
 
 ll-test: ll-test.o ll.o
 
@@ -19,7 +27,7 @@ ll.o: ll.c ll.h
 
 .PHONY: clean
 clean:
-	rm -f *.o *~ ll-test
+	rm -f *.o *~ ll-test LBBT-test
 
 .PHONY: all
-all: clean ll-test
+all: clean ll-test LBBT-test
