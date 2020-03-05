@@ -36,6 +36,8 @@ void *rem(void *tree, struct Node *node, void *(*tree_rem)(void *, struct Node *
 
 struct Node *update(void *tree, struct Node *node, void (*tree_upd)(void *, struct Node *));
 
+void traverse_tree(struct Node *root, void (*f)(void *));
+
 void *lbbt_init(void **ids, int add_strat, int trunc_strat);
 
 struct Node *lbbt_add(void *tree, void *data);
