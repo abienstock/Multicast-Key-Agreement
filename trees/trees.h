@@ -28,7 +28,7 @@ struct Node **get_path(struct Node *node);
 
 struct Node **get_copath(struct Node *node);
 
-struct Node *init(void **ids, int n, void *(*treeInit)(int));
+struct Node *init(void **ids, int n, int add_strat, int trunc_strat, void *(*treeInit)(void **, int, int, int));
 
 struct Node *add(void *tree, void *data, struct Node * (*tree_add)(void *, void *));
 

@@ -6,11 +6,11 @@
 void traverse_tree(struct Node *root, void (*f)(void *)) {
   if (root->children == NULL) {
     printf("leaf");
-    f(root->data);
+    f(root);
   } else {
     traverse_tree(*(root->children), f);
     printf("node");
-    f(root->data);
+    f(root);
     traverse_tree(*(root->children+1), f);
   }
 }
@@ -33,13 +33,14 @@ void pretty_traverse_tree(struct Node *root, int space, void (*f)(void *)) {
     printf("\n");
     for (i = COUNT; i < space; i++)
       printf(" ");
-    f(root->data);
+    f(root);
   } else {
     pretty_traverse_tree(*(root->children+1), space, f);
     printf("\n");
     for (i = COUNT; i < space; i++)
       printf(" ");
-    f(root->data);
+    f(root);
     pretty_traverse_tree(*(root->children), space, f);
   }
 }
+
