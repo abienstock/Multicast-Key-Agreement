@@ -37,7 +37,7 @@ struct Node *init_perfect(int h, int leftmost_id, void **ids, struct List *nonbl
      return NULL;
    }
    struct Node *left = init_perfect(h-1, leftmost_id, ids, NULL);
-   struct Node *right = init_perfect(h-1, leftmost_id + (1 << h), ids, NULL);
+   struct Node *right = init_perfect(h-1, leftmost_id + (1 << (h-1)), ids, NULL);
    *children++ = left;
    *children-- = right;
    left->parent = root;
@@ -78,10 +78,10 @@ struct Node *root_init(int n, int leftmost_id, void **ids, struct List *nonblank
     struct Node *left, *right;
     if (h-h_flr == 0) {
       left = init_perfect((int) h-1, leftmost_id, ids, NULL);
-      right = init_perfect((int) h-1, leftmost_id + (1 << (int) h), ids, NULL);
+      right = init_perfect((int) h-1, leftmost_id + (1 << (int) (h-1)), ids, NULL);
     } else {
       left = init_perfect((int) h_flr, leftmost_id, ids, NULL);
-      right = root_init(n - (1 << (int) h_flr), leftmost_id  + (1 << ((int) h_flr + 1)), ids, NULL);
+      right = root_init(n - (1 << (int) h_flr), leftmost_id  + (1 << (int) h_flr), ids, NULL);
     }
     *children++ = left;
     *children-- = right;
@@ -98,8 +98,7 @@ struct Node *root_init(int n, int leftmost_id, void **ids, struct List *nonblank
   return root;
 }
 
-void *lbbt_init(void **ids, int add_strat, int trunc_strat) {
-  int n = sizeof(ids) / sizeof(*ids);
+void *lbbt_init(void **ids, int n, int add_strat, int trunc_strat) {
   if (n < 1) {
     perror("n has to be at least 1");
     return NULL;
