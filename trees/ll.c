@@ -34,6 +34,15 @@ void traverseList(struct List *list, void (*f)(void *)) {
     }
 }
 
+void traverseListBackwards(struct List *list, void (*f)(void *)) {
+  struct ListNode *curr = list->tail;
+  while(curr != 0)
+    {
+      f(curr->data);
+      curr = curr->prev;
+    }
+}
+
 void *popFront(struct List *list) {
   if (list->head == 0)
     return NULL;
@@ -85,7 +94,10 @@ struct ListNode *addAfter(struct List *list,
   new_node->data = data;
   new_node->next = prevNode->next;
   new_node->prev = prevNode; //new line
-  prevNode->next->prev = new_node; //new line
+  if (prevNode->next != NULL)
+    prevNode->next->prev = new_node; //new line
+  else 
+    list->tail = new_node;
   prevNode->next = new_node;
   return new_node;
 }

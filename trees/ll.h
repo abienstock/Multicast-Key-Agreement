@@ -50,6 +50,10 @@ struct ListNode *addFront(struct List *list, void *data);
  */
 void traverseList(struct List *list, void (*f)(void *));
 /*
+ * Traverse the list backwards, calling f() with each data item.
+ */
+void traverseListBackwards(struct List *list, void (*f)(void *));
+/*
  * Traverse the list, comparing each data item with 'dataSought' using
  * 'compar' function.  ('compar' returns 0 if the data pointed to by
  * the two parameters are equal, non-zero value otherwise.)

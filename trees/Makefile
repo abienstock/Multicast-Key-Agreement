@@ -19,7 +19,7 @@ ll.o: ll.c ll.h
 
 .PHONY: clean
 clean:
-	rm -f *.o *~
+	rm -f *.o *~ ll-test
 
 .PHONY: all
 all: clean ll-test
