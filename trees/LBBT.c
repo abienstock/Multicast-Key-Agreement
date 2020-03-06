@@ -6,7 +6,7 @@
  
 // TODO: documentation
  
-struct Node *init_perfect(int h, int leftmost_id, void **ids, struct List *nonblanks) {
+struct Node *init_perfect(int h, int leftmost_id, void **ids, struct List *users) {
    struct Node *root = malloc(sizeof(struct Node));
    if (root == NULL) {
      perror("malloc returned NULL");
@@ -19,7 +19,7 @@ struct Node *init_perfect(int h, int leftmost_id, void **ids, struct List *nonbl
    if (h == 0) {
      root->data = *(ids+leftmost_id);     
      root->children = NULL;
-     //addFront(nonblanks, (void *) root);
+     addFront(users, (void *) root);     
      return root;
    }
 
@@ -36,8 +36,8 @@ struct Node *init_perfect(int h, int leftmost_id, void **ids, struct List *nonbl
      perror("malloc returned NULL");
      return NULL;
    }
-   struct Node *left = init_perfect(h-1, leftmost_id, ids, NULL);
-   struct Node *right = init_perfect(h-1, leftmost_id + (1 << (h-1)), ids, NULL);
+   struct Node *left = init_perfect(h-1, leftmost_id, ids, users);
+   struct Node *right = init_perfect(h-1, leftmost_id + (1 << (h-1)), ids, users);
    *children++ = left;
    *children-- = right;
    left->parent = root;
@@ -48,7 +48,7 @@ struct Node *init_perfect(int h, int leftmost_id, void **ids, struct List *nonbl
    return root;
  }
 
-struct Node *root_init(int n, int leftmost_id, void **ids, struct List *nonblanks){
+struct Node *root_init(int n, int leftmost_id, void **ids, struct List *users){
   struct Node *root = malloc(sizeof(struct Node));
   if (root == NULL) {
     perror("malloc returned NULL");
@@ -77,11 +77,11 @@ struct Node *root_init(int n, int leftmost_id, void **ids, struct List *nonblank
 
     struct Node *left, *right;
     if (h-h_flr == 0) {
-      left = init_perfect((int) h-1, leftmost_id, ids, NULL);
-      right = init_perfect((int) h-1, leftmost_id + (1 << (int) (h-1)), ids, NULL);
+      left = init_perfect((int) h-1, leftmost_id, ids, users);
+      right = init_perfect((int) h-1, leftmost_id + (1 << (int) (h-1)), ids, users);
     } else {
-      left = init_perfect((int) h_flr, leftmost_id, ids, NULL);
-      right = root_init(n - (1 << (int) h_flr), leftmost_id  + (1 << (int) h_flr), ids, NULL);
+      left = init_perfect((int) h_flr, leftmost_id, ids, users);
+      right = root_init(n - (1 << (int) h_flr), leftmost_id  + (1 << (int) h_flr), ids, users);
     }
     *children++ = left;
     *children-- = right;
@@ -92,13 +92,14 @@ struct Node *root_init(int n, int leftmost_id, void **ids, struct List *nonblank
   } else {
     root->data = *(ids+leftmost_id);
     root->children = NULL;
-    //addFront(nonblanks, (void *) root); // TODO: make sure keeping tack of nonblanks correctly
+    addFront(users, (void *) root);
   }
   
   return root;
 }
 
-void *lbbt_init(void **ids, int n, int add_strat, int trunc_strat) {
+//TODO: takes in users???
+void *lbbt_init(void **ids, int n, int add_strat, int trunc_strat, struct List *users) {
   if (n < 1) {
     perror("n has to be at least 1");
     return NULL;
@@ -108,16 +109,9 @@ void *lbbt_init(void **ids, int n, int add_strat, int trunc_strat) {
     perror("malloc returned NULL");
     return NULL;
   }
-  
-  //struct List *nonblanks = malloc(sizeof(struct List));
-  //if (nonblanks == NULL) {
-  //	perror("malloc returned NULL");
-  //	return NULL;
-  //}
-  //initList(nonblanks);
-  //tree->nonblanks = nonblanks;
-  
-  struct Node *root = root_init(n, 0, ids, NULL);
+
+  //TODO: make sure users added so that front is most recently added
+  struct Node *root = root_init(n, 0, ids, users);
   root->parent = NULL;
   
   tree->root = root;
@@ -155,7 +149,6 @@ struct Node *lbbt_append(struct LBBT *lbbt, struct Node *node, void *data, struc
     leaf->children = NULL;
     leaf->num_leaves = 1;
     leaf->rightmost_blank = NULL;
-    //addFront(lbbt->nonblanks, (void *) leaf);
     
     struct Node *root = malloc(sizeof(struct Node));
     if (root == NULL) {
@@ -219,7 +212,6 @@ struct Node *lbbt_add(void *tree, void *data) {
 	new_leaf->data = data;
 	new_leaf->rightmost_blank = NULL;
 	augment_blanks(new_leaf->parent);
-	//addFront(lbbt->nonblanks, (void *) blank);
 	//printf("not implemented yet.");
       }
     break;
