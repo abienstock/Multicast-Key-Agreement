@@ -112,26 +112,25 @@ int main()
 
   traverseList(&list, &printDouble);
 
-  double x = 1.0;
-  struct ListNode *found = findNode(&list, &x, &compareDouble);
+  int x = 1;
+  struct ListNode *found = findNode(&list, 0);
   printf("\nfound: %.1f\n", *(double *)found->data);
   printf("list len: %d\n", list.len);
 
-  x = 1.0;
-  double y = 9.0;
-  double z = 5.0;
+  int y = 9;
+  int z = 5;
   printf("testing findAndRemoveNode(): ");
-  void *ret = findAndRemoveNode(&list, &x, &compareDouble);
+  void *ret = findAndRemoveNode(&list, x);
   printf("\nfound: %.1f\n", *(double *)ret);
   printf("list len: %d\n", list.len);
   traverseList(&list, &printDouble);
   traverseListBackwards(&list, &printDouble);  
-  ret = findAndRemoveNode(&list, &y, &compareDouble);
+  ret = findAndRemoveNode(&list, y);
   printf("\nfound: %.1f\n", *(double *)ret);
   printf("list len: %d\n", list.len);
   traverseList(&list, &printDouble);
   traverseListBackwards(&list, &printDouble);  
-  ret = findAndRemoveNode(&list, &z, &compareDouble);
+  ret = findAndRemoveNode(&list, z);
   printf("\nfound: %.1f\n", *(double *)ret);
   printf("list len: %d\n", list.len);
   traverseList(&list, &printDouble);

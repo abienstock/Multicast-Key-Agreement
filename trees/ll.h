@@ -56,28 +56,22 @@ void traverseList(struct List *list, void (*f)(void *));
  */
 void traverseListBackwards(struct List *list, void (*f)(void *));
 /*
- * Traverse the list backwards, comparing each data item with 'dataSought' using
- * 'compar' function.  ('compar' returns 0 if the data pointed to by
- * the two parameters are equal, non-zero value otherwise.)
+ * Traverse the list until the ith node is found.
  *
- * Returns the first node containing the matching data, 
- * NULL if not found.
+ * Returns the ith node,
+ * NULL if less than i nodes.
  */
-struct ListNode *findNode(struct List *list, const void *dataSought,
-	int (*compar)(const void *, const void *));
+struct ListNode *findNode(struct List *list, int i);
 /*
- * Traverse the list backwards, comparing each data item with 'dataSought' using
- * 'compar' function.  ('compar' returns 0 if the data pointed to by
- * the two parameters are equal, non-zero value otherwise.)
+ * Traverse the list until the ith node is found.
  *
- * Removes and deallocates the memory for the node containing the matching data,
+ * Removes and deallocates the memory for the ith node,
  * does nothing if not found.
  *
  * Returns the data of the removed node if found,
  * returns NULL otherwise.
  */
-void *findAndRemoveNode(struct List *list, const void *dataSought,
-	int (*compar)(const void *, const void *));
+void *findAndRemoveNode(struct List *list, int i);
 
 /*
  * Returns 1 if the list is empty, 0 otherwise.

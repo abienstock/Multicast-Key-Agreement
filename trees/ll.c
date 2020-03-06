@@ -44,22 +44,22 @@ void traverseListBackwards(struct List *list, void (*f)(void *)) {
     }
 }
 
-struct ListNode *findNode(struct List *list, const void *dataSought,
-		      int (*compar)(const void *, const void *)) {
-  struct ListNode *curr = list->tail;
+struct ListNode *findNode(struct List *list, int i) {
+  struct ListNode *curr = list->head;
+  int j = 0;
   while(curr != 0)
     {
-      if (!compar(dataSought, (const void *)curr->data))
-	  return curr;
+      if (j == i) //TODO: i 0-indexed??
+	return curr;
       curr = curr->prev;
+      j++;
     }
   return NULL;
 }
 
 //new func
-void *findAndRemoveNode(struct List *list, const void *dataSought,
-		      int (*compar)(const void *, const void *)) {
-  struct ListNode *rem = findNode(list, dataSought, compar);
+void *findAndRemoveNode(struct List *list, int i) {
+  struct ListNode *rem = findNode(list, i);
   if (rem != NULL) {
     void *data = rem->data; // TODO: necessary???    
     if (list->head == rem) {
