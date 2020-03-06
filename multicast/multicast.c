@@ -6,7 +6,7 @@
 //void *multicast_init(int tree_type, void *tree_flags, int n, int distrib, float add_wt, )
 
 struct Node *mult_add(struct Multicast *multicast, void *data) {
-  struct Node *added;
+  struct Node *added = NULL;
   if (multicast->tree_type == 0)
     added = gen_tree_add(multicast->tree, data, &lbbt_add);
   //  else
@@ -23,4 +23,5 @@ void *mult_rem(struct Multicast *multicast, struct Node *user) { //TODO: user sh
       return gen_tree_rem(multicast->tree, user, &lbbt_rem);
     //    else
     //      gen_tree_rem(multicast->tree, user, &btree_rem);
+    return NULL;
 }

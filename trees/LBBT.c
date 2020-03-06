@@ -269,7 +269,7 @@ struct ListNode *find_prev_blank(struct Node *node, struct Node *prev_node) {
 
 void *lbbt_rem(void *tree, struct Node *node) {
   struct LBBT *lbbt = (struct LBBT *) tree;
-  void *data;
+  void *data = NULL;
   
   switch (lbbt->trunc_strat) {
   case 0: //truncate

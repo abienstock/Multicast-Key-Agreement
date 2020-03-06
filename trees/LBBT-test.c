@@ -27,13 +27,13 @@ int main() {
   void **ids = malloc(sizeof(void *) * n);
   if (ids == NULL) {
     perror("malloc returned NULL");
-    return NULL;
+    return -1;
   }
   for (i = 0; i < n; i++) {
     int *data = malloc(sizeof(int));
     if (data == NULL) {
       perror("malloc returned NULL");
-      return NULL;
+      return -1;
     }
     *data = i;
     *(ids + i) = (void *) data;
@@ -46,7 +46,7 @@ int main() {
   struct List *users = malloc(sizeof(struct List));
   if (users == NULL) {
     perror("malloc returned NULL");
-    return NULL;
+    return -1;
   }
   initList(users);
 
@@ -64,7 +64,7 @@ int main() {
     int *add_data = malloc(sizeof(int));
     if (add_data == NULL) {
       perror("malloc returned NULL");
-      return NULL;
+      return -1;
     }
     *add_data = i;
     struct Node *added = lbbt_add(lbbt, (void *) add_data);
@@ -93,7 +93,7 @@ int main() {
   int *add_data = malloc(sizeof(int));
   if (add_data == NULL) {
     perror("malloc returned NULL");
-    return NULL;
+    return -1;
   }
   *add_data = n+a1;
   struct Node *added = lbbt_add(lbbt, (void *) add_data);
@@ -113,7 +113,7 @@ int main() {
     int *add_data = malloc(sizeof(int));
     if (add_data == NULL) {
       perror("malloc returned NULL");
-      return NULL;
+      return -1;
     }
     *add_data = i;
     struct Node *added = lbbt_add(lbbt, (void *) add_data);
