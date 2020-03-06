@@ -22,7 +22,8 @@ void destroy_tree(struct Node *root){
     destroy_tree(*(root->children +1));
     free(root->children);
   }
-  free(root->data);
+  if (root->data != NULL)
+    free(root->data);
   free(root);
 }
 
@@ -34,12 +35,22 @@ void pretty_traverse_tree(struct Node *root, int space, void (*f)(void *)) {
     for (i = COUNT; i < space; i++)
       printf(" ");
     f(root);
+    if (root->parent != NULL) {
+      printf(" parent: ");
+      f(root->parent);
+    }
+    printf("\n");    
   } else {
     pretty_traverse_tree(*(root->children+1), space, f);
     printf("\n");
     for (i = COUNT; i < space; i++)
       printf(" ");
     f(root);
+    if (root->parent != NULL) {
+      printf(" parent: ");
+      f(root->parent);
+    }
+    printf("\n");    
     pretty_traverse_tree(*(root->children), space, f);
   }
 }

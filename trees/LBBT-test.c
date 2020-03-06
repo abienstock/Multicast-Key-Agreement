@@ -14,9 +14,9 @@ static void printIntLine(void *p)
 {
   struct Node *node = (struct Node *) p;
   if (node->data == NULL)
-    printf("blank \n");
+    printf("blank");
   else
-    printf("%d \n", *(int *)node->data);
+    printf("%d", *(int *)node->data);
 }
 
 int main() {
