@@ -18,9 +18,9 @@ void mult_update(struct Multicast *multicast, struct Node *user) { //TODO: user 
   gen_tree_upd(multicast->tree, user);
 }
 
-void mult_rem(struct Multicast *multicast, struct Node *user) { //TODO: user should be node??
+void *mult_rem(struct Multicast *multicast, struct Node *user) { //TODO: user should be node??
     if (multicast->tree_type == 0)
-      gen_tree_rem(multicast->tree, user, &lbbt_rem);
+      return gen_tree_rem(multicast->tree, user, &lbbt_rem);
     //    else
     //      gen_tree_rem(multicast->tree, user, &btree_rem);
 }
