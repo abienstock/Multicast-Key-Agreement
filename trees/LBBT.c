@@ -284,7 +284,7 @@ void *lbbt_rem(void *tree, struct Node *node) {
     augment_blanks(node->parent);
     
     struct Node *new_rightmost = NULL; // rightmost leaf in tree (even blank)
-    truncate(lbbt, lbbt->root, &new_rightmost);
+    truncate(lbbt, lbbt->root, new_rightmost);
     if(new_rightmost != NULL) { //TODO: more efficient way to do this??
       printf("new rightmost: %d\n", *(int *)new_rightmost->data);
       augment_blanks(new_rightmost);
