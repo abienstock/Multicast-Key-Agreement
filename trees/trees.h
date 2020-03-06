@@ -28,13 +28,13 @@ struct Node **get_path(struct Node *node);
 
 struct Node **get_copath(struct Node *node);
 
-struct Node *tree_init(void **ids, int n, int add_strat, int trunc_strat, void *(*treeInit)(void **, int, int, int));
+struct Node *gen_tree_init(void **ids, int n, int add_strat, int trunc_strat, void *(*treeInit)(void **, int, int, int));
 
-struct Node *tree_add(void *tree, void *data, struct Node * (*tree_add)(void *, void *));
+struct Node *gen_tree_add(void *tree, void *data, struct Node * (*tree_add)(void *, void *));
 
-void *tree_rem(void *tree, struct Node *node, void *(*tree_rem)(void *, struct Node *));
+void *gen_tree_rem(void *tree, struct Node *node, void *(*tree_rem)(void *, struct Node *));
 
-struct Node *tree_upd(void *tree, struct Node *node); //, void (*tree_upd)(void *, struct Node *));
+void gen_tree_upd(void *tree, struct Node *node); //, void (*tree_upd)(void *, struct Node *));
 
 void traverse_tree(struct Node *root, void (*f)(void *));
 
