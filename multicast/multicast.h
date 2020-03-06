@@ -12,4 +12,4 @@ struct Node *mult_add(struct Multicast *multicast, void *data); //TODO: data is 
 
 void mult_update(struct Multicast *mluticast, struct Node *user);
 
-void mult_rem(struct Muticast *multicast, struct Node *user);
+void mult_rem(struct Multicast *multicast, struct Node *user);
