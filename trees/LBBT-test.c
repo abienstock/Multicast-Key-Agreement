@@ -148,6 +148,9 @@ int main() {
   free(lbbt->blanks);
   free(lbbt);
 
+  removeAllNodes(users);
+  free(users);
+
   free(ids);
 
   return 0;

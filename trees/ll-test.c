@@ -137,6 +137,8 @@ int main()
   traverseList(&list, &printDouble);
   traverseListBackwards(&list, &printDouble);  
   
+
+  removeAllNodes(&list);
   
   return 0;
 }
