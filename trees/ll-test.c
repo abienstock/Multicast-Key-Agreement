@@ -112,12 +112,12 @@ int main()
 
   traverseList(&list, &printDouble);
 
-  int x = 1;
-  struct ListNode *found = findNode(&list, 0);
+  int x = 0;
+  struct ListNode *found = findNode(&list, x);
   printf("\nfound: %.1f\n", *(double *)found->data);
   printf("list len: %d\n", list.len);
 
-  int y = 9;
+  int y = 7;
   int z = 5;
   printf("testing findAndRemoveNode(): ");
   void *ret = findAndRemoveNode(&list, x);

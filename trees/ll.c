@@ -51,7 +51,7 @@ struct ListNode *findNode(struct List *list, int i) {
     {
       if (j == i) //TODO: i 0-indexed??
 	return curr;
-      curr = curr->prev;
+      curr = curr->next;
       j++;
     }
   return NULL;
