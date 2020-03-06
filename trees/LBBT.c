@@ -19,7 +19,7 @@ struct Node *init_perfect(int h, int leftmost_id, void **ids, struct List *users
    if (h == 0) {
      root->data = *(ids+leftmost_id);     
      root->children = NULL;
-     addFront(users, (void *) root);     
+     addAfter(users, users->tail, (void *) root);
      return root;
    }
 
@@ -92,7 +92,7 @@ struct Node *root_init(int n, int leftmost_id, void **ids, struct List *users){
   } else {
     root->data = *(ids+leftmost_id);
     root->children = NULL;
-    addFront(users, (void *) root);
+    addAfter(users, users->tail, (void *) root);
   }
   
   return root;
