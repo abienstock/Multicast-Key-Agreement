@@ -1,10 +1,22 @@
 CC = gcc
+CXX = g++
 
-CFLAGS = -g -Wall
+INCLUDES =
 
-driver: driver.o
+CFLAGS = -g -Wall $(INCLUDES)
+CXXFLAGS = -g -Wall $(INCLUDES)
 
-driver.o: driver.c
+LDFLAGS = -g -lm
+
+LDLIBS =
+
+trees := trees/
+multicast := multicast/
+libs := $(trees) $(multicast)
+
+driver: driver.o trees/tree-utils.o trees/LBBT.o trees/ll.o multicast/multicast.o
+
+driver.o: driver.c trees/trees.h trees/ll.h multicast/multicast.h
 
 .PHONY: clean
 clean:
