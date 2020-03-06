@@ -18,6 +18,7 @@ struct ListNode {
 struct List {
   struct ListNode *head;
   struct ListNode *tail;
+  int len;
 };
 
 /*
@@ -27,6 +28,7 @@ static inline void initList(struct List *list)
 {
   list->head = 0;
   list->tail = 0;
+  list->len = 0;
 }
 
 /*
@@ -54,13 +56,28 @@ void traverseList(struct List *list, void (*f)(void *));
  */
 void traverseListBackwards(struct List *list, void (*f)(void *));
 /*
- * Traverse the list, comparing each data item with 'dataSought' using
+ * Traverse the list backwards, comparing each data item with 'dataSought' using
  * 'compar' function.  ('compar' returns 0 if the data pointed to by
  * the two parameters are equal, non-zero value otherwise.)
  *
  * Returns the first node containing the matching data, 
  * NULL if not found.
  */
+struct ListNode *findNode(struct List *list, const void *dataSought,
+	int (*compar)(const void *, const void *));
+/*
+ * Traverse the list backwards, comparing each data item with 'dataSought' using
+ * 'compar' function.  ('compar' returns 0 if the data pointed to by
+ * the two parameters are equal, non-zero value otherwise.)
+ *
+ * Removes and deallocates the memory for the node containing the matching data,
+ * does nothing if not found.
+ *
+ * Returns the data of the removed node if found,
+ * returns NULL otherwise.
+ */
+void *findAndRemoveNode(struct List *list, const void *dataSought,
+	int (*compar)(const void *, const void *));
 
 /*
  * Returns 1 if the list is empty, 0 otherwise.

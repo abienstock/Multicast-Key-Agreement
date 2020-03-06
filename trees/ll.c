@@ -21,6 +21,7 @@ struct ListNode *addFront(struct List *list, void *data) {
   head->next = list->head;
   
   list->head = head;
+  list->len++;
   return head;
 }
 
@@ -43,6 +44,39 @@ void traverseListBackwards(struct List *list, void (*f)(void *)) {
     }
 }
 
+struct ListNode *findNode(struct List *list, const void *dataSought,
+		      int (*compar)(const void *, const void *)) {
+  struct ListNode *curr = list->tail;
+  while(curr != 0)
+    {
+      if (!compar(dataSought, (const void *)curr->data))
+	  return curr;
+      curr = curr->prev;
+    }
+  return NULL;
+}
+
+//new func
+void *findAndRemoveNode(struct List *list, const void *dataSought,
+		      int (*compar)(const void *, const void *)) {
+  struct ListNode *rem = findNode(list, dataSought, compar);
+  if (rem != NULL) {
+    void *data = rem->data; // TODO: necessary???    
+    if (list->head == rem) {
+      return popFront(list);
+    } else if (list->tail == rem) {
+      return popBack(list);
+    } else {
+      rem->prev->next = rem->next;
+      rem->next->prev = rem->prev;
+      free(rem);
+      list->len--;
+      return data;
+    }
+  }
+  return NULL;
+}
+
 void *popFront(struct List *list) {
   if (list->head == 0)
     return NULL;
@@ -55,6 +89,7 @@ void *popFront(struct List *list) {
     list->tail = 0; //new line
   void *data = head->data;
   free(head);
+  list->len--;
   return data;
 }
 
@@ -71,6 +106,7 @@ void *popBack(struct List *list) {
     list->head = 0; //new line
   void *data = tail->data;
   free(tail);
+  list->len--;
   return data;
 }
 
@@ -99,5 +135,6 @@ struct ListNode *addAfter(struct List *list,
   else 
     list->tail = new_node;
   prevNode->next = new_node;
+  list->len++;
   return new_node;
 }
