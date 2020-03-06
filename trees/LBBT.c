@@ -250,6 +250,7 @@ struct Node *truncate(struct LBBT *lbbt, struct Node *node, struct Node *new_rig
   struct Node *replacement = truncate(lbbt, *(node->children), new_rightmost);
   if (node == lbbt->root) {
     lbbt->root = replacement;
+    replacement->parent = NULL;
   }
   free(node->children);
   free(node->data);
