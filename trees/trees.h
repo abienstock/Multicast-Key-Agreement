@@ -28,13 +28,13 @@ struct Node **get_path(struct Node *node);
 
 struct Node **get_copath(struct Node *node);
 
-struct Node *init(void **ids, int n, int add_strat, int trunc_strat, void *(*treeInit)(void **, int, int, int));
+struct Node *tree_init(void **ids, int n, int add_strat, int trunc_strat, void *(*treeInit)(void **, int, int, int));
 
-struct Node *add(void *tree, void *data, struct Node * (*tree_add)(void *, void *));
+struct Node *tree_add(void *tree, void *data, struct Node * (*tree_add)(void *, void *));
 
-void *rem(void *tree, struct Node *node, void *(*tree_rem)(void *, struct Node *));
+void *tree_rem(void *tree, struct Node *node, void *(*tree_rem)(void *, struct Node *));
 
-struct Node *update(void *tree, struct Node *node, void (*tree_upd)(void *, struct Node *));
+struct Node *tree_upd(void *tree, struct Node *node); //, void (*tree_upd)(void *, struct Node *));
 
 void traverse_tree(struct Node *root, void (*f)(void *));
 
@@ -43,13 +43,13 @@ void pretty_traverse_tree(struct Node *root, int space, void (*f)(void *));
 //DESTROYS ALL DATA TOO
 void destroy_tree(struct Node *root);
 
-void *lbbt_init(void **ids, int n, int add_strat, int trunc_strat);
+void *lbbt_init(void **ids, int n, int add_strat, int trunc_strat, struct List *users);
 
 struct Node *lbbt_add(void *tree, void *data);
 
 void *lbbt_rem(void *tree, struct Node *node);
 
-void lbbt_upd(void *tree, struct Node *node);
+//void lbbt_upd(void *tree, struct Node *node);
 
 void *btree_init(int n);
 
@@ -57,4 +57,4 @@ struct Node *btree_add(void *tree, void *data);
 
 void *btree_rem(void *tree, struct Node *node);
 
-void btree_upd(void *tree, struct Node *node);
+//void btree_upd(void *tree, struct Node *node);
