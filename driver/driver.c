@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include "trees/trees.h"
-#include "trees/ll.h"
-#include "multicast/multicast.h"
+#include "../trees/trees.h"
+#include "../trees/ll.h"
+#include "../multicast/multicast.h"
 
 /*static void printIntLine(void *p)
 {

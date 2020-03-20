@@ -27,7 +27,7 @@ ll.o: ll.c ll.h
 
 .PHONY: clean
 clean:
-	rm -f *.o *~ ll-test LBBT-test
+	rm -f *.o *~ ll-test LBBT-test #*
 
 .PHONY: all
 all: clean ll-test LBBT-test

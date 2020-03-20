@@ -14,7 +14,7 @@ multicast.o: multicast.c multicast.h ../trees/trees.h
 
 .PHONY: clean
 clean:
-	rm -f *.o
+	rm -f *.o *~ #*
 
 .PHONY: all
 all: clean multicast.o

@@ -10,17 +10,24 @@ LDFLAGS = -g -lm -O2
 
 LDLIBS =
 
-trees := trees/
-multicast := multicast/
-libs := $(trees) $(multicast)
+SUBDIRS = driver multicast trees
+BUILDDIRS = $(SUBDIRS:%=build-%)
+CLEANDIRS = $(SUBDIRS:%=clean-%)
 
-driver: driver.o trees/tree-utils.o trees/LBBT.o trees/ll.o multicast/multicast.o
+all: clean $(BUILDDIRS)
+$(DIRS): $(BUILDDIRS)
+$(BUILDDIRS):
+	$(MAKE) -C $(@:build-%=%) all
 
-driver.o: driver.c trees/trees.h trees/ll.h multicast/multicast.h
+driver:
+	$(MAKE) -C driver all
 
-.PHONY: clean
-clean:
-	rm -f *.o a.out driver
+clean: $(CLEANDIRS)
+$(CLEANDIRS):
+	$(MAKE) -C $(@:clean-%=%) clean
 
-.PHONY: all
-all: clean driver
+
+.PHONY: subdirs $(SUBDIRS)
+.PHONY: subdirs $(BUILDDIRS)
+.PHONY: subdirs $(CLEANDIRS)
+.PHONY: all clean
