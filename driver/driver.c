@@ -66,48 +66,35 @@ int next_op(struct Multicast *multicast, float add_wt, float upd_wt, int distrib
   }
 }
 
-int main()
-{
-  int n, k, lbbt_adds, lbbt_trunc, btree_adds, btree_deg, distrib;
+int main(int argc, char *argv[]) {
+  int n, distrib;
   float add_wt, upd_wt, geo_param;
 
   srand(time(0));
-  
-  printf("Please enter your sequence options: ([init group size] [num ops] [add weight] [update weight])\n");
-  scanf("%d", &n);
-  scanf("%d", &k);
-  scanf("%f", &add_wt);
-  scanf("%f", &upd_wt);
+
+  if (argc != 10 && argc != 11) {
+    printf("Usage: [init group size] [num ops] [add weight] [update weight] [LBBT addition strategy] [LBBT truncation strategy] [B-tree addition strategy] [B-tree degree] [operation distribution] [geometric distribution parameter] \n\nParameter Description:\n[init group size]: number of users in group at initialization\n[num ops]: number of group operations\n[add weight]: probability that a given operation will be an add (in [0,1])\n[update weight]: probability that a given operation will be an update (in [0,1]). Note: add weight + update weight must be in [0,1], remove weight = 1 - add weight - remove weight (probability that a given operation will be a remove)\n[LBBT addition strategy]: The strategy used to add users in an LBBT tree -- 0 = greedy, 1 = random, 2 = append, 3 = compare all\n[LBBT truncation strategy]: The strategy used to truncate the LBBT tree after removals -- 0 = truncate, 1 = keep, 2 = compare all\n[B-tree addition strategy]: The strategy used to add users in B trees -- 0 = greedy, 1 = random, 2 = compare both\n[B-tree degree]: Degree of the B-tree -- 3 = 3, 4 = 4, 0 = compare both\n[operation distribution]: The distribution for choosing which users to perform operations (and for the user to be removed, if the operation is a removal) -- 0 = uniform, 1 = geometric\n[geometric distribution parameter]: The p parameter of the geometric distribution, if chosen\n");
+    exit(0);
+  }
+
+  n = atoi(argv[1]);
+  distrib = atoi(argv[9]);
+  add_wt = atof(argv[3]);
+  upd_wt = atof(argv[4]);
+
   if(add_wt + upd_wt > 1 || add_wt < 0 || upd_wt < 0) {
     perror("Weights must not be negative nor sum to greater than 1");
     exit(1);
   }
   //rem_wt = 1 - add_wt - upd_wt;
   
-  printf("n: %d, k: %d, aw: %f, uw: %f\n", n, k, add_wt, upd_wt);
-  
-  printf("For LBBTs, select how you would like additions to be performed: (0: greedy, 1: random, 2: append, 3: compare all)\n Also how you would like truncation to be performed: (0: truncate, 1: keep, 2: compare all)\n");
-  scanf("%d", &lbbt_adds);
-  scanf("%d", &lbbt_trunc);
-  
-  printf("For B trees, select how you would like additions to be performed: (0: greedy, 1: random, 3: compare both); also select the degree of the tree: (3: 3, 4: 4, 0: compare both)\n");
-  scanf("%d", &btree_adds);
-  scanf("%d", &btree_deg);
-  printf("lbbt adds: %d, lbbt trunc: %d, btree adds: %d, btree deg: %d\n", lbbt_adds, lbbt_trunc, btree_adds, btree_deg);
-  
-  printf("What would you like the distribution used for choosing users to perform operations (and for the user to be removed, if the operation is a removal) to be: (0: uniform, 1: geometric)\n");
-  scanf("%d", &distrib);
-  printf("distribution: %d\n", distrib);
   if(distrib == 1) {
-    printf("What would you like the p parameter to be set to?\n");
-    scanf("%f", &geo_param);
+    geo_param = atof(argv[10]);
     if(geo_param >= 1 || geo_param <=0) {
       perror("p has to be 0 < p < 1");
       exit(1);
     }
-    printf("%f\n", geo_param);
   }
-  
   
   struct List *users = malloc(sizeof(struct List));
   if (users == NULL) {
@@ -138,7 +125,7 @@ int main()
     *data = i;
     *(ids + i) = (void *) data;    
   }
-  struct LBBT *lbbt = lbbt_init(ids, n, lbbt_adds, lbbt_trunc, users);
+  struct LBBT *lbbt = lbbt_init(ids, n, atoi(argv[5]), atoi(argv[6]), users);
   *max_id = n-1;
   
   int *counts = malloc(sizeof(int) * 1); //TODO: just counting encs for now
@@ -160,7 +147,7 @@ int main()
 
   int ops[3] = { 0, 0, 0 };
   
-  for (i=0; i<k; i++) {
+  for (i = 0; i < atoi(argv[2]); i++) {
     ops[next_op(lbbt_multicast, add_wt, upd_wt, distrib, geo_param, max_id)]++;
   }
 
