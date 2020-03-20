@@ -96,74 +96,27 @@ int main(int argc, char *argv[]) {
     }
   }
   
-  struct List *users = malloc(sizeof(struct List));
-  if (users == NULL) {
-    perror("malloc returned NULL");
-    return -1;
-  }
-  initList(users); // new users added to front
-  
-  void **ids = malloc(sizeof(void *) * n);
-  if (ids == NULL) {
-    perror("malloc returned NULL");
-    return -1;
-  }
-  
-  int i;
+  int lbbt_flags[2] = { atoi(argv[5]), atoi(argv[6]) };
+
   int *max_id = malloc(sizeof(int));
   if (max_id == NULL) {
     perror("malloc returned NULL");
     return -1;
   }
-  
-  for (i = 0; i < n; i++) {
-    int *data = malloc(sizeof(int));
-    if (data == NULL) {
-      perror("malloc returned NULL");
-      return -1;
-    }
-    *data = i;
-    *(ids + i) = (void *) data;    
-  }
-  struct LBBT *lbbt = lbbt_init(ids, n, atoi(argv[5]), atoi(argv[6]), users);
   *max_id = n-1;
-  
-  int *counts = malloc(sizeof(int) * 1); //TODO: just counting encs for now
-  if (counts == NULL) {
-    perror("malloc returned NULL");
-    return -1;
-  }
-  *counts = 0;
-  
-  struct Multicast *lbbt_multicast = malloc(sizeof(struct Multicast));
-  if (lbbt_multicast == NULL) {
-    perror("malloc returned NULL");
-    return -1;
-  }
-  struct Multicast multicast = { 1, users, (void *) lbbt, counts, 0 }; //TODO: fix this
-  *lbbt_multicast = multicast;
+
+  struct Multicast *lbbt_multicast = mult_init(n, lbbt_flags, 0);
 
   //pretty_traverse_tree(((struct LBBT *)lbbt_multicast->tree)->root, 0, &printIntLine);
 
   int ops[3] = { 0, 0, 0 };
-  
+
+  int i;
   for (i = 0; i < atoi(argv[2]); i++) {
     ops[next_op(lbbt_multicast, add_wt, upd_wt, distrib, geo_param, max_id)]++;
   }
 
   printf("# adds: %d, # updates: %d, # rems %d\n", ops[0], ops[1], ops[2]);
-
-  destroy_tree(((struct LBBT *) lbbt_multicast->tree)->root);
-  removeAllNodes(((struct LBBT *) lbbt_multicast->tree)->blanks);
-  free(((struct LBBT *) lbbt_multicast->tree)->blanks);
-  free(lbbt_multicast->tree);
-
-  removeAllNodes(users);
-  free(users);
-
-  free(ids);
-  free(counts);
-  free(lbbt_multicast);
 
   free(max_id);
 
