@@ -112,9 +112,9 @@ void *lbbt_init(void **ids, int n, int add_strat, int trunc_strat, struct List *
 
   //TODO: make sure users added so that front is most recently added
   struct Node *root = root_init(n, 0, ids, users);
-  root->parent = NULL;
-  
+  root->parent = NULL;  
   tree->root = root;
+  tree->rightmost_leaf = (struct Node *) users->tail->data; // TODO: FIX!! THIS IS A HACK!
   
   struct List *blanks = malloc(sizeof(struct List));
   if (blanks == NULL) {
@@ -125,6 +125,7 @@ void *lbbt_init(void **ids, int n, int add_strat, int trunc_strat, struct List *
   tree->blanks = blanks;
   tree->add_strat = add_strat;
   tree->trunc_strat = trunc_strat;
+
   return (void *) tree;
 }
 
@@ -182,7 +183,7 @@ struct Node *lbbt_append(struct LBBT *lbbt, struct Node *node, void *data, struc
     leaf->parent = root;
     node->parent = root;
 
-    *new_leaf = leaf;
+    *new_leaf = leaf; // TODO: check this works
     return root;
   }
   struct Node *new_right = lbbt_append(lbbt, *(node->children+1), data, new_leaf); 
@@ -222,23 +223,24 @@ struct Node *lbbt_add(void *tree, void *data) {
   }
   if (new_leaf == NULL) {
     lbbt_append(lbbt, lbbt->root, data, &new_leaf); // returns new root
+    lbbt->rightmost_leaf = new_leaf;
   }
   return new_leaf;
 }
 
 // TODO: optimize if right child subtree is all blanks??? -- prob wouldn't do much since O(log n) anyway
-struct Node *truncate(struct LBBT *lbbt, struct Node *node, struct Node *new_rightmost) {
+struct Node *truncate(struct LBBT *lbbt, struct Node *node) {
   if (node->data == NULL) {
     popBack(lbbt->blanks);
     free(node);
     return NULL;
   }
   if (node->children == NULL) {
-    new_rightmost = node;
+    lbbt->rightmost_leaf = node;
     return node;
   }
 
-  struct Node *trunc_child = truncate(lbbt, *(node->children+1), new_rightmost); //TODO: check this dereferencing is correct (should be good)
+  struct Node *trunc_child = truncate(lbbt, *(node->children+1)); //TODO: check this dereferencing is correct (should be good)
   if (trunc_child != NULL) {
     *(node->children+1) = trunc_child; // This is probably faster than having an if statement??
     node->num_leaves = (*(node->children))->num_leaves + trunc_child->num_leaves;
@@ -247,7 +249,7 @@ struct Node *truncate(struct LBBT *lbbt, struct Node *node, struct Node *new_rig
     return node;
   }
   
-  struct Node *replacement = truncate(lbbt, *(node->children), new_rightmost);
+  struct Node *replacement = truncate(lbbt, *(node->children));
   if (node == lbbt->root) {
     lbbt->root = replacement;
     replacement->parent = NULL;
@@ -282,13 +284,13 @@ void *lbbt_rem(void *tree, struct Node *node) {
     struct ListNode *prev_blank = find_prev_blank(node->parent, node);
     struct ListNode *new_list_node = addAfter(lbbt->blanks, prev_blank, node);
     node->rightmost_blank = new_list_node;
-    augment_blanks(node->parent);
+    augment_blanks(node->parent); // TODO: smarter way to do this?
     
-    struct Node *new_rightmost = NULL; // rightmost leaf in tree (even blank)
-    truncate(lbbt, lbbt->root, new_rightmost);
-    if(new_rightmost != NULL) { //TODO: more efficient way to do this??
-      printf("new rightmost: %d\n", *(int *)new_rightmost->data);
-      augment_blanks(new_rightmost);
+    struct Node *old_rightmost = lbbt->rightmost_leaf;
+    lbbt->rightmost_leaf = NULL; // TODO: rightmost leaf in tree: NEED TO FIX
+    truncate(lbbt, lbbt->root);
+    if (lbbt->rightmost_leaf != old_rightmost) { //TODO: more efficient way to do this??
+      augment_blanks(lbbt->rightmost_leaf->parent);
     }
     break;
   case 1: //keep

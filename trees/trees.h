@@ -14,6 +14,7 @@ struct LBBT {
   int add_strat;
   int trunc_strat;
   struct List *blanks;
+  struct Node *rightmost_leaf;
   //struct List *nonblanks; // TODO: should this be ll? -- for clients to choose removal??
 };
 
