@@ -88,6 +88,7 @@ int main(int argc, char *argv[]) {
   }
   //rem_wt = 1 - add_wt - upd_wt;
   
+  geo_param = 0;
   if(distrib == 1) {
     geo_param = atof(argv[10]);
     if(geo_param >= 1 || geo_param <=0) {
@@ -118,6 +119,7 @@ int main(int argc, char *argv[]) {
 
   printf("# adds: %d, # updates: %d, # rems %d\n", ops[0], ops[1], ops[2]);
 
+  mult_destroy(lbbt_multicast);
   free(max_id);
 
   return 0;
