@@ -39,6 +39,12 @@ void pretty_traverse_tree(struct Node *root, int space, void (*f)(void *)) {
       printf(" parent: ");
       f(root->parent);
     }
+    if (root->rightmost_blank != NULL) {
+      printf(" rightmost blank: ");
+      f(root->rightmost_blank->data);
+    } else {
+      printf(" no rightmost blank");
+    }
     printf("\n");    
   } else {
     pretty_traverse_tree(*(root->children+1), space, f);
@@ -49,6 +55,12 @@ void pretty_traverse_tree(struct Node *root, int space, void (*f)(void *)) {
     if (root->parent != NULL) {
       printf(" parent: ");
       f(root->parent);
+    }
+    if (root->rightmost_blank != NULL) {
+      printf(" rightmost blank: ");
+      f(root->rightmost_blank->data);
+    } else {
+      printf(" no rightmost blank");
     }
     printf("\n");    
     pretty_traverse_tree(*(root->children), space, f);
