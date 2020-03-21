@@ -54,7 +54,7 @@ int main() {
   pretty_traverse_tree(lbbt->root, 0, &printIntLine);
   printf("traverse users list:\n");
   traverseList(users, &printIntLine);
-  
+  printf("rightmost leaf: %d\n", *(int *) lbbt->rightmost_leaf->data);  
 
   printf("\n\n\n==================================\n");
   printf("testing add: \n");
@@ -73,6 +73,7 @@ int main() {
     pretty_traverse_tree(lbbt->root, 0, &printIntLine);
     printf("traverse users list:\n");
     traverseList(users, &printIntLine);    
+    printf("rightmost leaf: %d\n", *(int *) lbbt->rightmost_leaf->data);
   }
 
   printf("\n\n\n==================================\n");
@@ -87,6 +88,7 @@ int main() {
   pretty_traverse_tree(lbbt->root, 0, &printIntLine);
   printf("\n traverse blank list \n");
   traverseList(lbbt->blanks, &printIntLine);
+  printf("rightmost leaf: %d\n", *(int *) lbbt->rightmost_leaf->data);
 
   printf("\n\n\n==================================\n");
   printf("testing add in blank \n");
@@ -105,6 +107,7 @@ int main() {
   traverseList(lbbt->blanks, &printIntLine);
 
   pretty_traverse_tree(lbbt->root, 0, &printIntLine);
+  printf("rightmost leaf: %d\n", *(int *) lbbt->rightmost_leaf->data);
 
   printf("\n\n\n==================================\n");
   printf("testing truncate\n");
@@ -122,6 +125,7 @@ int main() {
     pretty_traverse_tree(lbbt->root, 0, &printIntLine);
     printf("traverse users list:\n");
     traverseList(users, &printIntLine);    
+    printf("rightmost leaf: %d\n", *(int *) lbbt->rightmost_leaf->data);
   }
 
   int remove_nodes[3] = {2, 2, 1};
@@ -134,6 +138,7 @@ int main() {
     pretty_traverse_tree(lbbt->root, 0, &printIntLine);    
     printf("\n traverse blank list \n");
     traverseList(lbbt->blanks, &printIntLine);
+    printf("rightmost leaf: %d\n", *(int *) lbbt->rightmost_leaf->data);
     free(data);
   }
 
