@@ -9,7 +9,7 @@ struct Multicast *mult_init(int n, int *tree_flags, int tree_type) {
     perror("malloc returned NULL");
     return NULL;
   }
-  initList(users); // new users added to front
+  initList(users);
   
   void **ids = malloc(sizeof(void *) * n);
   if (ids == NULL) {

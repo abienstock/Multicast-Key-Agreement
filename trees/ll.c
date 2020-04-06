@@ -12,12 +12,12 @@ struct ListNode *addFront(struct List *list, void *data) {
       return NULL;
     }
   head->data = data;
-  //new if
+  
   if (list->head !=0) 
-    list->head->prev = head; //new line
+    list->head->prev = head;
   else
-    list->tail = head; //new line
-  head->prev = 0; //new line
+    list->tail = head;
+  head->prev = 0;
   head->next = list->head;
   
   list->head = head;
@@ -49,7 +49,7 @@ struct ListNode *findNode(struct List *list, int i) {
   int j = 0;
   while(curr != 0)
     {
-      if (j == i) //TODO: i 0-indexed??
+      if (j == i)
 	return curr;
       curr = curr->next;
       j++;
@@ -57,11 +57,10 @@ struct ListNode *findNode(struct List *list, int i) {
   return NULL;
 }
 
-//new func
 void *findAndRemoveNode(struct List *list, int i) {
   struct ListNode *rem = findNode(list, i);
   if (rem != NULL) {
-    void *data = rem->data; // TODO: necessary???    
+    void *data = rem->data;
     if (list->head == rem) {
       return popFront(list);
     } else if (list->tail == rem) {
@@ -82,28 +81,25 @@ void *popFront(struct List *list) {
     return NULL;
   struct ListNode *head = list->head;
   list->head = head->next;
-  //new if
   if (list->head !=0)
-    list->head->prev = 0; // new line
+    list->head->prev = 0;
   else
-    list->tail = 0; //new line
+    list->tail = 0;
   void *data = head->data;
   free(head);
   list->len--;
   return data;
 }
 
-//new func
 void *popBack(struct List *list) {
   if (list->tail == 0)
     return NULL;
   struct ListNode *tail = list->tail;
   list->tail = tail->prev;
-  //new if
   if (list->tail !=0)
-    list->tail->next = 0; // new line
+    list->tail->next = 0;
   else
-    list->head = 0; //new line
+    list->head = 0;
   void *data = tail->data;
   free(tail);
   list->len--;
@@ -129,9 +125,9 @@ struct ListNode *addAfter(struct List *list,
     }
   new_node->data = data;
   new_node->next = prevNode->next;
-  new_node->prev = prevNode; //new line
+  new_node->prev = prevNode;
   if (prevNode->next != NULL)
-    prevNode->next->prev = new_node; //new line
+    prevNode->next->prev = new_node;
   else 
     list->tail = new_node;
   prevNode->next = new_node;
