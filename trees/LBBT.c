@@ -174,7 +174,7 @@ struct Node *lbbt_append(struct LBBT *lbbt, struct Node *node, void *data, struc
     root->children = root_children;
     root->num_leaves = node->num_leaves + leaf->num_leaves;
     root->rightmost_blank = NULL;
-    if (node == lbbt->root) { //TODO: CHECK THIS COMPARISON IS CORRECT (should be good)
+    if (node == lbbt->root) {
       root->parent = NULL;
       lbbt->root = root;
     }
@@ -182,11 +182,11 @@ struct Node *lbbt_append(struct LBBT *lbbt, struct Node *node, void *data, struc
     leaf->parent = root;
     node->parent = root;
 
-    *new_leaf = leaf; // TODO: check this works
+    *new_leaf = leaf;
     return root;
   }
   struct Node *new_right = lbbt_append(lbbt, *(node->children+1), data, new_leaf); 
-  *(node->children+1) = new_right; // TODO: check dereference correct (should be good)
+  *(node->children+1) = new_right;
   node->num_leaves = (*(node->children))->num_leaves + new_right->num_leaves;
   new_right->parent = node;
   return node;
@@ -194,7 +194,7 @@ struct Node *lbbt_append(struct LBBT *lbbt, struct Node *node, void *data, struc
 
 void augment_blanks(struct Node *node) {
   if (node != NULL) {
-    if ((*(node->children+1))->rightmost_blank == NULL) // TODO: check this works (should be good)
+    if ((*(node->children+1))->rightmost_blank == NULL)
       node->rightmost_blank = (*(node->children))->rightmost_blank;
     else
       node->rightmost_blank = (*(node->children+1))->rightmost_blank;
@@ -239,7 +239,7 @@ struct Node *truncate(struct LBBT *lbbt, struct Node *node) {
     return node;
   }
 
-  struct Node *trunc_child = truncate(lbbt, *(node->children+1)); //TODO: check this dereferencing is correct (should be good)
+  struct Node *trunc_child = truncate(lbbt, *(node->children+1));
   if (trunc_child != NULL) {
     *(node->children+1) = trunc_child; // This is probably faster than having an if statement??
     node->num_leaves = (*(node->children))->num_leaves + trunc_child->num_leaves;
@@ -263,7 +263,7 @@ struct ListNode *find_prev_blank(struct Node *node, struct Node *prev_node) {
   if (node == NULL)
     return NULL;
   struct ListNode *candidate = (*(node->children))->rightmost_blank;
-  if (candidate == NULL || *(node->children) == prev_node) // TODO: check this works (think its ok)
+  if (candidate == NULL || *(node->children) == prev_node) // TODO: check this works (think its ok but check when have identifiers for leaves)
     return find_prev_blank(node->parent, node);
   return candidate;
 }
@@ -283,12 +283,12 @@ void *lbbt_rem(void *tree, struct Node *node) {
     struct ListNode *prev_blank = find_prev_blank(node->parent, node);
     struct ListNode *new_list_node = addAfter(lbbt->blanks, prev_blank, node);
     node->rightmost_blank = new_list_node;
-    augment_blanks(node->parent); // TODO: smarter way to do this?
-    
-    struct Node *old_rightmost = lbbt->rightmost_leaf;
-    lbbt->rightmost_leaf = NULL; // TODO: rightmost leaf in tree: NEED TO FIX
-    truncate(lbbt, lbbt->root);
-    if (lbbt->rightmost_leaf != old_rightmost) { //TODO: more efficient way to do this??
+
+    // TODO: check all of this works once have identifiers for leaves
+    if (node != lbbt->rightmost_leaf)
+      augment_blanks(node->parent);
+    else {
+      truncate(lbbt, lbbt->root);
       augment_blanks(lbbt->rightmost_leaf->parent);
     }
     break;
