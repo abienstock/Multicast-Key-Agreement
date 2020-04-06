@@ -113,7 +113,7 @@ void *lbbt_init(void **ids, int n, int add_strat, int trunc_strat, struct List *
   struct Node *root = root_init(n, 0, ids, users);
   root->parent = NULL;  
   tree->root = root;
-  tree->rightmost_leaf = (struct Node *) users->tail->data; // TODO: FIX!! THIS IS A HACK!
+  tree->rightmost_leaf = (struct Node *) users->head->data; // TODO: FIX!! (Fine for now)
   
   struct List *blanks = malloc(sizeof(struct List));
   if (blanks == NULL) {
