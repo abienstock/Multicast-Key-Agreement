@@ -68,7 +68,7 @@ int main() {
     }
     *add_data = i;
     struct Node *added = lbbt_add(lbbt, (void *) add_data);
-    addAfter(users, users->tail, (void *) added);
+    addFront(users, (void *) added);
     printf("added: %d\n", *(int *)added->data);
     pretty_traverse_tree(lbbt->root, 0, &printIntLine);
     printf("traverse users list:\n");
@@ -78,7 +78,7 @@ int main() {
 
   printf("\n\n\n==================================\n");
   printf("testing rem \n");
-  printf("node to be removed: %d\n", n);
+  printf("node to be removed (in ascending order of time in tree): %d\n", n);
   struct Node *rem = (struct Node *) findAndRemoveNode(users, n);
   printf("traverse users list:\n");
   traverseList(users, &printIntLine);  
@@ -99,7 +99,7 @@ int main() {
   }
   *add_data = n+a1;
   struct Node *added = lbbt_add(lbbt, (void *) add_data);
-  addAfter(users, users->tail, (void *) added);
+  addFront(users, (void *) added);
   printf("traverse users list:\n");
   traverseList(users, &printIntLine);    
 
@@ -121,16 +121,16 @@ int main() {
     *add_data = i;
     struct Node *added = lbbt_add(lbbt, (void *) add_data);
     printf("added: %d\n", *(int *)added->data);
-    addAfter(users, users->tail, (void *) added);    
+    addFront(users, (void *) added);    
     pretty_traverse_tree(lbbt->root, 0, &printIntLine);
     printf("traverse users list:\n");
     traverseList(users, &printIntLine);    
     printf("rightmost leaf: %d\n", *(int *) lbbt->rightmost_leaf->data);
   }
 
-  int remove_nodes[3] = {2, 2, 1};
+  int remove_nodes[3] = {1, 1, 0};
   for (i=0; i<a2; i++) {
-    rem = (struct Node *) findAndRemoveNode(users, users->len-remove_nodes[i]);
+    rem = (struct Node *) findAndRemoveNode(users, remove_nodes[i]);
     printf("traverse users list:\n");
     traverseList(users, &printIntLine);      
     data = lbbt_rem((void *) lbbt, rem);

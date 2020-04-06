@@ -44,7 +44,7 @@ int next_op(struct Multicast *multicast, float add_wt, float upd_wt, int distrib
     }
     *newdata = *max_id;
     struct Node *added = mult_add(multicast, (void *) newdata);
-    addAfter(multicast->users, multicast->users->tail, added);
+    addFront(multicast->users, added);
     //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printIntLine);
     return 0;
   } else if (operation < add_wt + upd_wt) {

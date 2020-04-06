@@ -43,7 +43,7 @@ struct Multicast *mult_init(int n, int *tree_flags, int tree_type) {
     perror("malloc returned NULL");
     return NULL;
   }
-  struct Multicast multicast = { 1, users, (void *) lbbt, counts, tree_type }; //TODO: fix this
+  struct Multicast multicast = { 1, users, (void *) lbbt, counts, tree_type };
   *lbbt_multicast = multicast;
 
   return lbbt_multicast;

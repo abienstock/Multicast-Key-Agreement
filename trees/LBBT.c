@@ -19,7 +19,7 @@ struct Node *init_perfect(int h, int leftmost_id, void **ids, struct List *users
    if (h == 0) {
      root->data = *(ids+leftmost_id);     
      root->children = NULL;
-     addAfter(users, users->tail, (void *) root);
+     addFront(users, (void *) root);
      return root;
    }
 
@@ -92,7 +92,7 @@ struct Node *root_init(int n, int leftmost_id, void **ids, struct List *users){
   } else {
     root->data = *(ids+leftmost_id);
     root->children = NULL;
-    addAfter(users, users->tail, (void *) root);
+    addFront(users, (void *) root);
   }
   
   return root;
@@ -110,7 +110,6 @@ void *lbbt_init(void **ids, int n, int add_strat, int trunc_strat, struct List *
     return NULL;
   }
 
-  //TODO: make sure users added so that front is most recently added
   struct Node *root = root_init(n, 0, ids, users);
   root->parent = NULL;  
   tree->root = root;
