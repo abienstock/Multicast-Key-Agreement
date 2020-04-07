@@ -15,7 +15,7 @@
     printf("%d", *(int *)node->data);
     }*/
 
-static void printSkeleton(void *p)
+/*static void printSkeleton(void *p)
 {
   struct SkeletonNode *node = (struct SkeletonNode *) p;
   if (node->children == NULL)
@@ -30,7 +30,7 @@ static void printSkeleton(void *p)
     else
       printf("right: %d", *(node->children_color+1));
   }
-}
+}*/
 
 int rand_int(int n, int distrib, float geo_param) {
   int i;

@@ -69,6 +69,8 @@ void pretty_traverse_skeleton(struct SkeletonNode *root, int space, void (*f)(vo
 //DESTROYS ALL DATA TOO
 void destroy_tree(struct Node *root);
 
+void destroy_skeleton(struct SkeletonNode *root);
+
 struct InitRet lbbt_init(void **ids, int n, int add_strat, int trunc_strat, struct List *users);
 
 struct AddRet lbbt_add(void *tree, void *data);

@@ -16,7 +16,7 @@ void traverse_tree(struct Node *root, void (*f)(void *)) {
 }
 
 //destroys all data too
-void destroy_tree(struct Node *root){
+void destroy_tree(struct Node *root) {
   if (root->children != NULL) {
     destroy_tree(*(root->children));
     destroy_tree(*(root->children +1));
@@ -24,6 +24,18 @@ void destroy_tree(struct Node *root){
   }
   if (root->data != NULL)
     free(root->data);
+  free(root);
+}
+
+void destroy_skeleton(struct SkeletonNode *root) {
+  if (root->children != NULL) {
+    if (*(root->children) != NULL)
+      destroy_skeleton(*(root->children));
+    if (*(root->children + 1) != NULL)
+      destroy_skeleton(*(root->children +1));
+    free(root->children);
+    free(root->children_color);
+  }
   free(root);
 }
 

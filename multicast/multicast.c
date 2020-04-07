@@ -28,7 +28,7 @@ struct Multicast *mult_init(int n, int *tree_flags, int tree_type) {
     *(ids + i) = (void *) data;
   }
 
-  void *tree;
+  void *tree = NULL;
   struct InitRet ret;
   if (tree_type == 0) {
     ret = gen_tree_init(ids, n, *tree_flags, *(tree_flags + 1), users, &lbbt_init);
@@ -89,5 +89,8 @@ void mult_destroy(struct Multicast *multicast) {
   free(multicast->users);
 
   free(multicast->counts);
+
+  destroy_skeleton(multicast->last_skel);
+
   free(multicast);
 }
