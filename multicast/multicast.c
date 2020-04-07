@@ -58,25 +58,26 @@ struct Multicast *mult_init(int n, int *tree_flags, int tree_type) {
   return lbbt_multicast;
 }
 
-struct Node *mult_add(struct Multicast *multicast, void *data) {
-  struct Node *added = NULL;
+struct AddRet mult_add(struct Multicast *multicast, void *data) {
+  struct AddRet ret = { NULL, NULL };
   if (multicast->tree_type == 0)
-    added = gen_tree_add(multicast->tree, data, &lbbt_add).added;
+    ret = gen_tree_add(multicast->tree, data, &lbbt_add);
   //  else
   //    added = gen_tree_add(multicast->tree, data, &btree_add);
-  return added;
+  return ret;
 }
 
-void mult_update(struct Multicast *multicast, struct Node *user) { //TODO: user should be node???
-  gen_tree_upd(multicast->tree, user);
+struct UpdRet mult_update(struct Multicast *multicast, struct Node *user) { //TODO: user should be node???
+  return gen_tree_upd(multicast->tree, user);
 }
 
-void *mult_rem(struct Multicast *multicast, struct Node *user) { //TODO: user should be node??
+struct RemRet mult_rem(struct Multicast *multicast, struct Node *user) { //TODO: user should be node??
     if (multicast->tree_type == 0)
-      return gen_tree_rem(multicast->tree, user, &lbbt_rem).data;
+      return gen_tree_rem(multicast->tree, user, &lbbt_rem);
     //    else
     //      gen_tree_rem(multicast->tree, user, &btree_rem);
-    return NULL;
+    struct RemRet ret = { NULL, NULL };
+    return ret;
 }
 
 void mult_destroy(struct Multicast *multicast) {

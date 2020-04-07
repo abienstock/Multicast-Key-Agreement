@@ -89,13 +89,17 @@ void pretty_traverse_skeleton(struct SkeletonNode *root, int space, void (*f)(vo
     f(root);
     printf("\n");
   } else {
-    pretty_traverse_skeleton(*(root->children+1), space, f);
+    if (*(root->children+1) != NULL) {
+      pretty_traverse_skeleton(*(root->children+1), space, f);
+    }
     printf("\n");
     for (i = COUNT; i < space; i++)
       printf(" ");
     f(root);
     printf("\n");
-    pretty_traverse_skeleton(*(root->children), space, f);
+    if (*(root->children) != NULL) {
+      pretty_traverse_skeleton(*(root->children), space, f);
+    }
   }
 }
 

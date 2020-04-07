@@ -1,5 +1,5 @@
-#ifndef _ll_H_
-#define _ll_H_
+#ifndef _LL_H_
+#define _LL_H_
 
 /*
  * A node in a linked list.
@@ -117,4 +117,4 @@ void removeAllNodes(struct List *list);
 struct ListNode *addAfter(struct List *list, 
 			  struct ListNode *prevNode, void *data);
 
-#endif /* #ifndef _MYLIST_H_ */
+#endif /* #ifndef _LL_H_ */

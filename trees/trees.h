@@ -1,3 +1,6 @@
+#ifndef _TREES_H_
+#define _TREES_H_
+
 #include "ll.h"
 
 struct Node {
@@ -86,3 +89,5 @@ struct AddRet btree_add(void *tree, void *data);
 struct RemRet btree_rem(void *tree, struct Node *node);
 
 //void btree_upd(void *tree, struct Node *node);
+
+#endif /* #ifndef _TREES_H_ */

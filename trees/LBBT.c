@@ -208,7 +208,23 @@ int is_perfect(struct Node *root) {
   return (l_leaves == r_leaves);
 }
 
-struct Node *lbbt_append(struct LBBT *lbbt, struct Node *node, void *data, struct Node **new_leaf) {
+struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, void *data, struct Node **new_leaf) {
+  struct SkeletonNode *skeleton = malloc(sizeof(struct SkeletonNode));
+  if (skeleton == NULL) {
+    perror("malloc returned NULL");
+    return NULL;
+  }
+  int *children_color = malloc(sizeof(int) * 2);
+  if (children_color == NULL) {
+    perror("malloc returned NULL");
+    return NULL;
+  }
+  struct SkeletonNode **skel_children = malloc(sizeof(struct skeletonNode *) * 2);
+  if (skel_children == NULL) {
+    perror("malloc returned NULL");
+    return NULL;
+  }
+  
   if (is_perfect(node)) {
     struct Node *leaf = malloc(sizeof(struct Node));
     if (leaf == NULL) {
@@ -220,6 +236,10 @@ struct Node *lbbt_append(struct LBBT *lbbt, struct Node *node, void *data, struc
     leaf->children = NULL;
     leaf->num_leaves = 1;
     leaf->rightmost_blank = NULL;
+
+    skeleton->node = leaf;
+    skeleton->children_color = NULL;
+    skeleton->children = NULL;
     
     struct Node *root = malloc(sizeof(struct Node));
     if (root == NULL) {
@@ -254,35 +274,93 @@ struct Node *lbbt_append(struct LBBT *lbbt, struct Node *node, void *data, struc
     node->parent = root;
 
     *new_leaf = leaf;
-    return root;
+
+    struct SkeletonNode *root_skeleton = malloc(sizeof(struct SkeletonNode));
+    if (root_skeleton == NULL) {
+      perror("malloc returned NULL");
+      return NULL;
+    }
+    root_skeleton->node = root;
+
+    *children_color++ = 1;
+    *children_color-- = 0;
+    *skel_children++ = NULL;
+    *skel_children-- = skeleton;
+    root_skeleton->children_color = children_color;
+    root_skeleton->children = skel_children;
+
+    return root_skeleton;
   }
-  struct Node *new_right = lbbt_append(lbbt, *(node->children+1), data, new_leaf); 
+
+  skeleton->node = node;
+  skeleton->children_color = children_color;
+  skeleton->children = skel_children;
+
+  struct SkeletonNode *right_skel = lbbt_append(lbbt, *(node->children+1), data, new_leaf);
+  *skel_children++ = NULL;
+  *skel_children-- = right_skel;
+  *children_color++ = 1;
+  *children_color-- = 0;
+  
+  struct Node *new_right = right_skel->node;
   *(node->children+1) = new_right;
   node->num_leaves = (*(node->children))->num_leaves + new_right->num_leaves;
   new_right->parent = node;
-  return node;
+  return skeleton;
 }
 
-void augment_blanks(struct Node *node) {
+struct SkeletonNode *augment_blanks_build_skel(struct Node *node, struct SkeletonNode *child_skel) {
   if (node != NULL) {
+    struct SkeletonNode *skeleton = malloc(sizeof(struct SkeletonNode));
+    if (skeleton == NULL) {
+      perror("malloc returned NULL");
+      return NULL;
+    }
+    int *children_color = malloc(sizeof(int) * 2);
+    if (children_color == NULL) {
+      perror("malloc returned NULL");
+      return NULL;
+    }
+    struct SkeletonNode **skel_children = malloc(sizeof(struct skeletonNode *) * 2);
+    if (skel_children == NULL) {
+      perror("malloc returned NULL");
+      return NULL;
+    }
+    skeleton->node = node;
+    skeleton->children_color = children_color;
+    skeleton->children = skel_children;
+
+    int child;
+    if (child_skel->node == *(node->children)) {
+      child = 0;
+    } else {
+      child = 1;
+    }
+    *(children_color + child) = 0;
+    *(children_color + (1 - child)) = 1;
+    *(skel_children + child) = child_skel;
+    *(skel_children + (1 - child)) = NULL;
+    
     if ((*(node->children+1))->rightmost_blank == NULL)
       node->rightmost_blank = (*(node->children))->rightmost_blank;
     else
       node->rightmost_blank = (*(node->children+1))->rightmost_blank;
-    augment_blanks(node->parent);
+    return augment_blanks_build_skel(node->parent, skeleton);
   }
+  return child_skel;
 }
 
 struct AddRet lbbt_add(void *tree, void *data) {
   struct LBBT *lbbt = (struct LBBT *) tree;
   struct Node *new_leaf = NULL; // pointer to new leaf
+  struct SkeletonNode *skeleton = NULL;
   switch (lbbt->add_strat) {
   case 0: //greedy
     if (!isEmptyList(lbbt->blanks)) {
 	new_leaf = (struct Node *) popFront(lbbt->blanks);
 	new_leaf->data = data;
 	new_leaf->rightmost_blank = NULL;
-	augment_blanks(new_leaf->parent);
+	skeleton = augment_blanks_build_skel(new_leaf->parent, NULL);
 	//printf("not implemented yet.");
       }
     break;
@@ -292,11 +370,11 @@ struct AddRet lbbt_add(void *tree, void *data) {
     break;
   }
   if (new_leaf == NULL) {
-    lbbt_append(lbbt, lbbt->root, data, &new_leaf); // returns new root
+    skeleton = lbbt_append(lbbt, lbbt->root, data, &new_leaf); // returns new root
     lbbt->rightmost_leaf = new_leaf;
   }
 
-  struct AddRet ret = { new_leaf, NULL };
+  struct AddRet ret = { new_leaf, skeleton };
   return ret;
 }
 
@@ -317,7 +395,7 @@ struct Node *truncate(struct LBBT *lbbt, struct Node *node) {
     *(node->children+1) = trunc_child; // This is probably faster than having an if statement??
     node->num_leaves = (*(node->children))->num_leaves + trunc_child->num_leaves;
     trunc_child->parent = node;
-    //augment_blanks(node); // TODO: check this correct (I think it is)
+    //augment_blanks_build_skel(node); // TODO: check this correct (I think it is)
     return node;
   }
   
@@ -357,12 +435,13 @@ struct RemRet lbbt_rem(void *tree, struct Node *node) {
     struct ListNode *new_list_node = addAfter(lbbt->blanks, prev_blank, node);
     node->rightmost_blank = new_list_node;
 
-    // TODO: check all of this works once have identifiers for leaves
-    if (node != lbbt->rightmost_leaf)
-      augment_blanks(node->parent);
+    // TODO: check aug_blanks works once have identifiers for leaves
+    if (node != lbbt->rightmost_leaf) {
+      augment_blanks_build_skel(node->parent, NULL);
+    }
     else {
       truncate(lbbt, lbbt->root);
-      augment_blanks(lbbt->rightmost_leaf->parent);
+      augment_blanks_build_skel(lbbt->rightmost_leaf->parent, NULL);
     }
     break;
   case 1: //keep

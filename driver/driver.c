@@ -15,22 +15,16 @@
     printf("%d", *(int *)node->data);
     }*/
 
-/*static void printSkeleton(void *p)
+static void printSkeleton(void *p)
 {
   struct SkeletonNode *node = (struct SkeletonNode *) p;
-  if (node->children == NULL)
+  if (node->children_color == NULL)
     printf("no children");
   else {
-    if (*(node->children) == NULL)
-      printf("no first child");
-    else
-      printf("left: %d, ", *(node->children_color));
-    if (*(node->children+1) == NULL)
-      printf("no second child");
-    else
-      printf("right: %d", *(node->children_color+1));
+    printf("left: %d, ", *(node->children_color));
+    printf("right: %d", *(node->children_color+1));
   }
-}*/
+}
 
 int rand_int(int n, int distrib, float geo_param) {
   int i;
@@ -60,9 +54,12 @@ int next_op(struct Multicast *multicast, float add_wt, float upd_wt, int distrib
       return -1; // TODO: error checking!!
     }
     *newdata = *max_id;
-    struct Node *added = mult_add(multicast, (void *) newdata);
-    addFront(multicast->users, added);
+    struct AddRet ret = mult_add(multicast, (void *) newdata);
+    addFront(multicast->users, ret.added);
     //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printIntLine);
+    //printf("add skel: \n\n");
+    //pretty_traverse_skeleton(ret.skeleton, 0, &printSkeleton);
+    //printf("\n\n");
     return 0;
   } else if (operation < add_wt + upd_wt) {
     printf("upd\n");
@@ -75,7 +72,8 @@ int next_op(struct Multicast *multicast, float add_wt, float upd_wt, int distrib
     int user = rand_int(num_users, distrib, geo_param);    
     printf("user: %d\n", user);
     void *user_node = findAndRemoveNode(multicast->users, user);
-    int *remdata = (int *) mult_rem(multicast, user_node);
+    struct RemRet ret = mult_rem(multicast, user_node);
+    int *remdata = (int *) ret.data;
     //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printIntLine);
     printf("rem: %d\n", *remdata);
     free(remdata);
