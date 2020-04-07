@@ -15,6 +15,23 @@
     printf("%d", *(int *)node->data);
     }*/
 
+static void printSkeleton(void *p)
+{
+  struct SkeletonNode *node = (struct SkeletonNode *) p;
+  if (node->children == NULL)
+    printf("no children");
+  else {
+    if (*(node->children) == NULL)
+      printf("no first child");
+    else
+      printf("left: %d, ", *(node->children_color));
+    if (*(node->children+1) == NULL)
+      printf("no second child");
+    else
+      printf("right: %d", *(node->children_color+1));
+  }
+}
+
 int rand_int(int n, int distrib, float geo_param) {
   int i;
   switch (distrib) {
@@ -109,6 +126,7 @@ int main(int argc, char *argv[]) {
   struct Multicast *lbbt_multicast = mult_init(n, lbbt_flags, 0);
 
   //pretty_traverse_tree(((struct LBBT *)lbbt_multicast->tree)->root, 0, &printIntLine);
+  //pretty_traverse_skeleton(lbbt_multicast->last_skel, 0, &printSkeleton);
 
   int ops[3] = { 0, 0, 0 };
 

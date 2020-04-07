@@ -50,7 +50,7 @@ int main() {
   }
   initList(users);
 
-  struct LBBT *lbbt = lbbt_init(ids, n, 0, 0, users);
+  struct LBBT *lbbt = (struct LBBT *) lbbt_init(ids, n, 0, 0, users).tree;
   pretty_traverse_tree(lbbt->root, 0, &printIntLine);
   printf("traverse users list:\n");
   traverseList(users, &printIntLine);
@@ -67,7 +67,7 @@ int main() {
       return -1;
     }
     *add_data = i;
-    struct Node *added = lbbt_add(lbbt, (void *) add_data);
+    struct Node *added = lbbt_add(lbbt, (void *) add_data).added;
     addFront(users, (void *) added);
     printf("added: %d\n", *(int *)added->data);
     pretty_traverse_tree(lbbt->root, 0, &printIntLine);
@@ -82,7 +82,7 @@ int main() {
   struct Node *rem = (struct Node *) findAndRemoveNode(users, n);
   printf("traverse users list:\n");
   traverseList(users, &printIntLine);  
-  data = lbbt_rem((void *) lbbt, rem);
+  data = lbbt_rem((void *) lbbt, rem).data;
   printf("removed node data: %d\n", *(int *) data);
   free(data);
   pretty_traverse_tree(lbbt->root, 0, &printIntLine);
@@ -98,7 +98,7 @@ int main() {
     return -1;
   }
   *add_data = n+a1;
-  struct Node *added = lbbt_add(lbbt, (void *) add_data);
+  struct Node *added = lbbt_add(lbbt, (void *) add_data).added;
   addFront(users, (void *) added);
   printf("traverse users list:\n");
   traverseList(users, &printIntLine);    
@@ -119,7 +119,7 @@ int main() {
       return -1;
     }
     *add_data = i;
-    struct Node *added = lbbt_add(lbbt, (void *) add_data);
+    struct Node *added = lbbt_add(lbbt, (void *) add_data).added;
     printf("added: %d\n", *(int *)added->data);
     addFront(users, (void *) added);    
     pretty_traverse_tree(lbbt->root, 0, &printIntLine);
@@ -133,7 +133,7 @@ int main() {
     rem = (struct Node *) findAndRemoveNode(users, remove_nodes[i]);
     printf("traverse users list:\n");
     traverseList(users, &printIntLine);      
-    data = lbbt_rem((void *) lbbt, rem);
+    data = lbbt_rem((void *) lbbt, rem).data;
     printf("removed node data: %d\n", *(int *) data);
     pretty_traverse_tree(lbbt->root, 0, &printIntLine);    
     printf("\n traverse blank list \n");

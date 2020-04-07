@@ -27,8 +27,17 @@ struct Multicast *mult_init(int n, int *tree_flags, int tree_type) {
     *data = i;
     *(ids + i) = (void *) data;
   }
-  struct LBBT *lbbt = lbbt_init(ids, n, *tree_flags, *(tree_flags + 1), users);
 
+  void *tree;
+  struct InitRet ret;
+  if (tree_type == 0) {
+    ret = gen_tree_init(ids, n, *tree_flags, *(tree_flags + 1), users, &lbbt_init);
+    tree = ret.tree;
+  }
+  //  else
+  //    added = gen_tree_add(multicast->tree, data, &btree_add);
+  struct SkeletonNode *skeleton = ret.skeleton;
+  
   free(ids);
   
   int *counts = malloc(sizeof(int) * 1); //TODO: just counting encs for now
@@ -43,7 +52,7 @@ struct Multicast *mult_init(int n, int *tree_flags, int tree_type) {
     perror("malloc returned NULL");
     return NULL;
   }
-  struct Multicast multicast = { 1, users, (void *) lbbt, counts, tree_type };
+  struct Multicast multicast = { 1, users, tree, counts, tree_type, skeleton };
   *lbbt_multicast = multicast;
 
   return lbbt_multicast;
@@ -52,7 +61,7 @@ struct Multicast *mult_init(int n, int *tree_flags, int tree_type) {
 struct Node *mult_add(struct Multicast *multicast, void *data) {
   struct Node *added = NULL;
   if (multicast->tree_type == 0)
-    added = gen_tree_add(multicast->tree, data, &lbbt_add);
+    added = gen_tree_add(multicast->tree, data, &lbbt_add).added;
   //  else
   //    added = gen_tree_add(multicast->tree, data, &btree_add);
   return added;
@@ -64,7 +73,7 @@ void mult_update(struct Multicast *multicast, struct Node *user) { //TODO: user 
 
 void *mult_rem(struct Multicast *multicast, struct Node *user) { //TODO: user should be node??
     if (multicast->tree_type == 0)
-      return gen_tree_rem(multicast->tree, user, &lbbt_rem);
+      return gen_tree_rem(multicast->tree, user, &lbbt_rem).data;
     //    else
     //      gen_tree_rem(multicast->tree, user, &btree_rem);
     return NULL;
