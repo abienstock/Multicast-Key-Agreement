@@ -15,7 +15,7 @@
     printf("%d", *(int *)node->data);
     }*/
 
-static void printSkeleton(void *p)
+/*static void printSkeleton(void *p)
 {
   struct SkeletonNode *node = (struct SkeletonNode *) p;
   if (node->children_color == NULL)
@@ -24,7 +24,7 @@ static void printSkeleton(void *p)
     printf("left: %d, ", *(node->children_color));
     printf("right: %d", *(node->children_color+1));
   }
-}
+  }*/
 
 int rand_int(int n, int distrib, float geo_param) {
   int i;
@@ -60,6 +60,7 @@ int next_op(struct Multicast *multicast, float add_wt, float upd_wt, int distrib
     //printf("add skel: \n\n");
     //pretty_traverse_skeleton(ret.skeleton, 0, &printSkeleton);
     //printf("\n\n");
+    destroy_skeleton(ret.skeleton);
     return 0;
   } else if (operation < add_wt + upd_wt) {
     printf("upd\n");
@@ -121,10 +122,12 @@ int main(int argc, char *argv[]) {
   }
   *max_id = n-1;
 
-  struct Multicast *lbbt_multicast = mult_init(n, lbbt_flags, 0);
+  struct MultInitRet ret = mult_init(n, lbbt_flags, 0);
+  struct Multicast *lbbt_multicast = ret.multicast;
 
   //pretty_traverse_tree(((struct LBBT *)lbbt_multicast->tree)->root, 0, &printIntLine);
-  //pretty_traverse_skeleton(lbbt_multicast->last_skel, 0, &printSkeleton);
+  //pretty_traverse_skeleton(ret.skeleton, 0, &printSkeleton);
+  destroy_skeleton(ret.skeleton);
 
   int ops[3] = { 0, 0, 0 };
 

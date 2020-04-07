@@ -3,18 +3,19 @@
 #include "../trees/trees.h"
 #include "multicast.h"
 
-struct Multicast *mult_init(int n, int *tree_flags, int tree_type) {
+struct MultInitRet mult_init(int n, int *tree_flags, int tree_type) {
+  struct MultInitRet ret = { NULL, NULL };
   struct List *users = malloc(sizeof(struct List));
   if (users == NULL) {
     perror("malloc returned NULL");
-    return NULL;
+    return ret;
   }
   initList(users);
   
   void **ids = malloc(sizeof(void *) * n);
   if (ids == NULL) {
     perror("malloc returned NULL");
-    return NULL;
+    return ret;
   }
 
   int i;
@@ -22,40 +23,41 @@ struct Multicast *mult_init(int n, int *tree_flags, int tree_type) {
     int *data = malloc(sizeof(int));
     if (data == NULL) {
       perror("malloc returned NULL");
-      return NULL;
+      return ret;
     }
     *data = i;
     *(ids + i) = (void *) data;
   }
 
   void *tree = NULL;
-  struct InitRet ret;
+  struct InitRet tree_ret;
   if (tree_type == 0) {
-    ret = gen_tree_init(ids, n, *tree_flags, *(tree_flags + 1), users, &lbbt_init);
-    tree = ret.tree;
+    tree_ret = gen_tree_init(ids, n, *tree_flags, *(tree_flags + 1), users, &lbbt_init);
+    tree = tree_ret.tree;
   }
   //  else
   //    added = gen_tree_add(multicast->tree, data, &btree_add);
-  struct SkeletonNode *skeleton = ret.skeleton;
   
   free(ids);
   
   int *counts = malloc(sizeof(int) * 1); //TODO: just counting encs for now
   if (counts == NULL) {
     perror("malloc returned NULL");
-    return NULL;
+    return ret;
   }
   *counts = 0;
   
   struct Multicast *lbbt_multicast = malloc(sizeof(struct Multicast));
   if (lbbt_multicast == NULL) {
     perror("malloc returned NULL");
-    return NULL;
+    return ret;
   }
-  struct Multicast multicast = { 1, users, tree, counts, tree_type, skeleton };
+  struct Multicast multicast = { 1, users, tree, counts, tree_type };
   *lbbt_multicast = multicast;
 
-  return lbbt_multicast;
+  ret.multicast = lbbt_multicast;
+  ret.skeleton = tree_ret.skeleton;
+  return ret;
 }
 
 struct AddRet mult_add(struct Multicast *multicast, void *data) {
@@ -90,8 +92,6 @@ void mult_destroy(struct Multicast *multicast) {
   free(multicast->users);
 
   free(multicast->counts);
-
-  destroy_skeleton(multicast->last_skel);
 
   free(multicast);
 }

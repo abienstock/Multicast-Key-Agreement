@@ -309,7 +309,7 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, void *dat
   return skeleton;
 }
 
-struct SkeletonNode *augment_blanks_build_skel(struct Node *node, struct SkeletonNode *child_skel) {
+struct SkeletonNode *augment_blanks_build_skel(struct Node *node, struct Node *child, struct SkeletonNode *child_skel) {
   if (node != NULL) {
     struct SkeletonNode *skeleton = malloc(sizeof(struct SkeletonNode));
     if (skeleton == NULL) {
@@ -321,31 +321,37 @@ struct SkeletonNode *augment_blanks_build_skel(struct Node *node, struct Skeleto
       perror("malloc returned NULL");
       return NULL;
     }
-    struct SkeletonNode **skel_children = malloc(sizeof(struct skeletonNode *) * 2);
-    if (skel_children == NULL) {
-      perror("malloc returned NULL");
-      return NULL;
-    }
-    skeleton->node = node;
     skeleton->children_color = children_color;
-    skeleton->children = skel_children;
-
-    int child;
-    if (child_skel->node == *(node->children)) {
-      child = 0;
-    } else {
-      child = 1;
-    }
-    *(children_color + child) = 0;
-    *(children_color + (1 - child)) = 1;
-    *(skel_children + child) = child_skel;
-    *(skel_children + (1 - child)) = NULL;
+    skeleton->node = node;
     
+    int child_pos;
+    if (child == *(node->children)) {
+      child_pos = 0;
+    } else {
+      child_pos = 1;
+    }
+    *(children_color + child_pos) = 0;
+    *(children_color + (1 - child_pos)) = 1;
+
+    if (child_skel != NULL) {
+      struct SkeletonNode **skel_children = malloc(sizeof(struct skeletonNode *) * 2);
+      if (skel_children == NULL) {
+	perror("malloc returned NULL");
+	return NULL;
+      }
+      skeleton->children = skel_children;
+
+      *(skel_children + child_pos) = child_skel;
+      *(skel_children + (1 - child_pos)) = NULL;
+    } else {
+      skeleton->children = NULL;
+    }
+      
     if ((*(node->children+1))->rightmost_blank == NULL)
       node->rightmost_blank = (*(node->children))->rightmost_blank;
     else
       node->rightmost_blank = (*(node->children+1))->rightmost_blank;
-    return augment_blanks_build_skel(node->parent, skeleton);
+    return augment_blanks_build_skel(node->parent, node, skeleton);
   }
   return child_skel;
 }
@@ -360,7 +366,7 @@ struct AddRet lbbt_add(void *tree, void *data) {
 	new_leaf = (struct Node *) popFront(lbbt->blanks);
 	new_leaf->data = data;
 	new_leaf->rightmost_blank = NULL;
-	skeleton = augment_blanks_build_skel(new_leaf->parent, NULL);
+	skeleton = augment_blanks_build_skel(new_leaf->parent, new_leaf, NULL);
 	//printf("not implemented yet.");
       }
     break;
@@ -437,11 +443,13 @@ struct RemRet lbbt_rem(void *tree, struct Node *node) {
 
     // TODO: check aug_blanks works once have identifiers for leaves
     if (node != lbbt->rightmost_leaf) {
-      augment_blanks_build_skel(node->parent, NULL);
+      struct SkeletonNode *skeleton = augment_blanks_build_skel(node->parent, node, NULL);
+      destroy_skeleton(skeleton);
     }
     else {
       truncate(lbbt, lbbt->root);
-      augment_blanks_build_skel(lbbt->rightmost_leaf->parent, NULL);
+      struct SkeletonNode *skeleton = augment_blanks_build_skel(lbbt->rightmost_leaf->parent, lbbt->rightmost_leaf, NULL);
+      destroy_skeleton(skeleton);
     }
     break;
   case 1: //keep

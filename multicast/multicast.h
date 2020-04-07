@@ -7,10 +7,14 @@ struct Multicast {
   void *tree;
   int *counts;
   int tree_type; //0 for lbbt, 1 for btree
-  struct SkeletonNode *last_skel; // skelton from most recent operation
 };
 
-struct Multicast *mult_init(int n, int *tree_flags, int tree_type);
+struct MultInitRet {
+  struct Multicast *multicast;
+  struct SkeletonNode *skeleton;
+};
+
+struct MultInitRet mult_init(int n, int *tree_flags, int tree_type);
 
 struct AddRet mult_add(struct Multicast *multicast, void *data); //TODO: data is for new user
 

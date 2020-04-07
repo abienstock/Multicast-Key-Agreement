@@ -34,8 +34,8 @@ void destroy_skeleton(struct SkeletonNode *root) {
     if (*(root->children + 1) != NULL)
       destroy_skeleton(*(root->children +1));
     free(root->children);
-    free(root->children_color);
   }
+  free(root->children_color);
   free(root);
 }
 
