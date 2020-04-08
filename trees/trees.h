@@ -8,7 +8,7 @@ struct Node {
   struct Node *parent;
   struct ListNode *rightmost_blank;
   void *data;
-  int num_leaves;
+  int num_leaves; // including blanks
   //int h;
 };
 

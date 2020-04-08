@@ -3,9 +3,13 @@
 #include <math.h>
 #include "trees.h"
 #include "ll.h"
- 
+
+struct TruncRet {
+  struct SkeletonNode *skeleton;
+  struct Node *node;
+};
+
 // TODO: documentation
- 
 struct SkeletonNode *init_perfect(int h, int leftmost_id, void **ids, struct List *users) {
    struct SkeletonNode *skeleton = malloc(sizeof(struct SkeletonNode));
    if (skeleton == NULL) {
@@ -330,7 +334,7 @@ struct SkeletonNode *augment_blanks_build_skel(struct Node *node, struct Node *c
     } else {
       child_pos = 1;
     }
-    *(children_color + child_pos) = 0;
+    *(children_color + child_pos) = 0; //TODO: this should be 1 for remove if at leaf of skeleton!!
     *(children_color + (1 - child_pos)) = 1;
 
     if (child_skel != NULL) {
@@ -385,27 +389,67 @@ struct AddRet lbbt_add(void *tree, void *data) {
 }
 
 // TODO: optimize if right child subtree is all blanks??? -- prob wouldn't do much since O(log n) anyway
-struct Node *truncate(struct LBBT *lbbt, struct Node *node) {
+// on_dir_path = 1 means node is on the direct path of the removed leaf (rightmost leaf by construction)
+struct TruncRet truncate(struct LBBT *lbbt, struct Node *node, int on_dir_path) {
+  struct TruncRet ret = { NULL, NULL };
   if (node->data == NULL) {
     popBack(lbbt->blanks);
     free(node);
-    return NULL;
+    return ret;
   }
   if (node->children == NULL) {
     lbbt->rightmost_leaf = node;
-    return node;
+    ret.node = node;
+    return ret;
   }
 
-  struct Node *trunc_child = truncate(lbbt, *(node->children+1));
-  if (trunc_child != NULL) {
-    *(node->children+1) = trunc_child; // This is probably faster than having an if statement??
+  struct TruncRet trunc_ret = truncate(lbbt, *(node->children+1), on_dir_path);
+  if (trunc_ret.node != NULL) {
+    struct Node *trunc_child = trunc_ret.node;
+    *(node->children+1) = trunc_child;
     node->num_leaves = (*(node->children))->num_leaves + trunc_child->num_leaves;
     trunc_child->parent = node;
-    //augment_blanks_build_skel(node); // TODO: check this correct (I think it is)
-    return node;
+    if (!on_dir_path) {
+      ret.node = node;
+      return ret;
+    }
+    
+    struct SkeletonNode *skeleton = malloc(sizeof(struct SkeletonNode));
+    if (skeleton == NULL) {
+      perror("malloc returned NULL");
+      return ret;
+    }
+    int *children_color = malloc(sizeof(int) * 2);
+    if (children_color == NULL) {
+      perror("malloc returned NULL");
+      return ret;
+    }
+    skeleton->node = node;
+    skeleton->children_color = children_color;
+    
+    if (trunc_ret.skeleton == NULL) {
+      *children_color++ = 1;
+      *children_color-- = 1;
+      skeleton->children = NULL;
+    } else {
+      struct SkeletonNode **skel_children = malloc(sizeof(struct skeletonNode *) * 2);
+      if (skel_children == NULL) {
+	perror("malloc returned NULL");
+	return ret;
+      }
+      skeleton->children = skel_children;
+      *skel_children++ = NULL;
+      *skel_children-- = trunc_ret.skeleton;
+      *children_color++ = 1;
+      *children_color-- = 0;
+    }
+    ret.skeleton = skeleton;
+    ret.node = node;
+    return ret;
   }
-  
-  struct Node *replacement = truncate(lbbt, *(node->children));
+
+  trunc_ret = truncate(lbbt, *(node->children), 0);
+  struct Node *replacement = trunc_ret.node;
   if (node == lbbt->root) {
     lbbt->root = replacement;
     replacement->parent = NULL;
@@ -413,7 +457,8 @@ struct Node *truncate(struct LBBT *lbbt, struct Node *node) {
   free(node->children);
   free(node->data);
   free(node);
-  return replacement;	
+  ret.node = replacement;
+  return ret;
 }
 
 struct ListNode *find_prev_blank(struct Node *node, struct Node *prev_node) {
@@ -428,6 +473,8 @@ struct ListNode *find_prev_blank(struct Node *node, struct Node *prev_node) {
 struct RemRet lbbt_rem(void *tree, struct Node *node) {
   struct LBBT *lbbt = (struct LBBT *) tree;
   void *data = NULL;
+  struct SkeletonNode *skeleton = NULL;
+  struct RemRet ret = { data, skeleton };
   
   switch (lbbt->trunc_strat) {
   case 0: //truncate
@@ -443,20 +490,18 @@ struct RemRet lbbt_rem(void *tree, struct Node *node) {
 
     // TODO: check aug_blanks works once have identifiers for leaves
     if (node != lbbt->rightmost_leaf) {
-      struct SkeletonNode *skeleton = augment_blanks_build_skel(node->parent, node, NULL);
-      destroy_skeleton(skeleton);
+      skeleton = augment_blanks_build_skel(node->parent, node, NULL);
+      //destroy_skeleton(skeleton);
     }
     else {
-      truncate(lbbt, lbbt->root);
-      struct SkeletonNode *skeleton = augment_blanks_build_skel(lbbt->rightmost_leaf->parent, lbbt->rightmost_leaf, NULL);
-      destroy_skeleton(skeleton);
+      struct TruncRet trunc_ret = truncate(lbbt, lbbt->root, 1);
+      skeleton = trunc_ret.skeleton;
+      //destroy_skeleton(skeleton);
     }
     break;
   case 1: //keep
-    data = NULL;
     break;
   }
 
-  struct RemRet ret = { data, NULL };
   return ret;
 }
