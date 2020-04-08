@@ -472,9 +472,7 @@ struct ListNode *find_prev_blank(struct Node *node, struct Node *prev_node) {
 
 struct RemRet lbbt_rem(void *tree, struct Node *node) {
   struct LBBT *lbbt = (struct LBBT *) tree;
-  void *data = NULL;
-  struct SkeletonNode *skeleton = NULL;
-  struct RemRet ret = { data, skeleton };
+  struct RemRet ret = { NULL, NULL };
   
   switch (lbbt->trunc_strat) {
   case 0: //truncate
@@ -482,7 +480,7 @@ struct RemRet lbbt_rem(void *tree, struct Node *node) {
       perror("Cannot delete root");
     }
     //free(node->data); // TODO: depends on data alloc strat .. for now not (handled by user)
-    data = node->data;
+    ret.data = node->data;
     node->data = NULL;
     struct ListNode *prev_blank = find_prev_blank(node->parent, node);
     struct ListNode *new_list_node = addAfter(lbbt->blanks, prev_blank, node);
@@ -490,12 +488,12 @@ struct RemRet lbbt_rem(void *tree, struct Node *node) {
 
     // TODO: check aug_blanks works once have identifiers for leaves
     if (node != lbbt->rightmost_leaf) {
-      skeleton = augment_blanks_build_skel(node->parent, node, NULL);
+      ret.skeleton = augment_blanks_build_skel(node->parent, node, NULL);
       //destroy_skeleton(skeleton);
     }
     else {
       struct TruncRet trunc_ret = truncate(lbbt, lbbt->root, 1);
-      skeleton = trunc_ret.skeleton;
+      ret.skeleton = trunc_ret.skeleton;
       //destroy_skeleton(skeleton);
     }
     break;
