@@ -2,3 +2,4 @@
 - replace children arrays with separate non pointers??
 - give perfect_init and root_init same structure
 - less mallocs
+- function for skeleton mallocs
