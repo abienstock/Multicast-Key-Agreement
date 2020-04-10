@@ -116,9 +116,3 @@ struct AddRet gen_tree_add(void *tree, void *data, struct AddRet (*tree_add)(voi
 struct RemRet gen_tree_rem(void *tree, struct Node *node, struct RemRet (*tree_rem)(void *, struct Node *)) {
   return tree_rem(tree, node);
 }
-
-struct UpdRet gen_tree_upd(void *tree, struct Node *node) {
-  printf("Nothing yet\n");
-  struct UpdRet ret = { NULL };
-  return ret;
-}
