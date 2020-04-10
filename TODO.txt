@@ -1,5 +1,7 @@
+- (IMPORTANT!!) make sure geometric distr on ops is correct
 - give unique identifiers to leaves as well -- check that blank list is good after removals/adds
 - replace children arrays with separate non pointers??
 - give perfect_init and root_init same structure
 - less mallocs
 - function for skeleton mallocs
+- get rid of gen tree funcs that do nothing (in tree-utils)??

@@ -141,6 +141,7 @@ int main(int argc, char *argv[]) {
   }
 
   printf("# adds: %d, # updates: %d, # rems %d\n", ops[0], ops[1], ops[2]);
+  printf("# PRGs: %d, # encs: %d\n", *(lbbt_multicast->counts), *(lbbt_multicast->counts + 1));
 
   mult_destroy(lbbt_multicast);
   free(max_id);
