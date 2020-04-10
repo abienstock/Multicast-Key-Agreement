@@ -42,7 +42,9 @@ void destroy_skeleton(struct SkeletonNode *root) {
 void pretty_traverse_tree(struct Node *root, int space, void (*f)(void *)) {
   int i;
   space += COUNT;
-  if (root->children == NULL) {
+  if (root == NULL) {
+    printf("Empty skeleton!\n");
+  } else if (root->children == NULL) {
     printf("\n");
     for (i = COUNT; i < space; i++)
       printf(" ");

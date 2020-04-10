@@ -327,16 +327,19 @@ struct SkeletonNode *augment_blanks_build_skel(struct Node *node, struct Node *c
     }
     skeleton->children_color = children_color;
     skeleton->node = node;
-    
+
     int child_pos;
     if (child == *(node->children)) {
       child_pos = 0;
     } else {
       child_pos = 1;
     }
-    *(children_color + child_pos) = 0; //TODO: this should be 1 for remove if at leaf of skeleton!!
+    if (child->data == NULL)
+      *(children_color + child_pos) = -1; // -1 means do nothing
+    else
+      *(children_color + child_pos) = 0;
     *(children_color + (1 - child_pos)) = 1;
-
+    
     if (child_skel != NULL) {
       struct SkeletonNode **skel_children = malloc(sizeof(struct skeletonNode *) * 2);
       if (skel_children == NULL) {
@@ -344,7 +347,7 @@ struct SkeletonNode *augment_blanks_build_skel(struct Node *node, struct Node *c
 	return NULL;
       }
       skeleton->children = skel_children;
-
+      
       *(skel_children + child_pos) = child_skel;
       *(skel_children + (1 - child_pos)) = NULL;
     } else {
@@ -489,12 +492,10 @@ struct RemRet lbbt_rem(void *tree, struct Node *node) {
     // TODO: check aug_blanks works once have identifiers for leaves
     if (node != lbbt->rightmost_leaf) {
       ret.skeleton = augment_blanks_build_skel(node->parent, node, NULL);
-      //destroy_skeleton(skeleton);
     }
     else {
       struct TruncRet trunc_ret = truncate(lbbt, lbbt->root, 1);
       ret.skeleton = trunc_ret.skeleton;
-      //destroy_skeleton(skeleton);
     }
     break;
   case 1: //keep
