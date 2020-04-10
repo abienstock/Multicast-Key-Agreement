@@ -29,7 +29,7 @@ struct BTree {
 
 struct SkeletonNode {
   struct Node *node;
-  int *children_color; // the color of the edge between the node and its children -- 0 = red, 1 = blue
+  int *children_color; // the color of the edge between the node and its children -- 0 = red (PRG), 1 = blue (enc)
   struct SkeletonNode **children; // children in the skeleton (possibly one or both NULL)
 };
 
@@ -48,10 +48,6 @@ struct RemRet {
   struct SkeletonNode *skeleton;
 };
 
-struct UpdRet {
-  struct SkeletonNode *skeleton;
-};
-
 struct Node **get_path(struct Node *node);
 
 struct Node **get_copath(struct Node *node);
@@ -61,8 +57,6 @@ struct InitRet gen_tree_init(void **ids, int n, int add_strat, int trunc_strat, 
 struct AddRet gen_tree_add(void *tree, void *data, struct AddRet (*tree_add)(void *, void *));
 
 struct RemRet gen_tree_rem(void *tree, struct Node *node, struct RemRet (*tree_rem)(void *, struct Node *));
-
-struct UpdRet gen_tree_upd(void *tree, struct Node *node); //, void (*tree_upd)(void *, struct Node *));
 
 void traverse_tree(struct Node *root, void (*f)(void *));
 
@@ -80,14 +74,10 @@ struct AddRet lbbt_add(void *tree, void *data);
 
 struct RemRet lbbt_rem(void *tree, struct Node *node);
 
-//void lbbt_upd(void *tree, struct Node *node);
-
 struct InitRet btree_init(int n);
 
 struct AddRet btree_add(void *tree, void *data);
 
 struct RemRet btree_rem(void *tree, struct Node *node);
-
-//void btree_upd(void *tree, struct Node *node);
 
 #endif /* #ifndef _TREES_H_ */
