@@ -5,23 +5,21 @@
 
 //TODO: make sure this generalizes to any multicast scheme
 void secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton) {
-  if (skeleton->children != NULL) {
-    if (*(skeleton->children) != NULL)
-      secret_gen(multicast, *(skeleton->children));
-    if (*(skeleton->children + 1) != NULL)
-      secret_gen(multicast, *(skeleton->children + 1));
+  if (skeleton != NULL && skeleton->children_color != NULL) {
+    if (skeleton->children != NULL) {
+      if (*(skeleton->children) != NULL)
+	secret_gen(multicast, *(skeleton->children));
+      if (*(skeleton->children + 1) != NULL)
+	secret_gen(multicast, *(skeleton->children + 1));
+    }
     if (*(skeleton->children_color) == 1)
       (*(multicast->counts + 1))++;
     else if (*(skeleton->children_color) == 0)
       (*(multicast->counts))++;
-    else
-      printf("here2");
     if (*(skeleton->children_color + 1) == 1)
       (*(multicast->counts + 1))++;
     else if (*(skeleton->children_color + 1) == 0)
       (*(multicast->counts))++;
-    else
-      printf("here2");
   }
 }
 
@@ -60,7 +58,7 @@ struct MultInitRet mult_init(int n, int *tree_flags, int tree_type) {
   *counts-- = 0;
 
   void *tree = NULL;
-  struct InitRet tree_ret;
+  struct InitRet tree_ret = { NULL, NULL };
   if (tree_type == 0) {
     tree_ret = gen_tree_init(ids, n, *tree_flags, *(tree_flags + 1), users, &lbbt_init);
     tree = tree_ret.tree;
