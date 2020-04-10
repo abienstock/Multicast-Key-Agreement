@@ -81,7 +81,8 @@ int next_op(struct Multicast *multicast, float add_wt, float upd_wt, int distrib
     //printf("rem skel: \n\n");
     //pretty_traverse_skeleton(ret.skeleton, 0, &printSkeleton);
     //printf("\n\n");
-    destroy_skeleton(ret.skeleton);
+    if (ret.skeleton != NULL)
+      destroy_skeleton(ret.skeleton);
     return 2;
   }
 }
