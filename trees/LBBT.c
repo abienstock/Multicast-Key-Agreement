@@ -489,13 +489,16 @@ struct RemRet lbbt_rem(void *tree, struct Node *node) {
     struct ListNode *new_list_node = addAfter(lbbt->blanks, prev_blank, node);
     node->rightmost_blank = new_list_node;
 
-    // TODO: check aug_blanks works once have identifiers for leaves
+    // TODO: check aug_blanks works once have identifiers for leaves; more efficient?? (NOTE need augment after truncate too!)
     if (node != lbbt->rightmost_leaf) {
       ret.skeleton = augment_blanks_build_skel(node->parent, node, NULL);
     }
     else {
       struct TruncRet trunc_ret = truncate(lbbt, lbbt->root, 1);
       ret.skeleton = trunc_ret.skeleton;
+      struct SkeletonNode *skeleton = augment_blanks_build_skel(lbbt->rightmost_leaf->parent, lbbt->rightmost_leaf, NULL);
+      if (skeleton != NULL)
+	destroy_skeleton(skeleton);
     }
     break;
   case 1: //keep
