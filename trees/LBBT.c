@@ -15,7 +15,7 @@ struct _InitRet {
 };
 
 // TODO: documentation
-struct _InitRet init_perfect(int h, int leftmost_id, void **ids, struct List *users) {
+struct _InitRet init_perfect(int h, int leftmost_id, int *ids, struct List *users) {
   struct _InitRet ret = { NULL, NULL };
   
    struct Node *root = malloc(sizeof(struct Node));
@@ -23,12 +23,22 @@ struct _InitRet init_perfect(int h, int leftmost_id, void **ids, struct List *us
      perror("malloc returned NULL");
      return ret;
    }
+   struct NodeData *data = malloc(sizeof(struct NodeData));
+   if (data == NULL) {
+     perror("malloc returned NULL");
+     return ret;
+   }
+
+   root->data = data;
+   data->blank = 0;
+   data->key = NULL;
+   data->seed = NULL;
    
    root->num_leaves = 1 << h;	
    root->rightmost_blank = NULL;
    
    if (h == 0) {
-     root->data = *(ids+leftmost_id);     
+     data->id = *(ids+leftmost_id);
      root->children = NULL;
      addFront(users, (void *) root);
      ret.node = root;
@@ -52,13 +62,7 @@ struct _InitRet init_perfect(int h, int leftmost_id, void **ids, struct List *us
    *children_color-- = 1;
    skeleton->children_color = children_color;   
 
-   int *data = malloc(sizeof(int));
-   if (data == NULL) {
-     perror("malloc returned NULL");
-     return ret;
-   }
-   *data = rand();
-   root->data = data;
+   data->id = rand();
    
    struct Node **children = malloc(sizeof(struct Node *) * 2);
    if (children == NULL) {
@@ -96,7 +100,7 @@ struct _InitRet init_perfect(int h, int leftmost_id, void **ids, struct List *us
    return ret;
  }
 
-struct _InitRet root_init(int n, int leftmost_id, void **ids, struct List *users){
+struct _InitRet root_init(int n, int leftmost_id, int *ids, struct List *users){
   struct _InitRet ret = { NULL, NULL };
   
   struct Node *root = malloc(sizeof(struct Node));
@@ -104,12 +108,22 @@ struct _InitRet root_init(int n, int leftmost_id, void **ids, struct List *users
     perror("malloc returned NULL");
     return ret;
   }
+  struct NodeData *data = malloc(sizeof(struct NodeData));
+  if (data == NULL) {
+    perror("malloc returned NULL");
+    return ret;
+  }
+
+  root->data = data;
+  data->blank = 0;
+  data->key = NULL;
+  data->seed = NULL;
   
   root->num_leaves = n;
   root->rightmost_blank = NULL;
 
   if (n == 1) {
-    root->data = *(ids+leftmost_id);
+    data->id = *(ids+leftmost_id);
     root->children = NULL;
     addFront(users, (void *) root);
     ret.node = root;
@@ -133,13 +147,7 @@ struct _InitRet root_init(int n, int leftmost_id, void **ids, struct List *users
   *children_color-- = 1;
   skeleton->children_color = children_color;
   
-  int *data = malloc(sizeof(int));
-  if (data == NULL) {
-    perror("malloc returned NULL");
-    return ret;
-  }
-  *data = rand();
-  root->data = data;
+  data->id = rand();
   // n-1???
   struct Node **children = malloc(sizeof(struct Node *) * 2);
   if (children == NULL) {
@@ -191,8 +199,7 @@ struct _InitRet root_init(int n, int leftmost_id, void **ids, struct List *users
   return ret;
 }
 
-//TODO: takes in users???
-struct InitRet lbbt_init(void **ids, int n, int add_strat, int trunc_strat, struct List *users) {
+struct InitRet lbbt_init(int *ids, int n, int add_strat, int trunc_strat, struct List *users) {
   if (n < 1) {
     perror("n has to be at least 1");
     struct InitRet ret = { NULL, NULL };
@@ -238,7 +245,7 @@ int is_perfect(struct Node *root) {
   return (l_leaves == r_leaves);
 }
 
-struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, void *data, struct Node **new_leaf) {
+struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, int id, struct Node **new_leaf) {
   struct SkeletonNode *skeleton = malloc(sizeof(struct SkeletonNode));
   if (skeleton == NULL) {
     perror("malloc returned NULL");
@@ -256,8 +263,18 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, void *dat
       perror("malloc returned NULL");
       return NULL;
     }
+    struct NodeData *leaf_data = malloc(sizeof(struct NodeData));
+    if (leaf_data == NULL) {
+      perror("malloc returned NULL");
+      return NULL;
+    }
+
+    leaf->data = leaf_data;
+    leaf_data->blank = 0;
+    leaf_data->key = NULL;
+    leaf_data->seed = NULL;
+    leaf_data->id = id;
     
-    leaf->data = data;
     leaf->children = NULL;
     leaf->num_leaves = 1;
     leaf->rightmost_blank = NULL;
@@ -267,14 +284,17 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, void *dat
       perror("malloc returned NULL");
       return NULL;
     }
-    
-    int *root_data = malloc(sizeof(int));
+    struct NodeData *root_data = malloc(sizeof(struct NodeData));
     if (root_data == NULL) {
       perror("malloc returned NULL");
-      return NULL;		
+      return NULL;
     }
-    *root_data = rand();
+
     root->data = root_data;
+    root_data->blank = 0;
+    root_data->key = NULL;
+    root_data->seed = NULL;
+    root_data->id = rand();
     
     struct Node **root_children = malloc(sizeof(struct Node *) * 2);
     if (root_children == NULL) {
@@ -316,7 +336,7 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, void *dat
   skeleton->children_color = children_color;
   skeleton->children = skel_children;
 
-  struct SkeletonNode *right_skel = lbbt_append(lbbt, *(node->children+1), data, new_leaf);
+  struct SkeletonNode *right_skel = lbbt_append(lbbt, *(node->children+1), id, new_leaf);
   *skel_children++ = NULL;
   *skel_children-- = right_skel;
   *children_color++ = 1;
@@ -350,7 +370,7 @@ struct SkeletonNode *augment_blanks_build_skel(struct Node *node, struct Node *c
     } else {
       child_pos = 1;
     }
-    if (child->data == NULL)
+    if (((struct NodeData *)child->data)->blank == 1)
       *(children_color + child_pos) = -1; // -1 means do nothing
     else
       *(children_color + child_pos) = 0;
@@ -379,7 +399,7 @@ struct SkeletonNode *augment_blanks_build_skel(struct Node *node, struct Node *c
   return child_skel;
 }
 
-struct AddRet lbbt_add(void *tree, void *data) {
+struct AddRet lbbt_add(void *tree, int id) {
   struct LBBT *lbbt = (struct LBBT *) tree;
   struct Node *new_leaf = NULL; // pointer to new leaf
   struct SkeletonNode *skeleton = NULL;
@@ -387,7 +407,9 @@ struct AddRet lbbt_add(void *tree, void *data) {
   case 0: //greedy
     if (!isEmptyList(lbbt->blanks)) {
 	new_leaf = (struct Node *) popFront(lbbt->blanks);
-	new_leaf->data = data;
+	struct NodeData *data = (struct NodeData *)new_leaf->data;
+	data->id = id;
+	data->blank = 0;
 	new_leaf->rightmost_blank = NULL;
 	skeleton = augment_blanks_build_skel(new_leaf->parent, new_leaf, NULL);
       }
@@ -398,7 +420,7 @@ struct AddRet lbbt_add(void *tree, void *data) {
     break;
   }
   if (new_leaf == NULL) {
-    skeleton = lbbt_append(lbbt, lbbt->root, data, &new_leaf); // returns new root
+    skeleton = lbbt_append(lbbt, lbbt->root, id, &new_leaf); // returns new root
     lbbt->rightmost_leaf = new_leaf;
   }
 
@@ -410,8 +432,9 @@ struct AddRet lbbt_add(void *tree, void *data) {
 // on_dir_path = 1 means node is on the direct path of the removed leaf (rightmost leaf by construction)
 struct TruncRet truncate(struct LBBT *lbbt, struct Node *node, int on_dir_path) {
   struct TruncRet ret = { NULL, NULL };
-  if (node->data == NULL) {
+  if (((struct NodeData *)node->data)->blank == 1) {
     popBack(lbbt->blanks);
+    free(node->data);
     free(node);
     return ret;
   }
@@ -497,9 +520,8 @@ struct RemRet lbbt_rem(void *tree, struct Node *node) {
     if (node == lbbt->root) {
       perror("Cannot delete root");
     }
-    //free(node->data); // TODO: depends on data alloc strat .. for now not (handled by user)
     ret.data = node->data;
-    node->data = NULL;
+    ((struct NodeData *)node->data)->blank = 1;
     struct ListNode *prev_blank = find_prev_blank(node->parent, node);
     struct ListNode *new_list_node = addAfter(lbbt->blanks, prev_blank, node);
     node->rightmost_blank = new_list_node;

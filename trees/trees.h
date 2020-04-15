@@ -3,6 +3,13 @@
 
 #include "ll.h"
 
+struct NodeData {
+  int id;
+  void *key;
+  void *seed;
+  int blank; // 0 = notblank, 1 = blank
+};
+
 struct Node {
   struct Node **children;
   struct Node *parent;
@@ -52,9 +59,9 @@ struct Node **get_path(struct Node *node);
 
 struct Node **get_copath(struct Node *node);
 
-struct InitRet gen_tree_init(void **ids, int n, int add_strat, int trunc_strat, struct List *users, struct InitRet (*tree_init)(void **, int, int, int, struct List *));
+struct InitRet gen_tree_init(int *ids, int n, int add_strat, int trunc_strat, struct List *users, struct InitRet (*tree_init)(int *, int, int, int, struct List *));
 
-struct AddRet gen_tree_add(void *tree, void *data, struct AddRet (*tree_add)(void *, void *));
+struct AddRet gen_tree_add(void *tree, int id, struct AddRet (*tree_add)(void *, int));
 
 struct RemRet gen_tree_rem(void *tree, struct Node *node, struct RemRet (*tree_rem)(void *, struct Node *));
 
@@ -68,15 +75,15 @@ void destroy_tree(struct Node *root);
 
 void destroy_skeleton(struct SkeletonNode *root);
 
-struct InitRet lbbt_init(void **ids, int n, int add_strat, int trunc_strat, struct List *users);
+struct InitRet lbbt_init(int *ids, int n, int add_strat, int trunc_strat, struct List *users);
 
-struct AddRet lbbt_add(void *tree, void *data);
+struct AddRet lbbt_add(void *tree, int id);
 
 struct RemRet lbbt_rem(void *tree, struct Node *node);
 
 struct InitRet btree_init(int n);
 
-struct AddRet btree_add(void *tree, void *data);
+struct AddRet btree_add(void *tree, int id);
 
 struct RemRet btree_rem(void *tree, struct Node *node);
 

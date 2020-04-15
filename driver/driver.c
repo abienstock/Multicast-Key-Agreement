@@ -28,13 +28,7 @@ int next_op(struct Multicast *multicast, float add_wt, float upd_wt, int distrib
   if (operation < add_wt || num_users == 1) { //TODO: forcing add with n=1 correct??
     (*max_id)++; //so adding new users w.l.o.g.
     printf("add: %d\n", *max_id);
-    int *newdata = malloc(sizeof(int));
-    if (newdata == NULL) {
-      perror("malloc returned NULL");
-      return -1; // TODO: error checking!!
-    }
-    *newdata = *max_id;
-    addFront(multicast->users, mult_add(multicast, (void *) newdata));
+    addFront(multicast->users, mult_add(multicast, *max_id));
     return 0;
   } else if (operation < add_wt + upd_wt) {
     int user = rand_int(num_users, distrib, geo_param);
@@ -46,10 +40,10 @@ int next_op(struct Multicast *multicast, float add_wt, float upd_wt, int distrib
   } else {
     int user = rand_int(num_users, distrib, geo_param);    
     printf("user: %d\n", user);
-    struct Node *user_node = (struct Node *)findAndRemoveNode(multicast->users, user);
-    printf("rem: %d\n", *((int *)user_node->data));
-    int *remdata = (int *) mult_rem(multicast, user_node);
-    free(remdata);
+    struct Node *user_node = (struct Node *) findAndRemoveNode(multicast->users, user);
+    struct NodeData *user_data = (struct NodeData *) user_node->data;
+    printf("rem: %d\n", user_data->id);
+    mult_rem(multicast, user_node);
     return 2;
   }
 }

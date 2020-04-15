@@ -12,34 +12,25 @@ int compareIds(const void *data1, const void *data2) { //TODO: data1 id, data2 u
 
 static void printIntLine(void *p)
 {
-  struct Node *node = (struct Node *) p;
-  if (node->data == NULL)
-    printf("blank");
+  struct NodeData *data = (struct NodeData *) ((struct Node *) p)->data;
+  if (data->blank == 1)
+    printf("BLANK, id: %d", data->id);
   else
-    printf("%d", *(int *)node->data);
+    printf("%d", data->id);
 }
 
 int main() {
   int n = 7;
   int a1 = 5;
   int a2 = 3;
+
+  int ids[n];
   int i;
-  void **ids = malloc(sizeof(void *) * n);
-  if (ids == NULL) {
-    perror("malloc returned NULL");
-    return -1;
-  }
   for (i = 0; i < n; i++) {
-    int *data = malloc(sizeof(int));
-    if (data == NULL) {
-      perror("malloc returned NULL");
-      return -1;
-    }
-    *data = i;
-    *(ids + i) = (void *) data;
+    ids[i] = i;
   }
 
-  void *data;
+  struct NodeData *data;
 
   printf("testing init: \n");
 
@@ -61,13 +52,7 @@ int main() {
 
   for (i = n; i < n+a1; i++) {
     printf("add:\n");
-    int *add_data = malloc(sizeof(int));
-    if (add_data == NULL) {
-      perror("malloc returned NULL");
-      return -1;
-    }
-    *add_data = i;
-    struct Node *added = lbbt_add(lbbt, (void *) add_data).added;
+    struct Node *added = lbbt_add(lbbt, i).added;
     addFront(users, (void *) added);
     printf("added: %d\n", *(int *)added->data);
     pretty_traverse_tree(lbbt->root, 0, &printIntLine);
@@ -82,9 +67,8 @@ int main() {
   struct Node *rem = (struct Node *) findAndRemoveNode(users, n);
   printf("traverse users list:\n");
   traverseList(users, &printIntLine);  
-  data = lbbt_rem((void *) lbbt, rem).data;
-  printf("removed node data: %d\n", *(int *) data);
-  free(data);
+  data = (struct NodeData *) lbbt_rem((void *) lbbt, rem).data;
+  printf("removed node data: %d\n", data->id);
   pretty_traverse_tree(lbbt->root, 0, &printIntLine);
   printf("\n traverse blank list \n");
   traverseList(lbbt->blanks, &printIntLine);
@@ -92,13 +76,7 @@ int main() {
 
   printf("\n\n\n==================================\n");
   printf("testing add in blank \n");
-  int *add_data = malloc(sizeof(int));
-  if (add_data == NULL) {
-    perror("malloc returned NULL");
-    return -1;
-  }
-  *add_data = n+a1;
-  struct Node *added = lbbt_add(lbbt, (void *) add_data).added;
+  struct Node *added = lbbt_add(lbbt, n+a1).added;
   addFront(users, (void *) added);
   printf("traverse users list:\n");
   traverseList(users, &printIntLine);    
@@ -113,13 +91,7 @@ int main() {
   printf("testing truncate\n");
   for (i = n+a1+1; i < n+a1+a2+1; i++) {
     printf("add:\n");
-    int *add_data = malloc(sizeof(int));
-    if (add_data == NULL) {
-      perror("malloc returned NULL");
-      return -1;
-    }
-    *add_data = i;
-    struct Node *added = lbbt_add(lbbt, (void *) add_data).added;
+    struct Node *added = lbbt_add(lbbt, i).added;
     printf("added: %d\n", *(int *)added->data);
     addFront(users, (void *) added);    
     pretty_traverse_tree(lbbt->root, 0, &printIntLine);
@@ -132,14 +104,13 @@ int main() {
   for (i=0; i<a2; i++) {
     rem = (struct Node *) findAndRemoveNode(users, remove_nodes[i]);
     printf("traverse users list:\n");
-    traverseList(users, &printIntLine);      
-    data = lbbt_rem((void *) lbbt, rem).data;
-    printf("removed node data: %d\n", *(int *) data);
+    traverseList(users, &printIntLine);
+    data = (struct NodeData *) lbbt_rem((void *) lbbt, rem).data;
+    printf("removed node data: %d\n", data->id);
     pretty_traverse_tree(lbbt->root, 0, &printIntLine);    
     printf("\n traverse blank list \n");
     traverseList(lbbt->blanks, &printIntLine);
     printf("rightmost leaf: %d\n", *(int *) lbbt->rightmost_leaf->data);
-    free(data);
   }
 
   destroy_tree(lbbt->root);
@@ -149,8 +120,6 @@ int main() {
 
   removeAllNodes(users);
   free(users);
-
-  free(ids);
 
   return 0;
 }
