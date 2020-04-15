@@ -3,3 +3,4 @@
 - less mallocs
 - function for skeleton mallocs
 - get rid of gen tree funcs that do nothing (in tree-utils)??
+- multicast return types

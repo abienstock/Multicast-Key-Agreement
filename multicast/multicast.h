@@ -13,7 +13,7 @@ struct Multicast *mult_init(int n, int *tree_flags, int tree_type);
 
 struct Node *mult_add(struct Multicast *multicast, int id); //TODO: id is for new user
 
-void mult_update(struct Multicast *multicast, struct Node *user);
+int mult_update(struct Multicast *multicast, struct Node *user);
 
 void *mult_rem(struct Multicast *multicast, struct Node *user);
 
