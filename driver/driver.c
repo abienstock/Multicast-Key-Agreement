@@ -6,26 +6,6 @@
 #include "../trees/ll.h"
 #include "../multicast/multicast.h"
 
-/*static void printIntLine(void *p)
-{
-  struct Node *node = (struct Node *) p;
-  if (node->data == NULL)
-    printf("blank");
-  else
-    printf("%d", *(int *)node->data);
-    }*/
-
-/*static void printSkeleton(void *p)
-{
-  struct SkeletonNode *node = (struct SkeletonNode *) p;
-  if (node->children_color == NULL)
-    printf("no children");
-  else {
-    printf("left: %d, ", *(node->children_color));
-    printf("right: %d", *(node->children_color+1));
-  }
-  }*/
-
 int rand_int(int n, int distrib, float geo_param) {
   int i;
   switch (distrib) {
@@ -54,35 +34,22 @@ int next_op(struct Multicast *multicast, float add_wt, float upd_wt, int distrib
       return -1; // TODO: error checking!!
     }
     *newdata = *max_id;
-    struct AddRet ret = mult_add(multicast, (void *) newdata);
-    addFront(multicast->users, ret.added);
-    //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printIntLine);
-    //printf("add skel: \n\n");
-    //pretty_traverse_skeleton(ret.skeleton, 0, &printSkeleton);
-    //printf("\n\n");
-    destroy_skeleton(ret.skeleton);
+    addFront(multicast->users, mult_add(multicast, (void *) newdata));
     return 0;
   } else if (operation < add_wt + upd_wt) {
-    printf("upd\n");
     int user = rand_int(num_users, distrib, geo_param);
     struct Node *user_node = (struct Node *) findNode(multicast->users, user)->data;
+    printf("upd: %d\n", *((int *)user_node->data));
     mult_update(multicast, user_node);
     //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printIntLine);
     return 1;
   } else {
     int user = rand_int(num_users, distrib, geo_param);    
     printf("user: %d\n", user);
-    void *user_node = findAndRemoveNode(multicast->users, user);
-    struct RemRet ret = mult_rem(multicast, user_node);
-    int *remdata = (int *) ret.data;
-    //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printIntLine);
-    printf("rem: %d\n", *remdata);
+    struct Node *user_node = (struct Node *)findAndRemoveNode(multicast->users, user);
+    printf("rem: %d\n", *((int *)user_node->data));
+    int *remdata = (int *) mult_rem(multicast, user_node);
     free(remdata);
-    //printf("rem skel: \n\n");
-    //pretty_traverse_skeleton(ret.skeleton, 0, &printSkeleton);
-    //printf("\n\n");
-    if (ret.skeleton != NULL)
-      destroy_skeleton(ret.skeleton);
     return 2;
   }
 }
@@ -127,12 +94,7 @@ int main(int argc, char *argv[]) {
   }
   *max_id = n-1;
 
-  struct MultInitRet ret = mult_init(n, lbbt_flags, 0);
-  struct Multicast *lbbt_multicast = ret.multicast;
-
-  //pretty_traverse_tree(((struct LBBT *)lbbt_multicast->tree)->root, 0, &printIntLine);
-  //pretty_traverse_skeleton(ret.skeleton, 0, &printSkeleton);
-  destroy_skeleton(ret.skeleton);
+  struct Multicast *lbbt_multicast = mult_init(n, lbbt_flags, 0);
 
   int ops[3] = { 0, 0, 0 };
 
