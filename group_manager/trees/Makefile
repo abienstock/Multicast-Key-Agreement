@@ -10,24 +10,20 @@ LDFLAGS = -g -lm -O2
 
 LDLIBS =
 
-LBBT-test: LBBT-test.o LBBT.o ll.o tree-utils.o
+LBBT-test: LBBT-test.o LBBT.o ../../ll/ll.o tree-utils.o
 
-LBBT-test.o: LBBT-test.c trees.h LBBT.o ll.h
+LBBT-test.o: LBBT-test.c trees.h LBBT.o ../../ll/ll.h
 
-LBBT.o: LBBT.c trees.h ll.h
+LBBT.o: LBBT.c trees.h ../../ll/ll.h
 
 tree-utils.o: tree-utils.c trees.h
 
-ll-test: ll-test.o ll.o
-
-ll-test.o: ll-test.c ll.h
-
-ll.o: ll.c ll.h
+ll.o: ../../ll/ll.c ../../ll/ll.h
 
 
 .PHONY: clean
 clean:
-	rm -f *.o *~ ll-test LBBT-test #*
+	rm -f *.o *~ LBBT-test #*
 
 .PHONY: all
-all: clean ll-test LBBT-test
+all: clean LBBT-test

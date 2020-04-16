@@ -3,7 +3,7 @@
 #include <math.h>
 #include <time.h>
 #include "../group_manager/trees/trees.h"
-#include "../group_manager/trees/ll.h"
+#include "../ll/ll.h"
 #include "../group_manager/multicast/multicast.h"
 
 int rand_int(int n, int distrib, float geo_param) {

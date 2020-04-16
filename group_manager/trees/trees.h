@@ -1,7 +1,7 @@
 #ifndef _TREES_H_
 #define _TREES_H_
 
-#include "ll.h"
+#include "../../ll/ll.h"
 
 struct NodeData {
   int id;
