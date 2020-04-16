@@ -1,3 +1,6 @@
+#ifndef _MULTICAST_H_
+#define _MULTICAST_H_
+
 #include "../../ll/ll.h"
 #include "../trees/trees.h"
 
@@ -9,6 +12,12 @@ struct Multicast {
   int tree_type; //0 for lbbt, 1 for btree
 };
 
+struct Ciphertext {
+  int parent_id;
+  int child_id;
+  void *ct;
+};
+
 struct Multicast *mult_init(int n, int *tree_flags, int tree_type);
 
 struct Node *mult_add(struct Multicast *multicast, int id); //TODO: id is for new user
@@ -18,3 +27,5 @@ int mult_update(struct Multicast *multicast, struct Node *user);
 void *mult_rem(struct Multicast *multicast, struct Node *user);
 
 void mult_destroy(struct Multicast *multicast);
+
+#endif /* #ifndef _MULTICAST_H_ */

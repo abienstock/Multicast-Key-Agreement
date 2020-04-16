@@ -40,6 +40,17 @@ void destroy_skeleton(struct SkeletonNode *root) {
     free(root->children);
   }
   free(root->children_color);
+  if (root->ciphertexts != NULL) {
+    if (*(root->ciphertexts) != NULL) {
+      free((*(root->ciphertexts))->ct);
+      free(*(root->ciphertexts));
+    }
+    if (*(root->ciphertexts + 1) != NULL) {
+      free((*(root->ciphertexts + 1))->ct);
+      free(*(root->ciphertexts + 1));
+    }
+    free(root->ciphertexts);
+  }
   free(root);
 }
 

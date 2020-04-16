@@ -43,6 +43,7 @@ struct _InitRet init_perfect(int h, int leftmost_id, int *ids, struct List *user
    root->rightmost_blank = NULL;
 
    skeleton->node = root;
+   skeleton->ciphertexts = NULL;
    
    if (h == 0) {
      data->id = *(ids+leftmost_id);
@@ -128,6 +129,7 @@ struct _InitRet root_init(int n, int leftmost_id, int *ids, struct List *users){
   root->rightmost_blank = NULL;
 
   skeleton->node = root;
+  skeleton->ciphertexts = NULL;
 
   if (n == 1) {
     data->id = *(ids+leftmost_id);
@@ -288,6 +290,7 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, int id, s
     skeleton->node = leaf;
     skeleton->children = NULL;
     skeleton->children_color = NULL;
+    skeleton->ciphertexts = NULL;
 
     struct Node *root = malloc(sizeof(struct Node));
     if (root == NULL) {
@@ -307,6 +310,7 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, int id, s
     root_data->id = rand();
 
     root_skeleton->node = root;
+    root_skeleton->ciphertexts = NULL;
     
     struct Node **root_children = malloc(sizeof(struct Node *) * 2);
     if (root_children == NULL) {
@@ -339,6 +343,7 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, int id, s
   }
 
   skeleton->node = node;
+  skeleton->ciphertexts = NULL;
   skeleton->children_color = children_color;
   skeleton->children = skel_children;
 
@@ -369,6 +374,7 @@ struct SkeletonNode *augment_blanks_build_skel(struct Node *node, struct Node *c
     }
     skeleton->children_color = children_color;
     skeleton->node = node;
+    skeleton->ciphertexts = NULL;
 
     int child_pos;
     if (child == *(node->children)) {
@@ -428,6 +434,7 @@ struct AddRet lbbt_add(void *tree, int id) {
 	leaf_skeleton->node = new_leaf;
 	leaf_skeleton->children = NULL;
 	leaf_skeleton->children_color = NULL;
+	leaf_skeleton->ciphertexts = NULL;
 	skeleton = augment_blanks_build_skel(new_leaf->parent, new_leaf, leaf_skeleton);
       }
     break;
@@ -488,6 +495,7 @@ struct TruncRet truncate(struct LBBT *lbbt, struct Node *node, int on_dir_path) 
     }
     skeleton->node = node;
     skeleton->children_color = children_color;
+    skeleton->ciphertexts = NULL;
     
     if (trunc_ret.skeleton == NULL) {
       *children_color++ = 1;
@@ -580,6 +588,7 @@ struct RemRet lbbt_rem(void *tree, struct Node *node) {
 	}
 	trunc_skel->node = lbbt->root;
 	trunc_skel->children = NULL;
+	trunc_skel->ciphertexts = NULL;
       }
       ret.skeleton = trunc_skel;
       struct SkeletonNode *skeleton = augment_blanks_build_skel(lbbt->rightmost_leaf->parent, lbbt->rightmost_leaf, NULL);

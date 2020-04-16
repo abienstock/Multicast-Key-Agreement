@@ -2,6 +2,7 @@
 #define _TREES_H_
 
 #include "../../ll/ll.h"
+#include "../multicast/multicast.h"
 
 struct NodeData {
   int id;
@@ -38,6 +39,7 @@ struct SkeletonNode {
   struct Node *node;
   int *children_color; // the color of the edge between the node and its children -- 0 = red (PRG), 1 = blue (enc)
   struct SkeletonNode **children; // children in the skeleton (possibly one or both NULL)
+  struct Ciphertext **ciphertexts;
 };
 
 struct InitRet {
