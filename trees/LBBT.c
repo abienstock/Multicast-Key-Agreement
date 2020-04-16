@@ -547,10 +547,31 @@ struct RemRet lbbt_rem(void *tree, struct Node *node) {
     // TODO: check aug_blanks works once have identifiers for leaves; more efficient?? (NOTE need augment after truncate too!)
     if (node != lbbt->rightmost_leaf) {
       ret.skeleton = augment_blanks_build_skel(node->parent, node, NULL);
-    }
-    else {
+    } else {
       struct TruncRet trunc_ret = truncate(lbbt, lbbt->root, 1);
-      ret.skeleton = trunc_ret.skeleton;
+      struct SkeletonNode *trunc_skel = trunc_ret.skeleton;
+      if (trunc_skel == NULL) {
+	trunc_skel = malloc(sizeof(struct SkeletonNode));
+	if (trunc_skel == NULL) {
+	  perror("malloc returned NULL");
+	  return ret;
+	}
+	if (lbbt->root->num_leaves > 1) {
+	  int *children_color = malloc(sizeof(int) * 2);
+	  if (children_color == NULL) {
+	    perror("malloc returned NULL");
+	    return ret;
+	  }
+	  trunc_skel->children_color = children_color;
+	  *children_color++ = 1;
+	  *children_color-- = 1;
+	} else {
+	  trunc_skel->children_color = NULL;
+	}
+	trunc_skel->node = lbbt->root;
+	trunc_skel->children = NULL;
+      }
+      ret.skeleton = trunc_skel;
       struct SkeletonNode *skeleton = augment_blanks_build_skel(lbbt->rightmost_leaf->parent, lbbt->rightmost_leaf, NULL);
       if (skeleton != NULL)
 	destroy_skeleton(skeleton);
