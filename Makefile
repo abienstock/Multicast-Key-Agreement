@@ -10,7 +10,7 @@ LDFLAGS = -g -lm -O2
 
 LDLIBS =
 
-SUBDIRS = driver multicast trees
+SUBDIRS = driver group_manager/multicast group_manager/trees
 BUILDDIRS = $(SUBDIRS:%=build-%)
 CLEANDIRS = $(SUBDIRS:%=clean-%)
 

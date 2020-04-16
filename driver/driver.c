@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include "../trees/trees.h"
-#include "../trees/ll.h"
-#include "../multicast/multicast.h"
+#include "../group_manager/trees/trees.h"
+#include "../group_manager/trees/ll.h"
+#include "../group_manager/multicast/multicast.h"
 
 int rand_int(int n, int distrib, float geo_param) {
   int i;
