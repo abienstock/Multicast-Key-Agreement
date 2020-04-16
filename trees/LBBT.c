@@ -450,9 +450,12 @@ struct AddRet lbbt_add(void *tree, int id) {
 // on_dir_path = 1 means node is on the direct path of the removed leaf (rightmost leaf by construction)
 struct TruncRet truncate(struct LBBT *lbbt, struct Node *node, int on_dir_path) {
   struct TruncRet ret = { NULL, NULL };
-  if (((struct NodeData *)node->data)->blank == 1) {
+  struct NodeData *data = (struct NodeData *) node->data;
+  if (data->blank == 1) {
     popBack(lbbt->blanks);
-    free(node->data);
+    free(data->key);    
+    free(data->seed);
+    free(data);
     free(node);
     return ret;
   }
@@ -514,7 +517,9 @@ struct TruncRet truncate(struct LBBT *lbbt, struct Node *node, int on_dir_path) 
     replacement->parent = NULL;
   }
   free(node->children);
-  free(node->data);
+  free(data->key);
+  free(data->seed);
+  free(data);
   free(node);
   ret.node = replacement;
   return ret;
@@ -539,13 +544,18 @@ struct RemRet lbbt_rem(void *tree, struct Node *node) {
       perror("Cannot delete root");
     }
     ret.data = node->data;
-    ((struct NodeData *)node->data)->blank = 1;
+    struct NodeData *data = (struct NodeData *) node->data;
+    data->blank = 1;
     struct ListNode *prev_blank = find_prev_blank(node->parent, node);
     struct ListNode *new_list_node = addAfter(lbbt->blanks, prev_blank, node);
     node->rightmost_blank = new_list_node;
 
     // TODO: check aug_blanks works once have identifiers for leaves; more efficient?? (NOTE need augment after truncate too!)
     if (node != lbbt->rightmost_leaf) {
+      free(data->key);
+      data->key = NULL;
+      free(data->seed);
+      data->seed = NULL;
       ret.skeleton = augment_blanks_build_skel(node->parent, node, NULL);
     } else {
       struct TruncRet trunc_ret = truncate(lbbt, lbbt->root, 1);

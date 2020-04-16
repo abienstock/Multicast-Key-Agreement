@@ -22,8 +22,12 @@ void destroy_tree(struct Node *root) {
     destroy_tree(*(root->children +1));
     free(root->children);
   }
-  if (root->data != NULL)
-    free(root->data);
+  if (root->data != NULL) {
+    struct NodeData *data = (struct NodeData *) root->data;
+    free(data->key);
+    free(data->seed);
+    free(data);
+  }
   free(root);
 }
 
