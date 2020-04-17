@@ -1,0 +1,21 @@
+#ifndef _SKELETON_H_
+#define _SKELETON_H_
+
+#include "group_manager/trees/trees.h"
+
+// TODO: store children ids, parent skel node
+struct SkeletonNode {
+  struct Node *node;
+  struct SkeletonNode *parent;
+  int *children_color; // the color of the edge between the node and its children -- 0 = red (PRG), 1 = blue (enc)
+  struct SkeletonNode **children; // children in the skeleton (possibly one or both NULL)
+  struct Ciphertext **ciphertexts;
+};
+
+struct Ciphertext {
+  int parent_id;
+  int child_id;
+  void *ct;
+};
+
+#endif /* #ifndef _SKELETON_H_ */

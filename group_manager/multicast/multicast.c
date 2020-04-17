@@ -36,48 +36,6 @@
   }
   }*/
 
-void *int_gen() {
-  int *seed = malloc(sizeof(int));
-  if (seed == NULL) {
-    perror("malloc returned NULL");
-    return NULL;
-  }
-  *seed = rand();
-  return (void *) seed;
-}
-
-void *int_prg(void *seed) {
-  int *out = malloc(sizeof(int));
-  if (out == NULL) {
-    perror("malloc returned NULL");
-    return NULL;
-  }
-  *out = *((int *) seed) + 2;
-  return (void *) out;
-}
-
-void **int_split(void *data) {
-  int **split = malloc(sizeof(int *) * 3);
-  int *seed = malloc(sizeof(int));
-  int *key = malloc(sizeof(int));
-  int *next_seed = malloc(sizeof(int));
-  int out = *(int *) data;
-  *seed = out;
-  *key = out + 1;
-  *next_seed = out + 2;
-
-  *split = seed;
-  *(split + 1) = key;
-  *(split + 2) = next_seed;
-  return (void **) split;
-}
-
-void *int_identity(void *key, void *data) {
-  int *plaintext = malloc(sizeof(int));
-  *plaintext = *((int *) data);
-  return (void *) plaintext;
-}
-
 int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct NodeData *data, void *(*encrypt)(void *, void *)) {
   if (skeleton->children_color != NULL) {
     struct Ciphertext **cts = malloc(sizeof(struct Ciphertext *) * 2);
@@ -165,7 +123,7 @@ void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, voi
   return next_seed;
 }
 
-struct Multicast *mult_init(int n, int *tree_flags, int tree_type) {
+struct Multicast *mult_init(int n, int *tree_flags, int tree_type, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *)) {
   struct List *users = malloc(sizeof(struct List));
   if (users == NULL) {
     perror("malloc returned NULL");
@@ -204,7 +162,7 @@ struct Multicast *mult_init(int n, int *tree_flags, int tree_type) {
   struct Multicast multicast = { 1, users, tree, counts, tree_type };
   *lbbt_multicast = multicast;
 
-  free(secret_gen(lbbt_multicast, tree_ret.skeleton, &int_gen, &int_prg, &int_split, &int_identity));
+  free(secret_gen(lbbt_multicast, tree_ret.skeleton, gen_seed, prg, split, encrypt));
 
   //pretty_traverse_tree(((struct LBBT *)lbbt_multicast->tree)->root, 0, &printNode);
   //pretty_traverse_skeleton(tree_ret.skeleton, 0, &printSkeleton);
@@ -213,13 +171,13 @@ struct Multicast *mult_init(int n, int *tree_flags, int tree_type) {
   return lbbt_multicast;
 }
 
-struct Node *mult_add(struct Multicast *multicast, int id) {
+struct Node *mult_add(struct Multicast *multicast, int id, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *)) {
   struct AddRet ret = { NULL, NULL };
   if (multicast->tree_type == 0)
     ret = gen_tree_add(multicast->tree, id, &lbbt_add);
   //  else
   //    added = gen_tree_add(multicast->tree, data, &btree_add);
-  free(secret_gen(multicast, ret.skeleton, &int_gen, &int_prg, &int_split, &int_identity));
+  free(secret_gen(multicast, ret.skeleton, gen_seed, prg, split, encrypt));
 
   //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
   //pretty_traverse_skeleton(ret.skeleton, 0, &printSkeleton);
@@ -272,7 +230,7 @@ struct SkeletonNode *gen_upd_skel(struct Node *node, struct Node *child, struct 
   return child_skel;
 }
 
-int mult_update(struct Multicast *multicast, struct Node *user) { //TODO: user should be node???
+int mult_update(struct Multicast *multicast, struct Node *user, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *)) { //TODO: user should be node???
   struct SkeletonNode *leaf_skeleton = malloc(sizeof(struct SkeletonNode));
   if (leaf_skeleton == NULL) {
     perror("malloc returned NULL");
@@ -284,7 +242,7 @@ int mult_update(struct Multicast *multicast, struct Node *user) { //TODO: user s
   leaf_skeleton->ciphertexts = NULL;
   
   struct SkeletonNode *skeleton = gen_upd_skel(user->parent, user, leaf_skeleton);
-  free(secret_gen(multicast, skeleton, &int_gen, &int_prg, &int_split, &int_identity));
+  free(secret_gen(multicast, skeleton, gen_seed, prg, split, encrypt));
 
   //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
   //pretty_traverse_skeleton(skeleton, 0, &printSkeleton);
@@ -293,7 +251,7 @@ int mult_update(struct Multicast *multicast, struct Node *user) { //TODO: user s
   return 0;
 }
 
-void *mult_rem(struct Multicast *multicast, struct Node *user) { //TODO: user should be node??
+void *mult_rem(struct Multicast *multicast, struct Node *user, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *)) { //TODO: user should be node??
   struct RemRet ret = { NULL, NULL };
   if (multicast->tree_type == 0)
     ret = gen_tree_rem(multicast->tree, user, &lbbt_rem);
@@ -302,7 +260,7 @@ void *mult_rem(struct Multicast *multicast, struct Node *user) { //TODO: user sh
 
   //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
   //pretty_traverse_skeleton(ret.skeleton, 0, &printSkeleton);
-  free(secret_gen(multicast, ret.skeleton, &int_gen, &int_prg, &int_split, &int_identity));
+  free(secret_gen(multicast, ret.skeleton, gen_seed, prg, split, encrypt));
   destroy_skeleton(ret.skeleton);
   
   return ret.data;

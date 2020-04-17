@@ -12,13 +12,13 @@ struct Multicast {
   int tree_type; //0 for lbbt, 1 for btree
 };
 
-struct Multicast *mult_init(int n, int *tree_flags, int tree_type);
+struct Multicast *mult_init(int n, int *tree_flags, int tree_type, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *));
 
-struct Node *mult_add(struct Multicast *multicast, int id); //TODO: id is for new user
+struct Node *mult_add(struct Multicast *multicast, int id, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *)); //TODO: id is for new user
 
-int mult_update(struct Multicast *multicast, struct Node *user);
+int mult_update(struct Multicast *multicast, struct Node *user, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *));
 
-void *mult_rem(struct Multicast *multicast, struct Node *user);
+void *mult_rem(struct Multicast *multicast, struct Node *user, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *));
 
 void mult_destroy(struct Multicast *multicast);
 

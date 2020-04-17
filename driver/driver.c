@@ -6,6 +6,49 @@
 #include "../ll/ll.h"
 #include "../group_manager/multicast/multicast.h"
 
+
+void *int_gen() {
+  int *seed = malloc(sizeof(int));
+  if (seed == NULL) {
+    perror("malloc returned NULL");
+    return NULL;
+  }
+  *seed = rand();
+  return (void *) seed;
+}
+
+void *int_prg(void *seed) {
+  int *out = malloc(sizeof(int));
+  if (out == NULL) {
+    perror("malloc returned NULL");
+    return NULL;
+  }
+  *out = *((int *) seed) + 2;
+  return (void *) out;
+}
+
+void **int_split(void *data) {
+  int **split = malloc(sizeof(int *) * 3);
+  int *seed = malloc(sizeof(int));
+  int *key = malloc(sizeof(int));
+  int *next_seed = malloc(sizeof(int));
+  int out = *(int *) data;
+  *seed = out;
+  *key = out + 1;
+  *next_seed = out + 2;
+
+  *split = seed;
+  *(split + 1) = key;
+  *(split + 2) = next_seed;
+  return (void **) split;
+}
+
+void *int_identity(void *key, void *data) {
+  int *plaintext = malloc(sizeof(int));
+  *plaintext = *((int *) data);
+  return (void *) plaintext;
+}
+
 int rand_int(int n, int distrib, float geo_param) {
   int i;
   switch (distrib) {
@@ -28,13 +71,13 @@ int next_op(struct Multicast *multicast, float add_wt, float upd_wt, int distrib
   if (operation < add_wt || num_users == 1) { //TODO: forcing add with n=1 correct??
     (*max_id)++; //so adding new users w.l.o.g.
     printf("add: %d\n", *max_id);
-    addFront(multicast->users, mult_add(multicast, *max_id));
+    addFront(multicast->users, mult_add(multicast, *max_id, &int_gen, &int_prg, &int_split, &int_identity));
     return 0;
   } else if (operation < add_wt + upd_wt) {
     int user = rand_int(num_users, distrib, geo_param);
     struct Node *user_node = (struct Node *) findNode(multicast->users, user)->data;
     printf("upd: %d\n", *((int *)user_node->data));
-    mult_update(multicast, user_node);
+    mult_update(multicast, user_node, &int_gen, &int_prg, &int_split, &int_identity);
     //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printIntLine);
     return 1;
   } else {
@@ -43,7 +86,7 @@ int next_op(struct Multicast *multicast, float add_wt, float upd_wt, int distrib
     struct Node *user_node = (struct Node *) findAndRemoveNode(multicast->users, user);
     struct NodeData *user_data = (struct NodeData *) user_node->data;
     printf("rem: %d\n", user_data->id);
-    mult_rem(multicast, user_node);
+    mult_rem(multicast, user_node, &int_gen, &int_prg, &int_split, &int_identity);
     return 2;
   }
 }
@@ -88,7 +131,7 @@ int main(int argc, char *argv[]) {
   }
   *max_id = n-1;
 
-  struct Multicast *lbbt_multicast = mult_init(n, lbbt_flags, 0);
+  struct Multicast *lbbt_multicast = mult_init(n, lbbt_flags, 0, &int_gen, &int_prg, &int_split, &int_identity);
 
   int ops[3] = { 0, 0, 0 };
 
