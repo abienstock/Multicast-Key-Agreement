@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "trees.h"
+#include "../../skeleton.h"
+
 #define COUNT 20
 
 void traverse_tree(struct Node *root, void (*f)(void *)) {

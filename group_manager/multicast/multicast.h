@@ -12,12 +12,6 @@ struct Multicast {
   int tree_type; //0 for lbbt, 1 for btree
 };
 
-struct Ciphertext {
-  int parent_id;
-  int child_id;
-  void *ct;
-};
-
 struct Multicast *mult_init(int n, int *tree_flags, int tree_type);
 
 struct Node *mult_add(struct Multicast *multicast, int id); //TODO: id is for new user

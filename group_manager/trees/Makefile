@@ -14,11 +14,9 @@ LBBT-test: LBBT-test.o LBBT.o ../../ll/ll.o tree-utils.o
 
 LBBT-test.o: LBBT-test.c trees.h LBBT.o ../../ll/ll.h
 
-LBBT.o: LBBT.c trees.h ../../ll/ll.h
+LBBT.o: LBBT.c trees.h ../../ll/ll.h ../../skeleton.h
 
-tree-utils.o: tree-utils.c trees.h
-
-ll.o: ../../ll/ll.c ../../ll/ll.h
+tree-utils.o: tree-utils.c trees.h ../../skeleton.h
 
 
 .PHONY: clean

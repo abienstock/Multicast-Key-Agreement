@@ -10,7 +10,7 @@ LDFLAGS = -g -lm -O2
 
 LDLIBS =
 
-multicast.o: multicast.c multicast.h ../trees/trees.h
+multicast.o: multicast.c multicast.h ../trees/trees.h ../../skeleton.h
 
 .PHONY: clean
 clean:

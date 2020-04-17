@@ -3,6 +3,7 @@
 #include <math.h> // for now
 #include "../trees/trees.h"
 #include "multicast.h"
+#include "../../skeleton.h"
 
 /*static void printSkeleton(void *p)
 {
@@ -77,57 +78,12 @@ void *int_identity(void *key, void *data) {
   return (void *) plaintext;
 }
 
-//TODO: make sure this generalizes to any multicast scheme
-void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *)) {
-  void *next_seed, *seed, *key, *out;
-
-  struct NodeData *data = (struct NodeData *) skeleton->node->data;
-  if (data->key != NULL)
-    free(data->key);
-  if (data->seed != NULL)
-    free(data->seed);
-  
-  if (skeleton->children_color != NULL) {
-    if (*(skeleton->children_color) == 0) {
-      (*(multicast->counts))++; // fix this
-      void *child_seed = secret_gen(multicast, *(skeleton->children), gen_seed, prg, split, encrypt);
-      out = prg(child_seed);
-      free(child_seed);
-      if (skeleton->children != NULL && *(skeleton->children + 1) != NULL)
-	free(secret_gen(multicast, *(skeleton->children + 1), gen_seed, prg, split, encrypt));
-    } else if (*(skeleton->children_color + 1) == 0) {
-      (*(multicast->counts))++; // fix this
-      void *child_seed = secret_gen(multicast, *(skeleton->children + 1), gen_seed, prg, split, encrypt);
-      out = prg(child_seed);
-      free(child_seed);
-      if (skeleton->children != NULL && *(skeleton->children) != NULL)
-	free(secret_gen(multicast, *(skeleton->children), gen_seed, prg, split, encrypt));
-    } else {
-      void *temp_seed = gen_seed();
-      out = prg(temp_seed);
-      free(temp_seed);
-    }
-  } else {
-    void *temp_seed = gen_seed();
-    out = prg(temp_seed);
-    free(temp_seed);
-  }
-  void **out_split = split(out);
-
-  seed = out_split[0];
-  key = out_split[1];
-  next_seed = out_split[2];
-  free(out_split);
-  free(out);
-  
-  data->key = key;
-  data->seed = seed;
-
+int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct NodeData *data, void *(*encrypt)(void *, void *)) {
   if (skeleton->children_color != NULL) {
     struct Ciphertext **cts = malloc(sizeof(struct Ciphertext *) * 2);
     if (cts == NULL) {
       perror("malloc returned NULL");
-      return NULL;
+      return -1;
     }
     struct Ciphertext *left_ct = NULL, *right_ct = NULL;
     if (*(skeleton->children_color) == 1) {
@@ -136,7 +92,7 @@ void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, voi
       left_ct = malloc(sizeof(struct Ciphertext));
       if (left_ct == NULL) {
 	perror("malloc returned NULL");
-	return NULL;
+	return -1;
       }
       struct NodeData *left_data = (struct NodeData *) (*(skeleton->node->children))->data;
       left_ct->parent_id = data->id;
@@ -149,7 +105,7 @@ void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, voi
       right_ct = malloc(sizeof(struct Ciphertext));
       if (right_ct == NULL) {
 	perror("malloc returned NULL");
-	return NULL;
+	return -1;
       }
       struct NodeData *right_data = (struct NodeData *) (*(skeleton->node->children + 1))->data;
       right_ct->parent_id = data->id;
@@ -160,6 +116,51 @@ void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, voi
     *cts-- = right_ct;
     skeleton->ciphertexts = cts;
   }
+  return 0;
+}
+
+//TODO: make sure this generalizes to any multicast scheme
+void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *)) {
+  void *prev_seed, *next_seed, *seed, *key, *out;
+
+  struct NodeData *data = (struct NodeData *) skeleton->node->data;
+  if (data->key != NULL)
+    free(data->key);
+  if (data->seed != NULL)
+    free(data->seed);
+  
+  if (skeleton->children_color != NULL) {
+    if (*(skeleton->children_color) == 0) {
+      (*(multicast->counts))++; // fix this
+      prev_seed = secret_gen(multicast, *(skeleton->children), gen_seed, prg, split, encrypt);
+      if (skeleton->children != NULL && *(skeleton->children + 1) != NULL)
+	free(secret_gen(multicast, *(skeleton->children + 1), gen_seed, prg, split, encrypt));
+    } else if (*(skeleton->children_color + 1) == 0) {
+      (*(multicast->counts))++; // fix this
+      prev_seed = secret_gen(multicast, *(skeleton->children + 1), gen_seed, prg, split, encrypt);
+      if (skeleton->children != NULL && *(skeleton->children) != NULL)
+	free(secret_gen(multicast, *(skeleton->children), gen_seed, prg, split, encrypt));
+    } else {
+      prev_seed = gen_seed();
+    }
+  } else {
+    prev_seed = gen_seed();
+  }
+
+  out = prg(prev_seed);
+  free(prev_seed);
+  void **out_split = split(out);
+
+  seed = out_split[0];
+  key = out_split[1];
+  next_seed = out_split[2];
+  free(out_split);
+  free(out);
+  
+  data->key = key;
+  data->seed = seed;
+
+  ct_gen(multicast, skeleton, data, encrypt);
   
   return next_seed;
 }

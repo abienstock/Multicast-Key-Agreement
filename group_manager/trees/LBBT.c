@@ -3,6 +3,7 @@
 #include <math.h>
 #include "trees.h"
 #include "../../ll/ll.h"
+#include "../../skeleton.h"
 
 struct TruncRet {
   struct SkeletonNode *skeleton;
