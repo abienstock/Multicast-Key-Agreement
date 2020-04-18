@@ -12,13 +12,30 @@ struct Multicast {
   int tree_type; //0 for lbbt, 1 for btree
 };
 
-struct Multicast *mult_init(int n, int *tree_flags, int tree_type, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *));
+struct MultInitRet {
+  struct Multicast *multicast;
+  struct SkeletonNode *skeleton;
+  struct List *oob_seeds;
+};
 
-struct Node *mult_add(struct Multicast *multicast, int id, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *)); //TODO: id is for new user
+struct MultAddRet {
+  struct Node *added;
+  struct SkeletonNode *skeleton;
+  void *oob_seed;
+};
 
-int mult_update(struct Multicast *multicast, struct Node *user, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *));
+struct MultUpdRet {
+  struct SkeletonNode *skeleton;
+  void *oob_seed;
+};
 
-void *mult_rem(struct Multicast *multicast, struct Node *user, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *));
+struct MultInitRet mult_init(int n, int *tree_flags, int tree_type, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *));
+
+struct MultAddRet mult_add(struct Multicast *multicast, int id, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *)); //TODO: id is for new user
+
+struct MultUpdRet mult_update(struct Multicast *multicast, struct Node *user, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *));
+
+struct RemRet mult_rem(struct Multicast *multicast, struct Node *user, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *));
 
 void mult_destroy(struct Multicast *multicast);
 

@@ -10,9 +10,9 @@ LDFLAGS = -g -lm -O2
 
 LDLIBS =
 
-driver: driver.o ../group_manager/trees/tree-utils.o ../group_manager/trees/LBBT.o ../ll/ll.o ../group_manager/multicast/multicast.o
+driver: driver.o ../group_manager/trees/tree-utils.o ../group_manager/trees/LBBT.o ../ll/ll.o ../group_manager/multicast/multicast.o ../users/user.o
 
-driver.o: driver.c ../group_manager/trees/trees.h ../ll/ll.h ../group_manager/multicast/multicast.h
+driver.o: driver.c ../group_manager/trees/trees.h ../ll/ll.h ../group_manager/multicast/multicast.h ../users/user.h
 
 .PHONY: clean
 clean:

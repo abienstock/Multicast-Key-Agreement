@@ -5,7 +5,12 @@
 #include "../group_manager/trees/trees.h"
 #include "../ll/ll.h"
 #include "../group_manager/multicast/multicast.h"
+#include "../users/user.h"
 
+/*static void print_secrets(void *data) {
+  struct PathData *path_data = (struct PathData *) data;
+  printf("id: %d, seed: %d, key %d\n", path_data->node_id, *((int *) path_data->seed), *((int *) path_data->key));
+  }*/
 
 void *int_gen() {
   int *seed = malloc(sizeof(int));
@@ -65,28 +70,86 @@ int rand_int(int n, int distrib, float geo_param) {
   }
 }
 
-int next_op(struct Multicast *multicast, float add_wt, float upd_wt, int distrib, float geo_param, int *max_id) {
+int next_op(struct Multicast *multicast, struct List *users, float add_wt, float upd_wt, int distrib, float geo_param, int *max_id) {
   int num_users = multicast->users->len;
   float operation = (float) rand() / (float) RAND_MAX;
   if (operation < add_wt || num_users == 1) { //TODO: forcing add with n=1 correct??
     (*max_id)++; //so adding new users w.l.o.g.
     printf("add: %d\n", *max_id);
-    addFront(multicast->users, mult_add(multicast, *max_id, &int_gen, &int_prg, &int_split, &int_identity));
+    struct MultAddRet add_ret = mult_add(multicast, *max_id, &int_gen, &int_prg, &int_split, &int_identity);
+    addFront(multicast->users, add_ret.added);
+    struct NodeData *root_data = (struct NodeData *) add_ret.skeleton->node->data;
+    //printf("skeleton root seed: %d\n", *((int *) int_prg(root_data->seed)));
+
+    struct ListNode *user_curr = users->head;
+    while (user_curr != 0) {
+      void *root_seed = proc_ct((struct User *) user_curr->data, *max_id, add_ret.skeleton, NULL, &int_prg, &int_split, &int_identity);
+      //traverseList(((struct User *)user_curr->data)->secrets, &print_secrets);
+      //printf("root seed: %d\n", *((int *) root_seed));
+      user_curr = user_curr->next;
+    }
+    
+    struct User *user = init_user(*max_id);
+    addFront(users, (void *) user);
+    void *root_seed = proc_ct(user, *max_id, add_ret.skeleton, add_ret.oob_seed, &int_prg, &int_split, &int_identity);
+    //traverseList(user->secrets, &print_secrets);
+    //printf("root seed: %d\n", *((int *) root_seed));
+
+    destroy_skeleton(add_ret.skeleton);
+    
     return 0;
   } else if (operation < add_wt + upd_wt) {
     int user = rand_int(num_users, distrib, geo_param);
     struct Node *user_node = (struct Node *) findNode(multicast->users, user)->data;
-    printf("upd: %d\n", *((int *)user_node->data));
-    mult_update(multicast, user_node, &int_gen, &int_prg, &int_split, &int_identity);
+    struct NodeData *user_data = (struct NodeData *) user_node->data;
+    printf("upd: %d\n", user_data->id);
+    struct MultUpdRet upd_ret = mult_update(multicast, user_node, &int_gen, &int_prg, &int_split, &int_identity);
+    struct SkeletonNode *skeleton = upd_ret.skeleton;
     //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printIntLine);
+    struct NodeData *root_data = (struct NodeData *) skeleton->node->data;
+    //printf("skeleton root seed: %d\n", *((int *) int_prg(root_data->seed)));
+
+    struct ListNode *user_curr = users->head;
+    while (user_curr != 0) {
+      void *root_seed;
+      if (((struct User *) user_curr->data)->id == user_data->id)
+	root_seed = proc_ct((struct User *) user_curr->data, user_data->id, skeleton, upd_ret.oob_seed, &int_prg, &int_split, &int_identity);
+      else
+	root_seed = proc_ct((struct User *) user_curr->data, user_data->id, skeleton, NULL, &int_prg, &int_split, &int_identity);
+      //traverseList(((struct User *)user_curr->data)->secrets, &print_secrets);
+      //printf("root seed: %d\n", *((int *) root_seed));
+      user_curr = user_curr->next;
+    }
+
+    
+    destroy_skeleton(skeleton);
+    
     return 1;
   } else {
     int user = rand_int(num_users, distrib, geo_param);    
     printf("user: %d\n", user);
     struct Node *user_node = (struct Node *) findAndRemoveNode(multicast->users, user);
     struct NodeData *user_data = (struct NodeData *) user_node->data;
-    printf("rem: %d\n", user_data->id);
-    mult_rem(multicast, user_node, &int_gen, &int_prg, &int_split, &int_identity);
+    int rem_id = user_data->id;
+    printf("rem: %d\n", rem_id);
+    struct RemRet rem_ret = mult_rem(multicast, user_node, &int_gen, &int_prg, &int_split, &int_identity);
+    struct NodeData *root_data = (struct NodeData *) rem_ret.skeleton->node->data;
+    //printf("skeleton root seed: %d\n", *((int *) int_prg(root_data->seed)));
+
+    findAndRemoveNode(users, user);
+
+    struct ListNode *user_curr = users->head;
+    while (user_curr != 0) {
+      if (((struct User *) user_curr->data)->id != rem_id) {
+	void *root_seed = proc_ct((struct User *) user_curr->data, rem_id, rem_ret.skeleton, NULL, &int_prg, &int_split, &int_identity);
+	//traverseList(((struct User *)user_curr->data)->secrets, &print_secrets);
+	//printf("root seed: %d\n", *((int *) root_seed));
+      }
+      user_curr = user_curr->next;
+    }
+
+    destroy_skeleton(rem_ret.skeleton);
+    
     return 2;
   }
 }
@@ -131,13 +194,44 @@ int main(int argc, char *argv[]) {
   }
   *max_id = n-1;
 
-  struct Multicast *lbbt_multicast = mult_init(n, lbbt_flags, 0, &int_gen, &int_prg, &int_split, &int_identity);
+  struct List *users = malloc(sizeof(struct List)); // FOR TESTING
+  if (users == NULL) {
+    perror("malloc returned NULL");
+    return -1;
+  }
+  initList(users);
+  
+  int i;
+  for (i = 0; i < n; i++) {
+    struct User *user = init_user(i);
+    addFront(users, (void *) user);
+  }
+
+  struct MultInitRet init_ret = mult_init(n, lbbt_flags, 0, &int_gen, &int_prg, &int_split, &int_identity);
+  struct Multicast *lbbt_multicast = init_ret.multicast;
+  struct SkeletonNode *skeleton = init_ret.skeleton;
+  struct List *oob_seeds = init_ret.oob_seeds;
+  struct NodeData *root_data = (struct NodeData *) skeleton->node->data;
+  //printf("skeleton root seed: %d\n", *((int *) int_prg(root_data->seed)));
+
+  struct ListNode *user_curr = users->tail;
+  //struct ListNode *mult_curr = lbbt_multicast->users->head;
+  struct ListNode *oob_curr = oob_seeds->head;
+  while (user_curr != 0) {
+    //struct Node *leaf = (struct Node *) mult_curr->data;
+    //struct NodeData *leaf_data = (struct NodeData *) leaf->data;
+    void *root_seed = proc_ct((struct User *) user_curr->data, -1, skeleton, oob_curr->data, &int_prg, &int_split, &int_identity); // -1 for create
+    //traverseList(((struct User *)user_curr->data)->secrets, &print_secrets);
+    //printf("root seed: %d\n", *((int *) root_seed));
+    user_curr = user_curr->prev;
+    //mult_curr = mult_curr->next;
+    oob_curr = oob_curr->next;
+  }
 
   int ops[3] = { 0, 0, 0 };
 
-  int i;
   for (i = 0; i < atoi(argv[2]); i++) {
-    ops[next_op(lbbt_multicast, add_wt, upd_wt, distrib, geo_param, max_id)]++;
+    ops[next_op(lbbt_multicast, users, add_wt, upd_wt, distrib, geo_param, max_id)]++;
   }
 
   printf("# adds: %d, # updates: %d, # rems %d\n", ops[0], ops[1], ops[2]);

@@ -1,4 +1,6 @@
+- (IMPORTANT!!) MAKE SURE REMOVE IS log(n) TIME!!
 - (IMPORTANT!!) make sure geometric distr on ops is correct
+- (IMPORTANT!!) make separate modes for driver (crypto/not secret_gen)
 - replace children arrays with separate non pointers??
 - less mallocs
 - REFACTOR!! - ex. : function for skeleton mallocs, destroy nodes, etc
