@@ -65,10 +65,6 @@ struct SkeletonNode *find_skel_node(int id, struct SkeletonNode *skeleton) {
   return NULL;
 }
 
-void write_to_path() {
-
-}
-
 struct ListNode *path_gen(struct User *user, void *prev_seed, void *prev_key, struct SkeletonNode *skel_node, struct SkeletonNode *child_skel, struct ListNode *path_node, void *(*prg)(void *), void **(*split)(void *), void *(*decrypt)(void *, void *)) {
   void *seed;
   if (child_skel == NULL) {
@@ -81,6 +77,7 @@ struct ListNode *path_gen(struct User *user, void *prev_seed, void *prev_key, st
     if (*(skel_node->children_color + child_pos) == 0) {
       seed = prev_seed;
     } else { // TODO: make sure only other option is color = 1
+      free (prev_seed);
       struct Ciphertext *ciphertext = *(skel_node->ciphertexts + child_pos);
       seed = decrypt(prev_key, ciphertext->ct);
     }
@@ -93,8 +90,16 @@ struct ListNode *path_gen(struct User *user, void *prev_seed, void *prev_key, st
   void *new_seed = out_split[0];
   void *key = out_split[1];
   void *next_seed = out_split[2];
+  free(seed);
+  free(out);
+  free(out_split);
+
   data->node_id = ((struct NodeData *) skel_node->node->data)->id;
+  if (data->key != NULL)
+    free(data->key);
   data->key = key;
+  if (data->seed != NULL)
+    free(data->seed);
   data->seed = new_seed;
 
   
@@ -106,12 +111,15 @@ struct ListNode *path_gen(struct User *user, void *prev_seed, void *prev_key, st
 	perror("malloc returned NULL");
 	return NULL;
       }
+      data->key = NULL;
+      data->seed = NULL;
       next = addAfter(user->secrets, path_node, (void *) data);
     } else {
       next = path_node->next;
     }
     return path_gen(user, next_seed, key, skel_node->parent, skel_node, next, prg, split, decrypt);
   }
+  free(next_seed);
   return path_node;
 }
 
@@ -139,6 +147,8 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, void *oo
 	  perror("malloc returned NULL");
 	  return NULL;
 	}
+	data->seed = NULL;
+	data->key = NULL;
 	path_node = addAfter(user->secrets, path_node, (void *) data);
       } else {
 	path_node = path_node->next;
@@ -155,6 +165,8 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, void *oo
 	perror("malloc returned NULL");
 	return NULL;
       }
+      data->seed = NULL;
+      data->key = NULL;
       path_node = addFront(user->secrets, (void *) data);
     }
     path_node = user->secrets->head;
@@ -167,6 +179,7 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, void *oo
     struct PathData *data = (struct PathData *) popBack(user->secrets);
     free(data->key);
     free(data->seed);
+    free(data);
   }
 
   return prg(((struct PathData *) end_node->data)->seed);
@@ -189,4 +202,32 @@ struct User *init_user(int id) {
   user->id = id;
 
   return user;
+}
+
+void destroy_users(struct List *users) {
+  struct ListNode *user_curr = users->head;
+  while (user_curr != 0) {
+    struct User *user = ((struct User *) user_curr->data);
+    destroy_user(user);
+    struct ListNode *old_user = user_curr;
+    user_curr = user_curr->next;
+    free(old_user);
+  }
+  free(users);
+}
+
+void destroy_user(struct User *user) {
+  struct List *secrets = user->secrets;
+  struct ListNode *secret_curr = secrets->head;
+  while (secret_curr != 0) {
+    struct PathData *path_data = ((struct PathData *) secret_curr->data);
+    free(path_data->key);
+    free(path_data->seed);
+    free(path_data);
+    struct ListNode *old_sec = secret_curr;
+    secret_curr = secret_curr->next;
+    free(old_sec);
+  }
+  free(secrets);
+  free(user);
 }

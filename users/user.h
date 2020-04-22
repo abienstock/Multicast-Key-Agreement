@@ -16,3 +16,7 @@ struct PathData {
 void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, void *oob_seed, void *(*prg)(void *), void **(*split)(void *), void *(*decrypt)(void *, void *)); //returns group secret
 
 struct User *init_user(int id);
+
+void destroy_users(struct List *users);
+
+void destroy_user(struct User *user);

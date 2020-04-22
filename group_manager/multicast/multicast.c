@@ -53,7 +53,7 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
       perror("malloc returned NULL");
       return -1;
     }
-    left_ct->parent_id = NULL;
+    left_ct->parent_id = -1; // TODO: make sure IDs are never negative!
     struct NodeData *root_data = (struct NodeData *) skeleton->node->data;
     left_ct->child_id = root_data->id;
     left_ct->ct = encrypt(root_data->key, seed);
@@ -107,7 +107,8 @@ void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, str
   data->seed = seed;
 
   ct_gen(multicast, skeleton, data, prev_seed, encrypt);
-  //free(prev_seed); // might need to do it here if not oob_seed
+  if (skeleton->node->num_leaves > 1 || skeleton->parent == NULL)
+    free(prev_seed); // need to do it here if not oob_seed
   
   return next_seed;
 }
@@ -187,6 +188,8 @@ struct MultAddRet mult_add(struct Multicast *multicast, int id, void *(*gen_seed
   free(secret_gen(multicast, ret.skeleton, oob_seeds, gen_seed, prg, split, encrypt));
 
   ret.oob_seed = oob_seeds->head->data;
+  removeAllNodes(oob_seeds);
+  free(oob_seeds);
 
   return ret;
 }
@@ -262,6 +265,8 @@ struct MultUpdRet mult_update(struct Multicast *multicast, struct Node *user, vo
   free(secret_gen(multicast, skeleton, oob_seeds, gen_seed, prg, split, encrypt));
 
   ret.oob_seed = oob_seeds->head->data;
+  removeAllNodes(oob_seeds);
+  free(oob_seeds);
   
   return ret;
 }
@@ -274,6 +279,8 @@ struct RemRet mult_rem(struct Multicast *multicast, struct Node *user, void *(*g
   //      gen_tree_rem(multicast->tree, user, &btree_rem);
 
   free(secret_gen(multicast, ret.skeleton, NULL, gen_seed, prg, split, encrypt));
+  //pretty_traverse_skeleton(ret.skeleton, 0, &printSkeleton);
+  //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
   
   return ret;
 }
