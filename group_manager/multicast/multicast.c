@@ -73,6 +73,24 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
     *cts++ = left_ct;
     *cts-- = right_ct;
     skeleton->ciphertexts = cts;
+  } else if (((struct LBBT *) multicast->tree)->root == skeleton->node) {
+    struct Ciphertext **cts = malloc(sizeof(struct Ciphertext *) * 2);
+    if (cts == NULL) {
+      perror("malloc returned NULL");
+      return -1;
+    }
+    struct Ciphertext *left_ct = malloc(sizeof(struct Ciphertext));
+    if (left_ct == NULL) {
+      perror("malloc returned NULL");
+      return -1;
+    }
+    left_ct->parent_id = NULL;
+    struct NodeData *root_data = (struct NodeData *) skeleton->node->data;
+    left_ct->child_id = root_data->id;
+    left_ct->ct = encrypt(root_data->key, seed);
+    *cts++ = left_ct;
+    *cts-- = NULL;
+    skeleton->ciphertexts = cts;
   }
   return 0;
 }
@@ -103,7 +121,8 @@ void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, str
     }
   } else {
     prev_seed = gen_seed();
-    addAfter(oob_seeds, oob_seeds->tail, prev_seed);
+    if (skeleton->node->num_leaves == 1 && skeleton->parent != NULL) // if node is a leaf that is not the root
+      addAfter(oob_seeds, oob_seeds->tail, prev_seed);
   }
 
   out = prg(prev_seed);

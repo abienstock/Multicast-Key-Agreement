@@ -41,7 +41,8 @@ void destroy_skeleton(struct SkeletonNode *root) {
       destroy_skeleton(*(root->children +1));
     free(root->children);
   }
-  free(root->children_color);
+  if (root->children_color != NULL)
+    free(root->children_color);
   if (root->ciphertexts != NULL) {
     if (*(root->ciphertexts) != NULL) {
       free((*(root->ciphertexts))->ct);
