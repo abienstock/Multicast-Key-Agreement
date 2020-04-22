@@ -7,6 +7,37 @@
 #include "../group_manager/multicast/multicast.h"
 #include "../users/user.h"
 
+/*static void printSkeleton(void *p)
+{
+  struct SkeletonNode *node = (struct SkeletonNode *) p;
+  if (node->children_color == NULL)
+    printf("no children");
+  else {
+    printf("left: %d, ", *(node->children_color));
+    if (*(node->children_color) == 1) {
+      struct Ciphertext *left_ct = *node->ciphertexts;
+      printf("left ct: %d, parent id: %d, child id: %d, ", *((int *) left_ct->ct), left_ct->parent_id, left_ct->child_id);
+    }
+    printf("right: %d, ", *(node->children_color+1));
+    if (*(node->children_color + 1) == 1) {
+      struct Ciphertext *right_ct = *(node->ciphertexts + 1);
+      printf("right ct: %d, parent id: %d, child id: %d.", *((int *) right_ct->ct), right_ct->parent_id, right_ct->child_id);
+    }
+  }
+  }*/
+
+/*static void printNode(void *p)
+{
+  struct NodeData *data = (struct NodeData *) ((struct Node *) p)->data;
+  if (data->blank == 1)
+    printf("BLANK, id: %d", data->id);
+  else {
+    printf("id: %d, ", data->id);
+    printf("key: %d, ", *((int *)data->key));
+    printf("seed: %d.", *((int *)data->seed));
+  }
+  }*/
+
 /*static void print_secrets(void *data) {
   struct PathData *path_data = (struct PathData *) data;
   printf("id: %d, seed: %d, key %d\n", path_data->node_id, *((int *) path_data->seed), *((int *) path_data->key));
@@ -77,6 +108,10 @@ int next_op(struct Multicast *multicast, struct List *users, float add_wt, float
     (*max_id)++; //so adding new users w.l.o.g.
     printf("add: %d\n", *max_id);
     struct MultAddRet add_ret = mult_add(multicast, *max_id, &int_gen, &int_prg, &int_split, &int_identity);
+
+    //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printIntLine);
+    //pretty_traverse_skeleton(add_ret.skeleton, 0, &printSkeleton);
+
     addFront(multicast->users, add_ret.added);
     struct NodeData *root_data = (struct NodeData *) add_ret.skeleton->node->data;
     //printf("skeleton root seed: %d\n", *((int *) int_prg(root_data->seed)));
@@ -104,25 +139,24 @@ int next_op(struct Multicast *multicast, struct List *users, float add_wt, float
     struct NodeData *user_data = (struct NodeData *) user_node->data;
     printf("upd: %d\n", user_data->id);
     struct MultUpdRet upd_ret = mult_update(multicast, user_node, &int_gen, &int_prg, &int_split, &int_identity);
-    struct SkeletonNode *skeleton = upd_ret.skeleton;
     //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printIntLine);
-    struct NodeData *root_data = (struct NodeData *) skeleton->node->data;
+    //pretty_traverse_skeleton(upd_ret.skeleton, 0, &printSkeleton);
+    struct NodeData *root_data = (struct NodeData *) upd_ret.skeleton->node->data;
     //printf("skeleton root seed: %d\n", *((int *) int_prg(root_data->seed)));
 
     struct ListNode *user_curr = users->head;
     while (user_curr != 0) {
       void *root_seed;
       if (((struct User *) user_curr->data)->id == user_data->id)
-	root_seed = proc_ct((struct User *) user_curr->data, user_data->id, skeleton, upd_ret.oob_seed, &int_prg, &int_split, &int_identity);
+	root_seed = proc_ct((struct User *) user_curr->data, user_data->id, upd_ret.skeleton, upd_ret.oob_seed, &int_prg, &int_split, &int_identity);
       else
-	root_seed = proc_ct((struct User *) user_curr->data, user_data->id, skeleton, NULL, &int_prg, &int_split, &int_identity);
+	root_seed = proc_ct((struct User *) user_curr->data, user_data->id, upd_ret.skeleton, NULL, &int_prg, &int_split, &int_identity);
       //traverseList(((struct User *)user_curr->data)->secrets, &print_secrets);
       //printf("root seed: %d\n", *((int *) root_seed));
       user_curr = user_curr->next;
     }
 
-    
-    destroy_skeleton(skeleton);
+    destroy_skeleton(upd_ret.skeleton);
     
     return 1;
   } else {
@@ -133,6 +167,10 @@ int next_op(struct Multicast *multicast, struct List *users, float add_wt, float
     int rem_id = user_data->id;
     printf("rem: %d\n", rem_id);
     struct RemRet rem_ret = mult_rem(multicast, user_node, &int_gen, &int_prg, &int_split, &int_identity);
+
+    //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printIntLine);
+    //pretty_traverse_skeleton(rem_ret.skeleton, 0, &printSkeleton);
+
     struct NodeData *root_data = (struct NodeData *) rem_ret.skeleton->node->data;
     //printf("skeleton root seed: %d\n", *((int *) int_prg(root_data->seed)));
 
