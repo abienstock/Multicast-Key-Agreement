@@ -19,9 +19,11 @@ if __name__ == "__main__":
 	ttl = struct.pack('b', 1)
 	multicast_socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
 
+	i = 0
 
 	inputs = [oob_socket, sys.stdin.fileno()]
 	outputs = []
+	users = []
 	message_queues = {}
 	while inputs:
 		readable, writeable, exceptional = select.select(inputs, outputs, inputs)
@@ -32,12 +34,19 @@ if __name__ == "__main__":
 				print(addr)
 				conn.setblocking(0)
 				inputs.append(conn)
+				users.append(conn)
 				message_queues[conn] = []
 			else:
 				if c == 0:
 					cmd = bytes(input(), 'utf-8')
-					message_queues[multicast_socket] = [cmd]
-					outputs.append(multicast_socket)
+					print(cmd)
+					if (i == 0):
+						message_queues[users[0]] = [b'test']
+						outputs.append(users[0])
+						i += 1
+					else:
+						message_queues[multicast_socket] = [cmd]
+						outputs.append(multicast_socket)
 				else:
 					data = c.recv(1024)
 					if data:
@@ -57,6 +66,7 @@ if __name__ == "__main__":
 			if c is multicast_socket:
 				try:
 					next_msg = message_queues[c].pop(0)
+					print(next_msg)
 					#next_msg = b'multicast'
 				except:
 					outputs.remove(c)

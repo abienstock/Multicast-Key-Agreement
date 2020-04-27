@@ -3,9 +3,11 @@ import socket, sys, struct
 def get_key(host, port):
 	s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	s.connect((host, port))
-	data = input()
-	s.sendall(bytes(data, 'utf-8'))
-	data = s.recv(1024)
+	#data = input()
+	#s.sendall(bytes(data, 'utf-8'))
+	print("waiting")
+	data = s.recv(5)
+	print("got it")
 	return str(data)
 
 def listen(addr, port):
@@ -16,6 +18,8 @@ def listen(addr, port):
 	#s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 	s.bind(('', port))
+
+	print("mult waiting")
 
 	while True:
 		data, address = s.recvfrom(1024)
