@@ -91,7 +91,7 @@ void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, str
   } else {
     prev_seed = gen_seed();
     if (skeleton->node->num_leaves == 1 && skeleton->parent != NULL) // if node is a leaf that is not the root
-      addAfter(oob_seeds, oob_seeds->tail, prev_seed);
+      addFront(oob_seeds, prev_seed);
   }
 
   out = prg(prev_seed);

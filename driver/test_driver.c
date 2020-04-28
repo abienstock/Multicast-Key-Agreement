@@ -259,7 +259,7 @@ int main(int argc, char *argv[]) {
   //struct NodeData *root_data = (struct NodeData *) skeleton->node->data;
   //printf("skeleton root seed: %d\n", *((int *) int_prg(root_data->seed)));
 
-  struct ListNode *user_curr = users->tail;
+  struct ListNode *user_curr = users->head;
   //struct ListNode *mult_curr = lbbt_multicast->users->head;
   struct ListNode *oob_curr = oob_seeds->head;
   while (user_curr != 0) {
@@ -269,7 +269,7 @@ int main(int argc, char *argv[]) {
     free(proc_ct((struct User *) user_curr->data, -1, skeleton, oob_curr->data, &int_prg, &int_split, &int_identity)); // -1 for create
     //traverseList(((struct User *)user_curr->data)->secrets, &print_secrets);
     //printf("root seed: %d\n", *((int *) root_seed));
-    user_curr = user_curr->prev;
+    user_curr = user_curr->next;
     //mult_curr = mult_curr->next;
     oob_curr = oob_curr->next;
   }

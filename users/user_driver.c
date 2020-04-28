@@ -45,7 +45,7 @@ static void printSkeleton(void *p)
 {
   struct SkeletonNode *node = (struct SkeletonNode *) p;
   if (node->children_color == NULL)
-    printf("no children");
+    printf("id: %d; no children", node->node_id);
   else {
     printf("left: %d, ", *(node->children_color));
     if (*(node->children_color) == 1) {
@@ -58,6 +58,11 @@ static void printSkeleton(void *p)
       printf("right ct: %d, parent id: %d, child id: %d.", *((int *) right_ct->ct), right_ct->parent_id, right_ct->child_id);
     }
   }
+}
+
+static void print_secrets(void *data) {
+  struct PathData *path_data = (struct PathData *) data;
+  printf("id: %d, seed: %d, key %d\n", path_data->node_id, *((int *) path_data->seed), *((int *) path_data->key));
 }
 
 int get_int(char **buf) {
@@ -258,7 +263,7 @@ int main (int argc, char *argv[]) {
   }
 
   struct User *user;
-  int *seed;
+  int *seed = NULL;
   
   fd_set read_fds, write_fds;
   FD_ZERO(&write_fds);
@@ -312,13 +317,16 @@ int main (int argc, char *argv[]) {
 	perror("recvfrom() failed");
 	exit(-1);
       }
-      //printf("rcvd: %d buf: %s\n", rcvd, mult_buf);
+      printf("rcvd: %d buf: %s\n", rcvd, mult_buf);
 
-      int id = get_int(&mult_buf);
-      struct SkeletonNode *skel = build_skel(&mult_buf);
-      pretty_traverse_skeleton(skel, 0, &printSkeleton);
-      skel->parent = NULL;
-      proc_ct(user, id, skel, (void *) seed, &int_prg, &int_split, &int_identity);
+      if (seed != NULL) {
+	int id = get_int(&mult_buf);
+	struct SkeletonNode *skel = build_skel(&mult_buf);
+	pretty_traverse_skeleton(skel, 0, &printSkeleton);
+	skel->parent = NULL;
+	proc_ct(user, id, skel, (void *) seed, &int_prg, &int_split, &int_identity);
+	traverseList(user->secrets, &print_secrets);
+      }
     }
   }
 }

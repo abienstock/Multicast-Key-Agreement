@@ -94,7 +94,7 @@ struct ListNode *path_gen(struct User *user, void *prev_seed, void *prev_key, st
   free(out);
   free(out_split);
 
-  data->node_id = ((struct NodeData *) skel_node->node->data)->id;
+  data->node_id = skel_node->node_id;
   if (data->key != NULL)
     free(data->key);
   data->key = key;
@@ -102,7 +102,6 @@ struct ListNode *path_gen(struct User *user, void *prev_seed, void *prev_key, st
     free(data->seed);
   data->seed = new_seed;
 
-  
   if (skel_node->parent != NULL) {
     struct ListNode *next;
     if (path_node->next == NULL) {

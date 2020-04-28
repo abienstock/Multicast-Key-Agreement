@@ -367,11 +367,11 @@ int main(int argc, char *argv[]) {
       FD_SET(clnt_sock, &write_fds);
 
     } else if (FD_ISSET(0, &read_fds)) {
-      int n;
-      scanf("%d", &n);
+      int op, id; // if op = -1: create, id = num users, op = 0: add, op = 1: upd, op = 2: rem
+      scanf("%d %d", &op, &id);
 
-      if (multicast == NULL) {
-	struct MultInitRet init_ret = mult_init(n, tree_flags, 0, &int_gen, &int_prg, &int_split, &int_identity);
+      if (op == -1) {
+	struct MultInitRet init_ret = mult_init(id, tree_flags, 0, &int_gen, &int_prg, &int_split, &int_identity);
 	multicast = init_ret.multicast;
 	struct SkeletonNode *skeleton = init_ret.skeleton;
 	struct List *oob_seeds = init_ret.oob_seeds;
@@ -384,23 +384,86 @@ int main(int argc, char *argv[]) {
 	int i;
 	struct ListNode *socks_curr = socks.head;
 	struct ListNode *oob_curr = oob_seeds->head;
-	for (i = 0; i < n; i++) {
+	for (i = 0; i < N_uni; i++) { //TODO: FIX THIS HACK
 	  struct SockObj *sock = (struct SockObj *) socks_curr->data;
-	  sock->oob = oob_curr->data;
-	  FD_SET(sock->sock, &write_fds);
+	  if (sock->id < id) { //TODO: FIX THIS HACK
+	    printf("id: %d\n", sock->id);
+	    sock->oob = oob_curr->data;
+	    FD_SET(sock->sock, &write_fds);
+	    oob_curr = oob_curr->next;	    
+	  }
 	  socks_curr = socks_curr->next;
-	  oob_curr = oob_curr->next;
 	}
 
 	skel_f = fopen("skel.txt", "ab+");
-	fprintf(skel_f, "-1 "); //-1 for create
+	fprintf(skel_f, "%d ", op);
 	write_skeleton(skeleton, skel_f);
 	destroy_skeleton(skeleton);
 	fclose(skel_f);	
 	FD_SET(mult_sock, &write_fds);
-      } else { // TODO: WHAT HERE?
+      } else if (op == 0) {
+	struct MultAddRet add_ret = mult_add(multicast, id, &int_gen, &int_prg, &int_split, &int_identity);
+	struct ListNode *socks_curr = socks.head;
+	while (socks_curr != NULL) {
+	  struct SockObj *sock = (struct SockObj *) socks_curr->data;
+	  if (sock->id == id) {
+	    sock->oob = add_ret.oob_seed;
+	    FD_SET(sock->sock, &write_fds);
+	  }
+	  socks_curr = socks_curr -> next;
+	}
+	skel_f = fopen("skel.txt", "ab+");
+	fprintf(skel_f, "%d ", id);
+	write_skeleton(add_ret.skeleton, skel_f);
+	destroy_skeleton(add_ret.skeleton);
+	fclose(skel_f);
 	FD_SET(mult_sock, &write_fds);
-      }
+      } else if (op == 1) {
+	struct List *users = multicast->users;
+	struct ListNode *users_curr = users->head;
+	struct Node *user_node = NULL;
+	while (users_curr != NULL) {
+	  user_node = (struct Node *) users_curr->data;
+	  struct NodeData *user_data = (struct NodeData *) user_node->data;
+	  if (user_data->id == id)
+	    break;
+	  users_curr = users_curr->next;
+	}
+	struct MultUpdRet upd_ret = mult_update(multicast, user_node, &int_gen, &int_prg, &int_split, &int_identity); //TODO: replace id with node
+	struct ListNode *socks_curr = socks.head;
+	while (socks_curr != NULL) {
+	  struct SockObj *sock = (struct SockObj *) socks_curr->data;
+	  if (sock->id == id) {
+	    sock->oob = upd_ret.oob_seed;
+	    FD_SET(sock->sock, &write_fds);
+	  }
+	  socks_curr = socks_curr -> next;
+	}
+	skel_f = fopen("skel.txt", "ab+");
+	fprintf(skel_f, "%d ", id);
+	write_skeleton(upd_ret.skeleton, skel_f);
+	destroy_skeleton(upd_ret.skeleton);
+	fclose(skel_f);
+	FD_SET(mult_sock, &write_fds);	
+      } else if (op == 2) {
+	struct List *users = multicast->users;
+	struct ListNode *users_curr = users->head;
+	struct Node *user_node = NULL;
+	while (users_curr != NULL) {
+	  user_node = (struct Node *) users_curr->data;
+	  struct NodeData *user_data = (struct NodeData *) user_node->data;
+	  if (user_data->id == id)
+	    break;
+	  users_curr = users_curr->next;
+	}
+	struct RemRet rem_ret = mult_rem(multicast, user_node, &int_gen, &int_prg, &int_split, &int_identity); //TODO: replace id with node
+	skel_f = fopen("skel.txt", "ab+");
+	fprintf(skel_f, "%d ", id);
+	write_skeleton(rem_ret.skeleton, skel_f);
+	destroy_skeleton(rem_ret.skeleton);
+	fclose(skel_f);
+	FD_SET(mult_sock, &write_fds);
+      } //TODO: error handling
     } else {
       //printf("writing\n");
       struct ListNode *curr = socks.head;
