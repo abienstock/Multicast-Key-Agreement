@@ -206,6 +206,7 @@ struct SkeletonNode *gen_upd_skel(struct Node *node, struct Node *child, struct 
       perror("malloc returned NULL");
       return NULL;
     }
+    skeleton->node_id = ((struct NodeData *) node->data)->id;
     skeleton->children_color = children_color;
     skeleton->node = node;
     skeleton->ciphertexts = NULL;
@@ -246,6 +247,7 @@ struct MultUpdRet mult_update(struct Multicast *multicast, struct Node *user, vo
     perror("malloc returned NULL");
     return ret;
   }
+  leaf_skeleton->node_id = ((struct NodeData *) user->data)->id;  
   leaf_skeleton->node = user;
   leaf_skeleton->children = NULL;
   leaf_skeleton->children_color = NULL;

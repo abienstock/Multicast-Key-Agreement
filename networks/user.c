@@ -14,6 +14,7 @@ int main (int argc, char *argv[]) {
   unsigned short oob_port;
   unsigned short mult_port;
   struct ip_mreq mreq;
+  int max_sock;
   
   
   if (argc != 5) {
@@ -31,6 +32,7 @@ int main (int argc, char *argv[]) {
     perror("socket() failed");
     exit(-1);
   }
+  max_sock = oob_sock;
 
   memset(&oob_addr, 0, sizeof(oob_addr));
   oob_addr.sin_family = AF_INET;
@@ -42,17 +44,12 @@ int main (int argc, char *argv[]) {
     exit(-1);
   }
 
-  char buf[1024];
-  if (recv(oob_sock, buf, 1024, 0) < 0) {
-    perror("recv() failed");
-    exit(-1);
-  }
-  printf("%s\n", buf);
-
   if ((mult_sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
     perror("socket() failed");
     exit(-1);
   }
+  if (mult_sock > max_sock)
+    max_sock = mult_sock;
 
   u_int yes = 1;
   if (setsockopt(mult_sock, SOL_SOCKET, SO_REUSEPORT, (char *) &yes, sizeof(yes)) < 0) {
@@ -76,15 +73,44 @@ int main (int argc, char *argv[]) {
     perror("setsockopt() failed");
     exit(-1);
   }
-  
+
+  fd_set read_fds, write_fds;
+  FD_ZERO(&write_fds);
+
   for (;;) {
-    char mult_buf[1024];
-    socklen_t len = sizeof(mult_addr);
-    if (recvfrom(mult_sock, mult_buf, sizeof(mult_buf), 0, (struct sockaddr *) &mult_addr, &len) < 0) {
-      perror("recvfrom() failed");
+    FD_ZERO(&read_fds);
+    FD_SET(oob_sock, &read_fds);
+    FD_SET(mult_sock, &read_fds);
+
+    if (select(max_sock + 1, &read_fds, &write_fds, NULL, NULL) < 0) {
+      perror("select() failed");
       exit(-1);
     }
 
-    printf("%s\n", mult_buf);
+    if (FD_ISSET(oob_sock, &read_fds)) {
+      char recv_buf[32];
+      int remaining = sizeof(recv_buf);
+      int result = 0;
+      int received = 0;
+      while (remaining > 0) {
+	if ((result = recv(oob_sock, recv_buf + received, remaining, 0)) < 0) {
+	  perror("recv() failed");
+	  exit(-1);
+	} else {
+	  remaining -= result;
+	  received += result;
+	}
+      }
+      printf("%s", recv_buf);
+    } else if (FD_ISSET(mult_sock, &read_fds)) {
+      char mult_buf[4096];
+      socklen_t len = sizeof(mult_addr);
+      if (recvfrom(mult_sock, mult_buf, sizeof(mult_buf), 0, (struct sockaddr *) &mult_addr, &len) < 0) {
+	perror("recvfrom() failed");
+	exit(-1);
+      }
+      
+      printf("%s\n", mult_buf);
+    }
   }
 }

@@ -10,11 +10,15 @@ LDFLAGS = -g -lm -O2
 
 LDLIBS =
 
-user.o: user.c ../ll/ll.h
+user_driver: user_driver.o user.o ../ll/ll.o ../group_manager/trees/tree-utils.o
+
+user_driver.o: user_driver.c user.h ../skeleton.h ../group_manager/trees/trees.h
+
+user.o: user.c user.h ../ll/ll.h
 
 .PHONY: clean
 clean:
-	rm -f *.o *~ #*
+	rm -f *.o *~ *user_driver #*
 
 .PHONY: all
-all: clean user.o
+all: clean user_driver

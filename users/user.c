@@ -53,7 +53,7 @@ struct Entry find_entry(struct User *user, struct SkeletonNode *skeleton) {
 
 struct SkeletonNode *find_skel_node(int id, struct SkeletonNode *skeleton) {
   if (skeleton->children == NULL) {
-    if(((struct NodeData *) skeleton->node->data)->id == id)
+    if(skeleton->node_id == id)
       return skeleton;
   } else {
     struct SkeletonNode *ret_skel;
@@ -77,7 +77,7 @@ struct ListNode *path_gen(struct User *user, void *prev_seed, void *prev_key, st
     if (*(skel_node->children_color + child_pos) == 0) {
       seed = prev_seed;
     } else { // TODO: make sure only other option is color = 1
-      free (prev_seed);
+      free(prev_seed);
       struct Ciphertext *ciphertext = *(skel_node->ciphertexts + child_pos);
       seed = decrypt(prev_key, ciphertext->ct);
     }
@@ -128,7 +128,7 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, void *oo
   struct SkeletonNode *skel_node;
   struct ListNode *path_node;
   if (id != -1 && id != user->id) { // -1 for create
-    if (((struct NodeData *) skeleton->node->data)->id == user->id) {
+    if (skeleton->node_id == user->id) { // user is root
       skel_node = skeleton;
       path_node = user->secrets->head;
       struct PathData *path_node_data = ((struct PathData *) path_node->data);

@@ -48,6 +48,7 @@ struct _InitRet init_perfect(int h, int leftmost_id, int *ids, struct List *user
    
    if (h == 0) {
      data->id = *(ids+leftmost_id);
+     skeleton->node_id = data->id;
      root->children = NULL;
      addFront(users, (void *) root);
 
@@ -136,6 +137,7 @@ struct _InitRet root_init(int n, int leftmost_id, int *ids, struct List *users){
 
   if (n == 1) {
     data->id = *(ids+leftmost_id);
+    skeleton->node_id = data->id;
     root->children = NULL;
     addFront(users, (void *) root);
 
@@ -295,6 +297,7 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, int id, s
     leaf->num_leaves = 1;
     leaf->rightmost_blank = NULL;
 
+    skeleton->node_id = leaf_data->id;
     skeleton->node = leaf;
     skeleton->children = NULL;
     skeleton->children_color = NULL;
@@ -317,6 +320,7 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, int id, s
     root_data->seed = NULL;
     root_data->id = rand();
 
+    root_skeleton->node_id = root_data->id;
     root_skeleton->node = root;
     root_skeleton->ciphertexts = NULL;
     
@@ -350,6 +354,7 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, int id, s
     return root_skeleton;
   }
 
+  skeleton->node_id = ((struct NodeData *) node)->id;
   skeleton->node = node;
   skeleton->ciphertexts = NULL;
   skeleton->children_color = children_color;
@@ -382,6 +387,7 @@ struct SkeletonNode *augment_blanks_build_skel(struct Node *node, struct Node *c
       return NULL;
     }
     skeleton->children_color = children_color;
+    skeleton->node_id = ((struct NodeData *) node->data)->id;
     skeleton->node = node;
     skeleton->ciphertexts = NULL;
 
@@ -442,6 +448,7 @@ struct AddRet lbbt_add(void *tree, int id) {
 	  perror("malloc returned NULL");
 	  return ret;
 	}
+	leaf_skeleton->node_id = data->id;
 	leaf_skeleton->node = new_leaf;
 	leaf_skeleton->children = NULL;
 	leaf_skeleton->children_color = NULL;
@@ -506,6 +513,7 @@ struct TruncRet truncate(struct LBBT *lbbt, struct Node *node, int on_dir_path) 
       perror("malloc returned NULL");
       return ret;
     }
+    skeleton->node_id = ((struct NodeData *) node->data)->id;
     skeleton->node = node;
     skeleton->children_color = children_color;
     skeleton->ciphertexts = NULL;
@@ -601,6 +609,7 @@ struct RemRet lbbt_rem(void *tree, struct Node *node) {
 	} else {
 	  trunc_skel->children_color = NULL;
 	}
+	trunc_skel->node_id = ((struct NodeData *) lbbt->root->data)->id;
 	trunc_skel->node = lbbt->root;
 	trunc_skel->children = NULL;
 	trunc_skel->ciphertexts = NULL;

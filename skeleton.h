@@ -5,6 +5,7 @@
 
 // TODO: store children ids, parent skel node
 struct SkeletonNode {
+  int node_id;
   struct Node *node;
   struct SkeletonNode *parent;
   int *children_color; // the color of the edge between the node and its children -- 0 = red (PRG), 1 = blue (enc)

@@ -10,13 +10,17 @@ LDFLAGS = -g -lm -O2
 
 LDLIBS =
 
-driver: driver.o ../group_manager/trees/tree-utils.o ../group_manager/trees/LBBT.o ../ll/ll.o ../group_manager/multicast/multicast.o ../users/user.o
+crypto_driver: crypto_driver.o ../group_manager/trees/tree-utils.o ../group_manager/trees/LBBT.o ../ll/ll.o ../group_manager/multicast/multicast.o ../users/user.o
 
-driver.o: driver.c ../group_manager/trees/trees.h ../ll/ll.h ../group_manager/multicast/multicast.h ../users/user.h
+crypto_driver.o: crypto_driver.c ../group_manager/trees/trees.h ../ll/ll.h ../group_manager/multicast/multicast.h ../users/user.h
+
+test_driver: test_driver.o ../group_manager/trees/tree-utils.o ../group_manager/trees/LBBT.o ../ll/ll.o ../group_manager/multicast/multicast.o ../users/user.o
+
+test_driver.o: test_driver.c ../group_manager/trees/trees.h ../ll/ll.h ../group_manager/multicast/multicast.h ../users/user.h
 
 .PHONY: clean
 clean:
-	rm -f *.o a.out driver *~ #*
+	rm -f *.o a.out *driver *~ #*
 
 .PHONY: all
-all: clean driver
+all: clean crypto_driver test_driver
