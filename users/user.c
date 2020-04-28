@@ -53,7 +53,7 @@ struct Entry find_entry(struct User *user, struct SkeletonNode *skeleton) {
 
 struct SkeletonNode *find_skel_node(int id, struct SkeletonNode *skeleton) {
   if (skeleton->children == NULL) {
-    if(skeleton->node_id == id)
+    if (skeleton->node_id == id)
       return skeleton;
   } else {
     struct SkeletonNode *ret_skel;
@@ -137,27 +137,33 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, void *oo
       struct Entry entry = find_entry(user, skeleton);
       skel_node = entry.skel_node;
       path_node = entry.path_node;
-      struct PathData *path_node_data = ((struct PathData *) path_node->data);
-      struct Ciphertext *ciphertext = *(skel_node->ciphertexts + entry.child_pos);
-      seed = decrypt(path_node_data->key, ciphertext->ct);
-      if (path_node->next == NULL) {
-	struct PathData *data = malloc(sizeof(struct PathData));
-	if (data == NULL) {
+      if (entry.path_node != NULL) {
+	struct PathData *path_node_data = ((struct PathData *) path_node->data);
+	struct Ciphertext *ciphertext = *(skel_node->ciphertexts + entry.child_pos);
+	seed = decrypt(path_node_data->key, ciphertext->ct);
+	if (path_node->next == NULL) {
+	  struct PathData *data = malloc(sizeof(struct PathData));
+	  if (data == NULL) {
 	  perror("malloc returned NULL");
 	  return NULL;
+	  }
+	  data->seed = NULL;
+	  data->key = NULL;
+	  path_node = addAfter(user->secrets, path_node, (void *) data);
+	} else {
+	  path_node = path_node->next;
 	}
-	data->seed = NULL;
-	data->key = NULL;
-	path_node = addAfter(user->secrets, path_node, (void *) data);
-      } else {
-	path_node = path_node->next;
+      } else { // TODO: make sure compatible w/ non network drivers
+	printf("no entry found\n");
+	return NULL;
       }
     }
   } else {
     seed = oob_seed;
     skel_node = find_skel_node(user->id, skeleton);
-    //if (skel_node == NULL) // TODO: if user is removed
-    //  return NULL;
+    if (skel_node == NULL) { // TODO: make sure compatible w/ non network drivers; destroy user path secrest??
+      return NULL;
+    }
     if (user->secrets->head == NULL) {
       struct PathData *data = malloc(sizeof(struct PathData));
       if (data == NULL) {

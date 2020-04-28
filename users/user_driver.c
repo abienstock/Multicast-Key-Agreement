@@ -319,13 +319,18 @@ int main (int argc, char *argv[]) {
       }
       printf("rcvd: %d buf: %s\n", rcvd, mult_buf);
 
-      if (seed != NULL) {
-	int id = get_int(&mult_buf);
-	struct SkeletonNode *skel = build_skel(&mult_buf);
-	pretty_traverse_skeleton(skel, 0, &printSkeleton);
-	skel->parent = NULL;
-	proc_ct(user, id, skel, (void *) seed, &int_prg, &int_split, &int_identity);
+      int id = get_int(&mult_buf);
+      struct SkeletonNode *skel = build_skel(&mult_buf);
+      pretty_traverse_skeleton(skel, 0, &printSkeleton);
+      skel->parent = NULL;
+      void *root_seed = proc_ct(user, id, skel, (void *) seed, &int_prg, &int_split, &int_identity);
+      if (root_seed == NULL && user->secrets->head == NULL) {
+	printf("not in group\n");
+      } else if (root_seed == NULL) {
+	printf("removed from group\n");
+      } else {
 	traverseList(user->secrets, &print_secrets);
+	printf("root seed: %d\n", *((int *) root_seed));
       }
     }
   }

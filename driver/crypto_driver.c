@@ -403,6 +403,9 @@ int main(int argc, char *argv[]) {
 	FD_SET(mult_sock, &write_fds);
       } else if (op == 0) {
 	struct MultAddRet add_ret = mult_add(multicast, id, &int_gen, &int_prg, &int_split, &int_identity);
+	pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
+	pretty_traverse_skeleton(add_ret.skeleton, 0, &printSkeleton);
+	
 	struct ListNode *socks_curr = socks.head;
 	while (socks_curr != NULL) {
 	  struct SockObj *sock = (struct SockObj *) socks_curr->data;
@@ -430,6 +433,9 @@ int main(int argc, char *argv[]) {
 	  users_curr = users_curr->next;
 	}
 	struct MultUpdRet upd_ret = mult_update(multicast, user_node, &int_gen, &int_prg, &int_split, &int_identity); //TODO: replace id with node
+	pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
+	pretty_traverse_skeleton(upd_ret.skeleton, 0, &printSkeleton);
+	
 	struct ListNode *socks_curr = socks.head;
 	while (socks_curr != NULL) {
 	  struct SockObj *sock = (struct SockObj *) socks_curr->data;
@@ -457,6 +463,9 @@ int main(int argc, char *argv[]) {
 	  users_curr = users_curr->next;
 	}
 	struct RemRet rem_ret = mult_rem(multicast, user_node, &int_gen, &int_prg, &int_split, &int_identity); //TODO: replace id with node
+	pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
+	pretty_traverse_skeleton(rem_ret.skeleton, 0, &printSkeleton);
+	
 	skel_f = fopen("skel.txt", "ab+");
 	fprintf(skel_f, "%d ", id);
 	write_skeleton(rem_ret.skeleton, skel_f);
