@@ -7,34 +7,39 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <botan/ffi.h>
 #include "../group_manager/trees/trees.h"
 #include "../ll/ll.h"
 #include "../group_manager/multicast/multicast.h"
 #include "../users/user.h"
+#include "../crypto/crypto.h"
 
 #define MAXPENDING 5    /* Maximum outstanding connection requests */
 
 struct SockObj {
   int sock;
   int id;
-  void *oob;
+  uint8_t *oob;
+  size_t oob_bytes;
 };
 
 static void printSkeleton(void *p)
 {
   struct SkeletonNode *node = (struct SkeletonNode *) p;
   if (node->children_color == NULL)
-    printf("no children");
+    printf("id: %d; no children", node->node_id);
   else {
     printf("left: %d, ", *(node->children_color));
     if (*(node->children_color) == 1) {
       struct Ciphertext *left_ct = *node->ciphertexts;
-      printf("left ct: %d, parent id: %d, child id: %d, ", *((int *) left_ct->ct), left_ct->parent_id, left_ct->child_id);
+      printf("left ct: ");
+      printf("%d, parent id: %d, child id: %d, ", *((int *) left_ct->ct), left_ct->parent_id, left_ct->child_id);
     }
     printf("right: %d, ", *(node->children_color+1));
     if (*(node->children_color + 1) == 1) {
       struct Ciphertext *right_ct = *(node->ciphertexts + 1);
-      printf("right ct: %d, parent id: %d, child id: %d.", *((int *) right_ct->ct), right_ct->parent_id, right_ct->child_id);
+      printf("right ct: ");
+      printf("%d, parent id: %d, child id: %d.", *((int *) right_ct->ct), right_ct->parent_id, right_ct->child_id);
     }
   }
 }
@@ -46,8 +51,8 @@ static void printNode(void *p)
     printf("BLANK, id: %d", data->id);
   else {
     printf("id: %d, ", data->id);
-    printf("key: %d, ", *((int *)data->key));
-    printf("seed: %d.", *((int *)data->seed));
+    printf("key: %d, ", *((int *) data->key));
+    printf("seed: %d.", *((int *) data->seed));
   }
 }
 
@@ -56,68 +61,12 @@ static void printNode(void *p)
   printf("id: %d, seed: %d, key %d\n", path_data->node_id, *((int *) path_data->seed), *((int *) path_data->key));
   }*/
 
-void *int_gen() {
-  int *seed = malloc(sizeof(int));
-  if (seed == NULL) {
-    perror("malloc returned NULL");
-    return NULL;
-  }
-  *seed = rand();
-  return (void *) seed;
-}
-
-void *int_prg(void *seed) {
-  int *out = malloc(sizeof(int));
-  if (out == NULL) {
-    perror("malloc returned NULL");
-    return NULL;
-  }
-  *out = *((int *) seed) + 2;
-  return (void *) out;
-}
-
-void **int_split(void *data) {
-  int **split = malloc(sizeof(int *) * 3);
-  int *seed = malloc(sizeof(int));
-  int *key = malloc(sizeof(int));
-  int *next_seed = malloc(sizeof(int));
-  int out = *(int *) data;
-  *seed = out;
-  *key = out + 1;
-  *next_seed = out + 2;
-
-  *split = seed;
-  *(split + 1) = key;
-  *(split + 2) = next_seed;
-  return (void **) split;
-}
-
-void *int_identity(void *key, void *data) {
-  int *plaintext = malloc(sizeof(int));
-  *plaintext = *((int *) data);
-  return (void *) plaintext;
-}
-
-int rand_int(int n, int distrib, float geo_param) {
-  int i;
-  switch (distrib) {
-  case 0: //uniform
-    return rand() % n; // in range 0 to n-1
-  case 1: // geo
-    for (i = 0; i < n; i++) {
-      if (((float) rand() / (float) RAND_MAX) < geo_param)
-	return i;
-    }
-    return n-1; // 0-indexed
-  default:
-    return -1; //TODO: error checking!!
-  }
-}
-
 //preorder traversal
-void write_skeleton(struct SkeletonNode *skel_node, FILE *f) {
+void write_skeleton(struct SkeletonNode *skel_node, FILE *f, size_t ct_size) {
   struct NodeData *data = ((struct NodeData *) skel_node->node->data);
-  fprintf(f, "%d ", data->id);
+  //fprintf(f, "%d ", data->id);
+  fwrite(&data->id, 4, 1, f);
+  //fprintf(f, " ");	  
   if (skel_node->children_color != NULL) {
     // implicitly encode blue/red
     struct NodeData *child_data;
@@ -125,133 +74,71 @@ void write_skeleton(struct SkeletonNode *skel_node, FILE *f) {
     if (*skel_node->children_color == 1) {
       child_data = (struct NodeData *) (*skel_node->node->children)->data;
       ciphertext = *skel_node->ciphertexts;
-      fprintf(f, "%d %d ", child_data->id, *((int *) ciphertext->ct));
+      //fprintf(f, "%d ", child_data->id);
+      fwrite(&child_data->id, 4, 1, f);
+      //fprintf(f, " ");	        
+      fwrite((uint8_t *) ciphertext->ct, ct_size, 1, f); //TODO: check if casting needed
+      //fprintf(f, " ");
+    } else {
+      //fprintf(f, "! ! ");
+      uint8_t no_ct = 0;
+      int j;
+      for (j = 0; j < 4 + ct_size; j++) {
+	fwrite(&no_ct, 1, 1, f);
+      }
     }
-    else
-      fprintf(f, "! ! ");
     if (*(skel_node->children_color + 1) == 1) {
       child_data = (struct NodeData *) (*(skel_node->node->children + 1))->data;
       ciphertext = *(skel_node->ciphertexts + 1);
-      fprintf(f, "%d %d ", child_data->id, *((int *) ciphertext->ct));      
+      //fprintf(f, "%d ", child_data->id);
+      fwrite(&child_data->id, 4, 1, f);
+      //fprintf(f, " ");	        
+      printf("%d\n", *((int *) ciphertext->ct));
+      fwrite((uint8_t *) ciphertext->ct, ct_size, 1, f);
+      //fprintf(f, " ");
+    } else {
+      //fprintf(f, "! ! ");
+      uint8_t no_ct = 0;
+      int j;
+      for (j = 0; j < 4 + ct_size; j++) {
+	fwrite(&no_ct, 1, 1, f);
+      }      
     }
-    else
-      fprintf(f, "! ! ");
   } else {
-    fprintf(f, "! ! ! ! ");
+    //fprintf(f, "! ! ! ! ");
+    uint8_t no_ct = 0;
+    int j;
+    for (j = 0; j < 2 * (4 + ct_size); j++) {
+      fwrite(&no_ct, 1, 1, f);
+    }
   }
+
+  //children
+  uint8_t child = 1;
+  uint8_t no_child = 0;
   if (skel_node->children != NULL){
     if (*skel_node->children != NULL) {
-      fprintf(f, "1 ");
-      write_skeleton(*skel_node->children, f);
+      printf("left child\n");
+      //fprintf(f, "1 ");
+      fwrite(&child, 1, 1, f);
+      write_skeleton(*skel_node->children, f, ct_size);
     } else {
-      fprintf(f, "0 ");
+      //fprintf(f, "0 ");
+      fwrite(&no_child, 1, 1, f);
     }
     if (*(skel_node->children + 1) != NULL) {
-      fprintf(f, "1 ");
-      write_skeleton(*(skel_node->children + 1), f);
+      printf("right child\n");      
+      //fprintf(f, "1 ");
+      fwrite(&child, 1, 1, f);
+      write_skeleton(*(skel_node->children + 1), f, ct_size);
     } else {
-      fprintf(f, "0 ");
+      fwrite(&no_child, 1, 1, f);
+      //fprintf(f, "0 ");
     }
   } else {
-    fprintf(f, "0 0 ");
-  }
-}
-
-int next_op(struct Multicast *multicast, struct List *users, float add_wt, float upd_wt, int distrib, float geo_param, int *max_id) {
-  int num_users = multicast->users->len;
-  float operation = (float) rand() / (float) RAND_MAX;
-  if (operation < add_wt || num_users == 1) { //TODO: forcing add with n=1 correct??
-    (*max_id)++; //so adding new users w.l.o.g.
-    printf("add: %d\n", *max_id);
-    struct MultAddRet add_ret = mult_add(multicast, *max_id, &int_gen, &int_prg, &int_split, &int_identity);
-
-    //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printIntLine);
-    //pretty_traverse_skeleton(add_ret.skeleton, 0, &printSkeleton);
-
-    addFront(multicast->users, add_ret.added);
-    //struct NodeData *root_data = (struct NodeData *) add_ret.skeleton->node->data;
-    //printf("skeleton root seed: %d\n", *((int *) int_prg(root_data->seed)));
-
-    struct ListNode *user_curr = users->head;
-    while (user_curr != 0) {
-      //void *root_seed =
-      free(proc_ct((struct User *) user_curr->data, *max_id, add_ret.skeleton, NULL, &int_prg, &int_split, &int_identity));
-      //traverseList(((struct User *)user_curr->data)->secrets, &print_secrets);
-      //printf("root seed: %d\n", *((int *) root_seed));
-      user_curr = user_curr->next;
-    }
-    
-    struct User *user = init_user(*max_id);
-    addFront(users, (void *) user);
-    //void *root_seed =
-    free(proc_ct(user, *max_id, add_ret.skeleton, add_ret.oob_seed, &int_prg, &int_split, &int_identity));
-    //traverseList(user->secrets, &print_secrets);
-    //printf("root seed: %d\n", *((int *) root_seed));
-
-    destroy_skeleton(add_ret.skeleton);
-    
-    return 0;
-  } else if (operation < add_wt + upd_wt) {
-    int user = rand_int(num_users, distrib, geo_param);
-    struct Node *user_node = (struct Node *) findNode(multicast->users, user)->data;
-    struct NodeData *user_data = (struct NodeData *) user_node->data;
-    printf("upd: %d\n", user_data->id);
-    struct MultUpdRet upd_ret = mult_update(multicast, user_node, &int_gen, &int_prg, &int_split, &int_identity);
-    //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printIntLine);
-    //pretty_traverse_skeleton(upd_ret.skeleton, 0, &printSkeleton);
-    //struct NodeData *root_data = (struct NodeData *) upd_ret.skeleton->node->data;
-    //printf("skeleton root seed: %d\n", *((int *) int_prg(root_data->seed)));
-
-    struct ListNode *user_curr = users->head;
-    while (user_curr != 0) {
-      //void *root_seed;
-      if (((struct User *) user_curr->data)->id == user_data->id) {
-	//root_seed =
-	free(proc_ct((struct User *) user_curr->data, user_data->id, upd_ret.skeleton, upd_ret.oob_seed, &int_prg, &int_split, &int_identity));
-      } else {
-	//root_seed =
-	free(proc_ct((struct User *) user_curr->data, user_data->id, upd_ret.skeleton, NULL, &int_prg, &int_split, &int_identity));
-      }
-      //traverseList(((struct User *)user_curr->data)->secrets, &print_secrets);
-      //printf("root seed: %d\n", *((int *) root_seed));
-      user_curr = user_curr->next;
-    }
-
-    destroy_skeleton(upd_ret.skeleton);
-    
-    return 1;
-  } else {
-    int user_num = rand_int(num_users, distrib, geo_param);
-    printf("user: %d\n", user_num);
-    struct Node *user_node = (struct Node *) findAndRemoveNode(multicast->users, user_num);
-    struct NodeData *user_data = (struct NodeData *) user_node->data;
-    int rem_id = user_data->id;
-    printf("rem: %d\n", rem_id);
-    struct RemRet rem_ret = mult_rem(multicast, user_node, &int_gen, &int_prg, &int_split, &int_identity);
-
-    //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printIntLine);
-    //pretty_traverse_skeleton(rem_ret.skeleton, 0, &printSkeleton);
-
-    //struct NodeData *root_data = (struct NodeData *) rem_ret.skeleton->node->data;
-    //printf("skeleton root seed: %d\n", *((int *) int_prg(root_data->seed)));
-
-    struct User *user = (struct User *) findAndRemoveNode(users, user_num);
-    destroy_user(user);
-
-    struct ListNode *user_curr = users->head;
-    while (user_curr != 0) {
-      if (((struct User *) user_curr->data)->id != rem_id) {
-	//void *root_seed =
-	free(proc_ct((struct User *) user_curr->data, rem_id, rem_ret.skeleton, NULL, &int_prg, &int_split, &int_identity));
-	//traverseList(((struct User *)user_curr->data)->secrets, &print_secrets);
-	//printf("root seed: %d\n", *((int *) root_seed));
-      }
-      user_curr = user_curr->next;
-    }
-
-    destroy_skeleton(rem_ret.skeleton);
-    
-    return 2;
+    //fprintf(f, "0 0 ");
+    fwrite(&no_child, 1, 1, f);
+    fwrite(&no_child, 1, 1, f);
   }
 }
 
@@ -267,6 +154,7 @@ int main(int argc, char *argv[]) {
   unsigned char multicast_ttl = 1;  
   int max_sock;
   int N_uni;
+  void *sampler = NULL, *generator = NULL, *cipher = NULL, *test_cipher = NULL;
 
   srand(time(0));
 
@@ -318,8 +206,19 @@ int main(int argc, char *argv[]) {
   mult_addr.sin_addr.s_addr = inet_addr(mult_host);
   mult_addr.sin_port = htons(mult_port);
 
+  printf("set up crypto\n");
   //FILE *mult_f = fdopen(mult_sock, "ab+");
   FILE *skel_f;
+  
+  sampler_init(&sampler);
+  prg_init(&generator);
+  cipher_init(&cipher, 0); //0 for enc mode
+  cipher_init(&test_cipher, 1);
+  
+  size_t seed_size, ct_size;
+  get_seed_size(generator, &seed_size);
+  get_ct_size(cipher, seed_size, &ct_size);
+  printf("done setting up crypto\n");
 
   clnt_len = sizeof(oob_addr);
   N_uni = 0;
@@ -354,7 +253,9 @@ int main(int argc, char *argv[]) {
       }
       sock_obj->sock = clnt_sock;
       sock_obj->id = N_uni++;
+      //memcpy(sock_obj->oob, &sock_obj->id, 4); //TODO: make sure correct
       sock_obj->oob = &sock_obj->id;
+      sock_obj->oob_bytes = 4; //TODO: ALWAYS 4??
       if (addFront(&socks, sock_obj) == NULL) {
 	perror("addFront() failed");
 	return -1;
@@ -371,7 +272,8 @@ int main(int argc, char *argv[]) {
       scanf("%d %d", &op, &id);
 
       if (op == -1) {
-	struct MultInitRet init_ret = mult_init(id, tree_flags, 0, &int_gen, &int_prg, &int_split, &int_identity);
+	struct MultInitRet init_ret = mult_init(id, tree_flags, 0, sampler, generator, cipher);
+	printf("initialized\n");
 	multicast = init_ret.multicast;
 	struct SkeletonNode *skeleton = init_ret.skeleton;
 	struct List *oob_seeds = init_ret.oob_seeds;
@@ -389,20 +291,23 @@ int main(int argc, char *argv[]) {
 	  if (sock->id < id) { //TODO: FIX THIS HACK
 	    printf("id: %d\n", sock->id);
 	    sock->oob = oob_curr->data;
+	    sock->oob_bytes = seed_size;
 	    FD_SET(sock->sock, &write_fds);
 	    oob_curr = oob_curr->next;	    
 	  }
 	  socks_curr = socks_curr->next;
 	}
 
-	skel_f = fopen("skel.txt", "ab+");
-	fprintf(skel_f, "%d ", op);
-	write_skeleton(skeleton, skel_f);
-	destroy_skeleton(skeleton);
+	skel_f = fopen("skel1.txt", "ab+");
+	//fprintf(skel_f, "%d ", op);
+	fwrite(&op, 4, 1, skel_f);
+	//fprintf(skel_f, " ");	  	
+	write_skeleton(skeleton, skel_f, ct_size);
+	//destroy_skeleton(skeleton);
 	fclose(skel_f);	
 	FD_SET(mult_sock, &write_fds);
       } else if (op == 0) {
-	struct MultAddRet add_ret = mult_add(multicast, id, &int_gen, &int_prg, &int_split, &int_identity);
+	struct MultAddRet add_ret = mult_add(multicast, id, sampler, generator, cipher);
 	pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
 	pretty_traverse_skeleton(add_ret.skeleton, 0, &printSkeleton);
 	
@@ -411,14 +316,17 @@ int main(int argc, char *argv[]) {
 	  struct SockObj *sock = (struct SockObj *) socks_curr->data;
 	  if (sock->id == id) {
 	    sock->oob = add_ret.oob_seed;
+	    sock->oob_bytes = seed_size;
 	    FD_SET(sock->sock, &write_fds);
 	  }
 	  socks_curr = socks_curr -> next;
 	}
 	skel_f = fopen("skel.txt", "ab+");
-	fprintf(skel_f, "%d ", id);
-	write_skeleton(add_ret.skeleton, skel_f);
-	destroy_skeleton(add_ret.skeleton);
+	//fprintf(skel_f, "%d ", id);
+	fwrite(&id, 4, 1, skel_f);
+	//fprintf(skel_f, " ");	  	
+	write_skeleton(add_ret.skeleton, skel_f, ct_size);
+	//destroy_skeleton(add_ret.skeleton);
 	fclose(skel_f);
 	FD_SET(mult_sock, &write_fds);
       } else if (op == 1) {
@@ -432,7 +340,7 @@ int main(int argc, char *argv[]) {
 	    break;
 	  users_curr = users_curr->next;
 	}
-	struct MultUpdRet upd_ret = mult_update(multicast, user_node, &int_gen, &int_prg, &int_split, &int_identity); //TODO: replace id with node
+	struct MultUpdRet upd_ret = mult_update(multicast, user_node, sampler, generator, cipher);
 	pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
 	pretty_traverse_skeleton(upd_ret.skeleton, 0, &printSkeleton);
 	
@@ -441,14 +349,17 @@ int main(int argc, char *argv[]) {
 	  struct SockObj *sock = (struct SockObj *) socks_curr->data;
 	  if (sock->id == id) {
 	    sock->oob = upd_ret.oob_seed;
+	    sock->oob_bytes = seed_size;
 	    FD_SET(sock->sock, &write_fds);
 	  }
 	  socks_curr = socks_curr -> next;
 	}
 	skel_f = fopen("skel.txt", "ab+");
-	fprintf(skel_f, "%d ", id);
-	write_skeleton(upd_ret.skeleton, skel_f);
-	destroy_skeleton(upd_ret.skeleton);
+	//fprintf(skel_f, "%d ", id);
+	fwrite(&id, 4, 1, skel_f);
+	//fprintf(skel_f, " ");	
+	write_skeleton(upd_ret.skeleton, skel_f, ct_size);
+	//destroy_skeleton(upd_ret.skeleton);
 	fclose(skel_f);
 	FD_SET(mult_sock, &write_fds);	
       } else if (op == 2) {
@@ -462,14 +373,16 @@ int main(int argc, char *argv[]) {
 	    break;
 	  users_curr = users_curr->next;
 	}
-	struct RemRet rem_ret = mult_rem(multicast, user_node, &int_gen, &int_prg, &int_split, &int_identity); //TODO: replace id with node
+	struct RemRet rem_ret = mult_rem(multicast, user_node, sampler, generator, cipher);
 	pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
 	pretty_traverse_skeleton(rem_ret.skeleton, 0, &printSkeleton);
 	
 	skel_f = fopen("skel.txt", "ab+");
-	fprintf(skel_f, "%d ", id);
-	write_skeleton(rem_ret.skeleton, skel_f);
-	destroy_skeleton(rem_ret.skeleton);
+	//fprintf(skel_f, "%d ", id); //TODO: change to bytes??
+	fwrite(&id, 4, 1, skel_f);
+	//fprintf(skel_f, " ");		
+	write_skeleton(rem_ret.skeleton, skel_f, ct_size);
+	//destroy_skeleton(rem_ret.skeleton);
 	fclose(skel_f);
 	FD_SET(mult_sock, &write_fds);
       } //TODO: error handling
@@ -479,14 +392,15 @@ int main(int argc, char *argv[]) {
       while (curr != NULL) {
 	struct SockObj *sock = (struct SockObj *) curr->data;
 	if (FD_ISSET(sock->sock, &write_fds)) {
-	  printf("oob_val: %d\n", *((int *) sock->oob));
-	  char send_buf[32];
-	  sprintf(send_buf, "%d", *((int *) sock->oob));
-	  int remaining = sizeof(send_buf);
+	  //printf("oob_val: %d\n", *((int *) sock->oob));
+	  //printf("oob_val: %s\n", (char *) sock->oob);	  
+	  //char send_buf[32];
+	  //sprintf(send_buf, "%d", *((int *) sock->oob));
+	  int remaining = sock->oob_bytes;
 	  int result = 0;
 	  int sent = 0;
 	  while (remaining > 0) {
-	    if ((result = send(sock->sock, send_buf + sent, remaining, 0)) < 0) {
+	    if ((result = send(sock->sock, ((uint8_t *) sock->oob) + sent, remaining, 0)) < 0) {
 	      perror("send() failed");
 	      exit(-1);
 	    } else {
@@ -499,49 +413,38 @@ int main(int argc, char *argv[]) {
 	curr = curr->next;
       }
       if (FD_ISSET(mult_sock, &write_fds)) {
-	skel_f = fopen("skel.txt", "r");
+	skel_f = fopen("skel1.txt", "rb");
 	
-	char f_content[4096];
+	uint8_t f_content[4096]; //TODO: HACK!!
 	size_t n;
 	printf("sending skel\n");
-	while ((n = fread(f_content, sizeof(char), sizeof(f_content), skel_f)) > 0) {
-	  printf("content: %s\n", f_content);
-	  //fwrite(f_content, 1, n, mult_f);	  
-	  if(sendto(mult_sock, f_content, n, 0, (struct sockaddr *) &mult_addr, sizeof(mult_addr)) < 0) {
-	    perror("sendto() failed");
-	    exit(-1);
-	  }		  
+	while ((n = fread(f_content, 1, 4096, skel_f)) > 0) {
+	  printf("len: %zu\n", n);
+	  printf("content: \n");
+	  //printf("%s\n", f_content);
+	  //fwrite(f_content, 1, n, mult_f);
+
+	  int remaining = n;
+	  int result = 0;
+	  int sent = 0;
+	  while (remaining > 0) {
+	    if((result = sendto(mult_sock, f_content, n, 0, (struct sockaddr *) &mult_addr, sizeof(mult_addr))) < 0) {
+	      perror("sendto() failed");
+	      exit(-1);
+	    } else {
+	      remaining -= result;
+	      sent += result;
+	    }
+	  }
+
 	}
 
 	fclose(skel_f);
-	remove("skel.txt");
+	//remove("skel.txt");
 	FD_CLR(mult_sock, &write_fds);
       }
     }
   }
 
-
-
-  /*int *max_id = malloc(sizeof(int));
-  if (max_id == NULL) {
-    perror("malloc returned NULL");
-    return -1;
-  }
-  *max_id = n-1;
-
-
-
-  int ops[3] = { 0, 0, 0 };
-
-  //int i;
-  //for (i = 0; i < atoi(argv[2]); i++) {
-  //  ops[next_op(lbbt_multicast, NULL, -1, -1, -1, -1, max_id)]++;
-  //}
-
-  printf("# adds: %d, # updates: %d, # rems %d\n", ops[0], ops[1], ops[2]);
-  printf("# PRGs: %d, # encs: %d\n", *(lbbt_multicast->counts), *(lbbt_multicast->counts + 1));
-
-  mult_destroy(lbbt_multicast);
-  free(max_id);*/
   return 0;
 }

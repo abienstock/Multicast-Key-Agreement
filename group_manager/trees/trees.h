@@ -6,8 +6,9 @@
 
 struct NodeData {
   int id;
-  void *key;
-  void *seed;
+  uint8_t *key;
+  uint8_t *nonce;
+  uint8_t *seed;
   int blank; // 0 = notblank, 1 = blank
 };
 

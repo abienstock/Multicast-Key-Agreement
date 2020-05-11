@@ -1,7 +1,9 @@
 CC = gcc
 CXX = g++
 
-INCLUDES =
+INCLUDES = -Idriver/include
+
+LDLIBS = -Ldriver/lib -lbotan-2
 
 CFLAGS = -g -Wall -O2 $(INCLUDES)
 CXXFLAGS = -g -Wall -O2 $(INCLUDES)

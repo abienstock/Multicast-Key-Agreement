@@ -29,13 +29,13 @@ struct MultUpdRet {
   void *oob_seed;
 };
 
-struct MultInitRet mult_init(int n, int *tree_flags, int tree_type, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *));
+struct MultInitRet mult_init(int n, int *tree_flags, int tree_type, void *sampler, void *prg, void *cipher);
 
-struct MultAddRet mult_add(struct Multicast *multicast, int id, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *)); //TODO: id is for new user
+struct MultAddRet mult_add(struct Multicast *multicast, int id, void *sampler, void *prg, void *cipher); //TODO: id is for new user
 
-struct MultUpdRet mult_update(struct Multicast *multicast, struct Node *user, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *));
+struct MultUpdRet mult_update(struct Multicast *multicast, struct Node *user, void *sampler, void *prg, void *cipher);
 
-struct RemRet mult_rem(struct Multicast *multicast, struct Node *user, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *));
+struct RemRet mult_rem(struct Multicast *multicast, struct Node *user, void *sampler, void *prg, void *cipher);
 
 void mult_destroy(struct Multicast *multicast);
 

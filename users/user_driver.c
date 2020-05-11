@@ -5,41 +5,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <botan/ffi.h>
 #include "../skeleton.h"
 #include "../group_manager/trees/trees.h"
 #include "user.h"
-
-void *int_prg(void *seed) {
-  int *out = malloc(sizeof(int));
-  if (out == NULL) {
-    perror("malloc returned NULL");
-    return NULL;
-  }
-  *out = *((int *) seed) + 2;
-  return (void *) out;
-}
-
-void **int_split(void *data) {
-  int **split = malloc(sizeof(int *) * 3);
-  int *seed = malloc(sizeof(int));
-  int *key = malloc(sizeof(int));
-  int *next_seed = malloc(sizeof(int));
-  int out = *(int *) data;
-  *seed = out;
-  *key = out + 1;
-  *next_seed = out + 2;
-
-  *split = seed;
-  *(split + 1) = key;
-  *(split + 2) = next_seed;
-  return (void **) split;
-}
-
-void *int_identity(void *key, void *data) {
-  int *plaintext = malloc(sizeof(int));
-  *plaintext = *((int *) data);
-  return (void *) plaintext;
-}
+#include "../crypto/crypto.h"
 
 static void printSkeleton(void *p)
 {
@@ -50,12 +20,14 @@ static void printSkeleton(void *p)
     printf("left: %d, ", *(node->children_color));
     if (*(node->children_color) == 1) {
       struct Ciphertext *left_ct = *node->ciphertexts;
-      printf("left ct: %d, parent id: %d, child id: %d, ", *((int *) left_ct->ct), left_ct->parent_id, left_ct->child_id);
+      printf("left ct: ");
+      printf("%s, parent id: %d, child id: %d, ", (char *) left_ct->ct, left_ct->parent_id, left_ct->child_id);
     }
     printf("right: %d, ", *(node->children_color+1));
     if (*(node->children_color + 1) == 1) {
       struct Ciphertext *right_ct = *(node->ciphertexts + 1);
-      printf("right ct: %d, parent id: %d, child id: %d.", *((int *) right_ct->ct), right_ct->parent_id, right_ct->child_id);
+      printf("right ct: ");
+      printf("%s, parent id: %d, child id: %d.", (char *) right_ct->ct, right_ct->parent_id, right_ct->child_id);
     }
   }
 }
@@ -65,64 +37,90 @@ static void print_secrets(void *data) {
   printf("id: %d, seed: %d, key %d\n", path_data->node_id, *((int *) path_data->seed), *((int *) path_data->key));
 }
 
-int get_int(char **buf) {
-  char temp[406];
+int get_bytes(uint8_t **buf, uint8_t *result, int num_bytes) {
   int i = 0;
-  while (**buf != ' ' && **buf != '\0') {
-    temp[i++] = **buf;
+  //while (**buf != 32 && **buf != 0) { //ascii space and null
+  while (i < num_bytes) {
+    result[i++] = **buf;
     (*buf)++;
   }
-  if (**buf != '\0')
-    (*buf)++;
-  temp[i] = '\0';
-  return atoi(temp);
+  //if (**buf != 0)
+  //(*buf)++; SHOULDNT NEED
+  return 0;
 }
 
-struct Ciphertext *get_ct(char **buf, int parent_id) {
+struct Ciphertext *get_ct(uint8_t **buf, int parent_id, void *cipher, size_t ct_size) {
+  int num_bytes;
+  printf("ct size: %zu\n", ct_size);
   struct Ciphertext *ciphertext = malloc(sizeof(struct Ciphertext));
   if (ciphertext == NULL) {
     perror("malloc returned NULL");
     return NULL;
   }
-  int child_id = get_int(buf);
-  int ct = get_int(buf);
-  int *ct_ptr = malloc(sizeof(int));
+
+  num_bytes = 0;
+  uint8_t child_id[4096]; //TODO: HACK!!
+  get_bytes(buf, child_id, 4);
+  printf("ct child: %d\n", *((int *) child_id));  
+  
+  num_bytes = 0;
+  uint8_t *ct_ptr = malloc(sizeof(ct_size));
   if (ct_ptr == NULL) {
     perror("malloc returned NULL");
     return NULL;
   }
-  *ct_ptr = ct;
+  get_bytes(buf, ct_ptr, ct_size);
+  printf("ct:\n");
+  printf("%d\n", *((int *) ct_ptr));
+  //*ct_ptr = ct;
   ciphertext->parent_id = parent_id;
-  ciphertext->child_id = child_id;
-  ciphertext->ct = (void *) ct_ptr;
+  ciphertext->child_id = *((int *) child_id);
+  ciphertext->ct = ct_ptr;
+  printf("ct:\n");
+  printf("%d\n", *((int *) ciphertext->ct));
   return ciphertext;
 }
 
-struct SkeletonNode *build_skel(char **buf) {
+struct SkeletonNode *build_skel(uint8_t **buf, void *cipher, size_t seed_size) {
   /*if (**buf == '\0') {
     printf("return\n");
     return NULL;
-    }*/ 
+    }*/
+  int num_bytes;
+  size_t ct_size;
+  get_ct_size(cipher, seed_size, &ct_size);  
   
   printf("printing\n");
-  printf("%s\n", *buf);
+  //printf("%s\n", *buf);
   printf("done\n");
   struct SkeletonNode *skel = malloc(sizeof(struct SkeletonNode));
   if (skel == NULL) {
     perror("malloc returned NULL");
     return NULL;
   }
-  
-  int id = get_int(buf);
+
+  num_bytes = 0;
+  uint8_t id[4]; //TODO: HACK!!
+  get_bytes(buf, id, 4);
+  printf("id: %d\n", *((int *) id));  
   //printf("buf: %s id: %d\n", *buf, id);
-  skel->node_id = id;
+
+  int id_num = *((int *) id);
+  skel->node_id = id_num;
   skel->node = NULL;
-  if (!(strncmp("! ! ! ! ", *buf, 8))) {
+  printf("strncmp 1\n");
+  uint8_t no_child_cts[2*4 + 2 * ct_size];
+  memset(no_child_cts, 0, 2*4 + 2 * ct_size);
+  //if (!(strncmp("! ! ! ! ", *((char **) buf), 8))) {
+  if (!(memcmp(no_child_cts, *buf, 2*4 + 2 * ct_size))) {
+    printf("no cts done strncmp\n");
     skel->children_color = NULL;
     skel->children = NULL;
     skel->ciphertexts = NULL;
-    (*buf += 12);
+    (*buf) += 2*4 + 2*ct_size;
+    (*buf) += 2;
   } else {
+    printf("cts exist done strncmp\n");    
     int *children_color = malloc(sizeof(int) * 2);
     if (children_color == NULL) {
       perror("malloc returned NULL");
@@ -133,57 +131,90 @@ struct SkeletonNode *build_skel(char **buf) {
       perror("malloc returned NULL");
       return NULL;
     }
-    if (!(strncmp("! ! ", *buf, 4))) {
+    printf("strncmp 2\n");
+    uint8_t no_child_ct[4 + ct_size];
+    memset(no_child_ct, 0, 4 + ct_size);
+    //if (!(strncmp("! ! ", *((char **) buf), 4))) {
+    if (!(memcmp(no_child_ct, *buf, 4 + ct_size))) {
+      printf("no left ct done strncmp\n");
       *cts++ = NULL;
-      (*buf) += 4;
-      struct Ciphertext* ciphertext = get_ct(buf, id);
+      (*buf) += 4 + ct_size;
+      struct Ciphertext* ciphertext = get_ct(buf, id_num, cipher, ct_size);
       *cts-- = ciphertext;
       *children_color++ = 0;
       *children_color-- = 1;
     } else {
-      struct Ciphertext* ciphertext = get_ct(buf, id);
+      printf("left ct done strncmp\n");
+      struct Ciphertext* ciphertext = get_ct(buf, id_num, cipher, ct_size);
       *cts++ = ciphertext;
       *children_color++ = 1;
-      if (strncmp("! ! ", *buf, 4) != 0) {
-	struct Ciphertext* ciphertext = get_ct(buf, id);
+      printf("strncmp 3\n");
+      uint8_t no_child_ct[4 + ct_size];
+      memset(no_child_ct, 0, 4 + ct_size);
+      //if (!(strncmp("! ! ", *((char **) buf), 4))) {
+      if (!(memcmp(no_child_ct, *buf, 4 + ct_size))) {      
+	printf("no second right ct done strncmp\n");
+	struct Ciphertext* ciphertext = get_ct(buf, id_num, cipher, ct_size);
 	*cts-- = ciphertext;
 	*children_color-- = 1;
       } else {
+	printf("second right ct done strncmp\n");	
 	*cts-- = NULL;
 	*children_color-- = 0;
-	(*buf += 4);	
+	(*buf) += 4 + ct_size;	
       }
     }
     skel->children_color = children_color;
     skel->ciphertexts = cts;
 
+    printf("got ct\n");
+
+    //printf("byte %d\n", *(*buf));
+    //printf("byte %d\n", *(*buf + 1));
+    //printf("byte %d\n", *(*buf + 2));
+    //printf("byte %d\n", *(*buf + 3));
     //children??
-    if (!(strncmp("0 0 ", *buf, 4))) {
+    printf("strncmp 4\n");
+    uint8_t no_children[2];
+    memset(no_children, 0, 2);        
+    //if (!(strncmp("0 0 ", *((char **) buf), 4))) {
+    if (!(memcmp(no_children, *buf, 2))) {
+      printf("no children done strncmp\n");      
       skel->children = NULL;
-      (*buf += 4);
+      (*buf) += 2;
     } else {
+      printf("children done strncmp\n");
       struct SkeletonNode **children = malloc(sizeof(struct SkeletonNode *) * 2);
       if (children == NULL) {
 	perror("malloc returned NULL");
 	return NULL;
       }
-      if (!(strncmp("0 ", *buf, 2))) {
+      printf("strncmp 5\n");      
+      //if (!(strncmp("0 ", *((char **) buf), 2))) {
+      if (!memcmp(no_children, *buf, 1)) {
+	printf("no left child done strncmp\n");	
 	*children++ = NULL;
-	(*buf) += 4;
-	struct SkeletonNode *right_skel = build_skel(buf);
+	(*buf) += 1;
+	struct SkeletonNode *right_skel = build_skel(buf, cipher, seed_size);
 	right_skel->parent = skel;
 	*children-- = right_skel;
       } else {
-	(*buf) += 2;	
-	struct SkeletonNode *left_skel = build_skel(buf);
+	(*buf) += 1;
+	printf("left child\n");	
+	struct SkeletonNode *left_skel = build_skel(buf, cipher, seed_size);
 	left_skel->parent = skel;
 	*children++ = left_skel;
-	if (!(strncmp("0 ", *buf, 2))) {
+	printf("strncmp6\n");
+	printf("byte %d\n", **buf);
+	//if (!(strncmp("0 ", *((char **) buf), 2))) {
+	if (!memcmp(no_children, *buf, 1)) {
+	  printf("no right child done strncmp\n");	  
 	  *children-- = NULL;
-	  (*buf) += 2;
+	  (*buf) += 1;
 	} else {
-	  (*buf) += 2;	  
-	  struct SkeletonNode *right_skel = build_skel(buf);
+	  (*buf) += 1;
+	  printf("right child\n");	  
+	  struct SkeletonNode *right_skel = build_skel(buf, cipher, seed_size);
 	  right_skel->parent = skel;
 	  *children-- = right_skel;
 	}
@@ -203,6 +234,7 @@ int main (int argc, char *argv[]) {
   unsigned short mult_port;
   struct ip_mreq mreq;
   int max_sock;
+  void *generator = NULL, *cipher = NULL;
   
   
   if (argc != 5) {
@@ -262,12 +294,24 @@ int main (int argc, char *argv[]) {
     exit(-1);
   }
 
+  FILE *skel_f;
+
   struct User *user;
-  int *seed = NULL;
+  prg_init(&generator);
+  cipher_init(&cipher, 1); //1 for dec mode
+  /*generator = malloc(sizeof(botan_mac_t));
+  botan_mac_t *prf = (botan_mac_t *) generator;
+  botan_mac_init(prf, "HMAC(SHA-512)", 0);
+  cipher = malloc(sizeof(botan_cipher_t));
+  botan_cipher_t *botan_cipher = (botan_cipher_t *) cipher;
+  botan_cipher_init(botan_cipher, "ChaCha(20)", BOTAN_CIPHER_INIT_FLAG_DECRYPT);*/
+  
+  size_t seed_size;
+  get_seed_size(generator, &seed_size);
+  uint8_t *seed;
   
   fd_set read_fds, write_fds;
   FD_ZERO(&write_fds);
-
 
   int i = 0;
   for (;;) {
@@ -281,8 +325,14 @@ int main (int argc, char *argv[]) {
     }
 
     if (FD_ISSET(oob_sock, &read_fds)) {
-      char recv_buf[32];
-      int remaining = sizeof(recv_buf);
+      int remaining;
+      uint8_t recv_buf[(4 > seed_size ? 4 : seed_size)]; //TODO: hack?
+      if (i == 0) {
+	remaining = 4;
+      }
+      else {
+	remaining = seed_size;
+      }
       int result = 0;
       int received = 0;
       while (remaining > 0) {
@@ -294,43 +344,59 @@ int main (int argc, char *argv[]) {
 	  received += result;
 	}
       }
-      printf("oob_val: %s\n", recv_buf);
+      //printf("oob_val: %s\n", (char *) recv_buf);
       if (i++ == 0)
-	user = init_user(atoi(recv_buf));
+	user = init_user(*((int *) recv_buf));
       else {
-	seed = malloc(sizeof(int)); //TODO: hack??
+	seed = malloc(seed_size);
 	if (seed == NULL) {
 	  perror("malloc returned NULL");
 	  exit(-1);
 	}
-	*seed = atoi(recv_buf);
+	memcpy(seed, recv_buf, seed_size);
+	//printf("seed: %s\n", (char *) seed);
       }
     } else if (FD_ISSET(mult_sock, &read_fds)) {
-      char *mult_buf = malloc(sizeof(char) * 4096);
+      uint8_t *mult_buf = malloc(4096);
       if (mult_buf == NULL) {
 	perror("malloc returned NULL");
 	exit(-1);
       }
       socklen_t len = sizeof(mult_addr);
       int rcvd;
-      if ((rcvd = recvfrom(mult_sock, mult_buf, 4096, 0, (struct sockaddr *) &mult_addr, &len)) < 0) {
+      if ((rcvd = recvfrom(mult_sock, mult_buf, 4096, 0, (struct sockaddr *) &mult_addr, &len)) < 0) { //TODO: recv loop?
 	perror("recvfrom() failed");
 	exit(-1);
-      }
-      printf("rcvd: %d buf: %s\n", rcvd, mult_buf);
+      } //TODO: make sure all is received!!
+      
+      
+      printf("rcvd: %d\n", rcvd);
+      //printf("rcvd: %d buf: %s\n", rcvd, mult_buf);
 
-      int id = get_int(&mult_buf);
-      struct SkeletonNode *skel = build_skel(&mult_buf);
-      pretty_traverse_skeleton(skel, 0, &printSkeleton);
+      skel_f = fopen("skel.txt", "ab+");
+      fwrite(&mult_buf, 1, rcvd, skel_f);
+      fclose(skel_f);
+
+      uint8_t id[4096]; //TODO: HACK!!
+      get_bytes(&mult_buf, id, 4);
+
+      //skel_f = fopen("skel.txt", "rb");
+      //fread(id, 1, 4, skel_f);
+      
+      printf("%d\n", *((int *)  id));
+      //remove("skel.txt");      
+      struct SkeletonNode *skel = build_skel(&mult_buf, cipher, seed_size);
+      
+      //pretty_traverse_skeleton(skel, 0, &printSkeleton);
       skel->parent = NULL;
-      void *root_seed = proc_ct(user, id, skel, (void *) seed, &int_prg, &int_split, &int_identity);
+      uint8_t *root_seed = proc_ct(user, *((int *) id), skel, seed, generator, cipher, seed_size);
       if (root_seed == NULL && user->secrets->head == NULL) {
 	printf("not in group\n");
       } else if (root_seed == NULL) {
 	printf("removed from group\n");
       } else {
 	traverseList(user->secrets, &print_secrets);
-	printf("root seed: %d\n", *((int *) root_seed));
+	printf("root seed: %d\n", *((int *) root_seed + 3));
       }
     }
   }
