@@ -12,6 +12,26 @@ struct Entry {
   int child_pos;
 };
 
+struct User *init_user(int id) {
+  struct User *user = malloc(sizeof(struct User));
+  if (user == NULL) {
+    perror("malloc returned NULL");
+    return NULL;
+  }
+  struct List *secrets = malloc(sizeof(struct List));
+  if (secrets == NULL) {
+    perror("malloc returned NULL");
+    return NULL;
+  }
+  initList(secrets);
+
+  user->secrets = secrets;
+  user->id = id;
+  user->in_group = 0;
+
+  return user;
+}
+
 int user_split(uint8_t *out, uint8_t *seed, uint8_t *key, uint8_t *nonce, uint8_t *next_seed, size_t seed_size, size_t key_size, size_t nonce_size) {
   uint8_t *out_bytes = (uint8_t *) out;
   uint8_t *seed_bytes = (uint8_t *) seed;
@@ -130,7 +150,7 @@ struct ListNode *path_gen(struct User *user, uint8_t *prev_seed, uint8_t *prev_k
 	perror("malloc returned NULL");
 	return NULL;
       }
-      dec(cipher, prev_key, NULL, ciphertext->ct, seed, ct_size, seed_size);
+      dec(cipher, prev_key, prev_nonce, ciphertext->ct, seed, ct_size, seed_size);
     }
   }
 
@@ -231,7 +251,7 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, uint8_t 
     seed = oob_seed;
     skel_node = find_skel_node(user->id, skeleton);
     if (skel_node == NULL) { // TODO: make sure compatible w/ non network drivers; destroy user path secrest??
-      printf("id: %d\n", user->id);
+      printf("passed id: %d user id: %d\n", id, user->id);
       printf("no skeleton\n");
       return NULL;
     }
@@ -270,23 +290,24 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, uint8_t 
   return out;
 }
 
-struct User *init_user(int id) {
-  struct User *user = malloc(sizeof(struct User));
-  if (user == NULL) {
-    perror("malloc returned NULL");
-    return NULL;
-  }
-  struct List *secrets = malloc(sizeof(struct List));
-  if (secrets == NULL) {
-    perror("malloc returned NULL");
-    return NULL;
-  }
-  initList(secrets);
-
-  user->secrets = secrets;
-  user->id = id;
-
-  return user;
+void proc_broadcast(struct User *user, uint8_t **buf, void *generator, void *cipher, size_t seed_size) {
+  struct ListNode *root_node = user->secrets->tail;
+  struct PathData *data = (struct PathData *) root_node->data;
+  size_t out_size, key_size, nonce_size, ct_size;
+  get_prg_out_size(generator, &out_size);
+  uint8_t out[out_size];
+  prg(generator, data->seed, out);
+  get_key_size(cipher, &key_size);
+  get_nonce_size(cipher, &nonce_size);
+  uint8_t *new_seed = malloc(seed_size);
+  uint8_t *key = malloc(key_size);
+  uint8_t *nonce = malloc(nonce_size);
+  uint8_t *next_seed = malloc(seed_size);
+  user_split(out, new_seed, key, nonce, next_seed, seed_size, key_size, nonce_size);
+  get_ct_size(cipher, 5, &ct_size);
+  uint8_t *pltxt = malloc(ct_size);
+  dec(cipher, key, nonce, *buf, pltxt, ct_size, 5);
+  printf("decrypted: %s\n", (char *) pltxt);
 }
 
 void destroy_users(struct List *users) {

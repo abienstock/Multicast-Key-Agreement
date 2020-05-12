@@ -160,7 +160,7 @@ uint8_t *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, 
       if (skeleton->children != NULL && *(skeleton->children) != NULL)
 	secret_gen(multicast, *(skeleton->children), oob_seeds, sampler, generator, cipher); //free
     } else {
-      prev_seed = malloc(sizeof(seed_size));
+      prev_seed = malloc(sizeof(uint8_t) * seed_size);
       if (prev_seed == NULL) {
 	perror("malloc returned NULL");
 	return NULL;
@@ -169,7 +169,7 @@ uint8_t *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, 
       sample(sampler, prev_seed);
     }
   } else {
-    prev_seed = malloc(sizeof(seed_size));
+    prev_seed = malloc(sizeof(uint8_t) * seed_size);
     if (prev_seed == NULL) {
       perror("malloc returned NULL");
       return NULL;
@@ -263,6 +263,8 @@ struct MultAddRet mult_add(struct Multicast *multicast, int id, void *sampler, v
     add_ret = gen_tree_add(multicast->tree, id, &lbbt_add);
   //  else
   //    added = gen_tree_add(multicast->tree, data, &btree_add);
+
+  addFront(multicast->users, (void *) add_ret.added);
   
   ret.added = add_ret.added;
   ret.skeleton = add_ret.skeleton;

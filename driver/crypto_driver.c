@@ -7,7 +7,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-#include <botan/ffi.h>
 #include "../group_manager/trees/trees.h"
 #include "../ll/ll.h"
 #include "../group_manager/multicast/multicast.h"
@@ -60,6 +59,19 @@ static void printNode(void *p)
   struct PathData *path_data = (struct PathData *) data;
   printf("id: %d, seed: %d, key %d\n", path_data->node_id, *((int *) path_data->seed), *((int *) path_data->key));
   }*/
+
+int driver_split(uint8_t *out, uint8_t *seed, uint8_t *key, uint8_t *nonce, uint8_t *next_seed, size_t seed_size, size_t key_size, size_t nonce_size) {
+  uint8_t *out_bytes = (uint8_t *) out;
+  uint8_t *seed_bytes = (uint8_t *) seed;
+  uint8_t *key_bytes = (uint8_t *) key;
+  uint8_t *nonce_bytes = (uint8_t *) nonce;
+  uint8_t *next_seed_bytes = (uint8_t *) next_seed;
+  memcpy(seed_bytes, out_bytes, seed_size);
+  memcpy(key_bytes, out_bytes + seed_size, key_size);
+  memcpy(nonce_bytes, out_bytes + seed_size + key_size, nonce_size);
+  memcpy(next_seed_bytes, out_bytes + seed_size + key_size + nonce_size, seed_size);
+  return 0;
+}
 
 //preorder traversal
 void write_skeleton(struct SkeletonNode *skel_node, FILE *f, size_t ct_size) {
@@ -282,6 +294,16 @@ int main(int argc, char *argv[]) {
 	
 	pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
 	pretty_traverse_skeleton(skeleton, 0, &printSkeleton);
+	size_t out_size;
+	get_prg_out_size(generator, &out_size);
+	uint8_t *out = malloc(out_size);
+	if (out == NULL) {
+	  perror("malloc returned NULL");
+	  return NULL;
+	}
+	struct NodeData *data = ((struct LBBT *)multicast->tree)->root->data;
+	prg(generator, data->seed, out);
+	printf("root seed: %d\n", *((int *) out + 3));
 
 	int i;
 	struct ListNode *socks_curr = socks.head;
@@ -298,7 +320,7 @@ int main(int argc, char *argv[]) {
 	  socks_curr = socks_curr->next;
 	}
 
-	skel_f = fopen("skel1.txt", "ab+");
+	skel_f = fopen("skel.txt", "ab+");
 	//fprintf(skel_f, "%d ", op);
 	fwrite(&op, 4, 1, skel_f);
 	//fprintf(skel_f, " ");	  	
@@ -310,6 +332,16 @@ int main(int argc, char *argv[]) {
 	struct MultAddRet add_ret = mult_add(multicast, id, sampler, generator, cipher);
 	pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
 	pretty_traverse_skeleton(add_ret.skeleton, 0, &printSkeleton);
+	size_t out_size;
+	get_prg_out_size(generator, &out_size);
+	uint8_t *out = malloc(out_size);
+	if (out == NULL) {
+	  perror("malloc returned NULL");
+	  return NULL;
+	}
+	struct NodeData *data = ((struct LBBT *)multicast->tree)->root->data;
+	prg(generator, data->seed, out);
+	printf("root seed: %d\n", *((int *) out + 3));	
 	
 	struct ListNode *socks_curr = socks.head;
 	while (socks_curr != NULL) {
@@ -343,6 +375,16 @@ int main(int argc, char *argv[]) {
 	struct MultUpdRet upd_ret = mult_update(multicast, user_node, sampler, generator, cipher);
 	pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
 	pretty_traverse_skeleton(upd_ret.skeleton, 0, &printSkeleton);
+	size_t out_size;
+	get_prg_out_size(generator, &out_size);
+	uint8_t *out = malloc(out_size);
+	if (out == NULL) {
+	  perror("malloc returned NULL");
+	  return NULL;
+	}
+	struct NodeData *data = ((struct LBBT *)multicast->tree)->root->data;
+	prg(generator, data->seed, out);
+	printf("root seed: %d\n", *((int *) out + 3));	
 	
 	struct ListNode *socks_curr = socks.head;
 	while (socks_curr != NULL) {
@@ -376,6 +418,16 @@ int main(int argc, char *argv[]) {
 	struct RemRet rem_ret = mult_rem(multicast, user_node, sampler, generator, cipher);
 	pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
 	pretty_traverse_skeleton(rem_ret.skeleton, 0, &printSkeleton);
+	size_t out_size;
+	get_prg_out_size(generator, &out_size);
+	uint8_t *out = malloc(out_size);
+	if (out == NULL) {
+	  perror("malloc returned NULL");
+	  return NULL;
+	}
+	struct NodeData *data = ((struct LBBT *)multicast->tree)->root->data;
+	prg(generator, data->seed, out);
+	printf("root seed: %d\n", *((int *) out + 3));	
 	
 	skel_f = fopen("skel.txt", "ab+");
 	//fprintf(skel_f, "%d ", id); //TODO: change to bytes??
@@ -383,6 +435,36 @@ int main(int argc, char *argv[]) {
 	//fprintf(skel_f, " ");		
 	write_skeleton(rem_ret.skeleton, skel_f, ct_size);
 	//destroy_skeleton(rem_ret.skeleton);
+	fclose(skel_f);
+	FD_SET(mult_sock, &write_fds);
+      } else if (op == -2) {
+	size_t out_size;
+	get_prg_out_size(generator, &out_size);
+	uint8_t *out = malloc(out_size);
+	if (out == NULL) {
+	  perror("malloc returned NULL");
+	  return NULL;
+	}
+	struct NodeData *data = ((struct LBBT *)multicast->tree)->root->data;
+	prg(generator, data->seed, out);
+	size_t key_size, nonce_size;
+	get_key_size(cipher, &key_size);
+	get_nonce_size(cipher, &nonce_size);
+	uint8_t *new_seed = malloc(seed_size);
+	uint8_t *key = malloc(key_size);
+	uint8_t *nonce = malloc(nonce_size);
+	uint8_t *next_seed = malloc(seed_size);
+	driver_split(out, new_seed, key, nonce, next_seed, seed_size, key_size, nonce_size);
+	size_t new_ct_size;
+	get_ct_size(cipher, 5, &new_ct_size);
+	uint8_t *ct = malloc(new_ct_size);
+	char *pltxt = malloc(5);
+	pltxt = "test";
+	printf("test size: %zu\n", new_ct_size);
+	enc(cipher, key, nonce, pltxt, ct, 5, new_ct_size);
+	skel_f = fopen("skel.txt", "ab+");
+	fwrite(&op, 4, 1, skel_f);
+	fwrite(ct, new_ct_size, 1, skel_f);
 	fclose(skel_f);
 	FD_SET(mult_sock, &write_fds);
       } //TODO: error handling
@@ -413,7 +495,7 @@ int main(int argc, char *argv[]) {
 	curr = curr->next;
       }
       if (FD_ISSET(mult_sock, &write_fds)) {
-	skel_f = fopen("skel1.txt", "rb");
+	skel_f = fopen("skel.txt", "rb");
 	
 	uint8_t f_content[4096]; //TODO: HACK!!
 	size_t n;
@@ -440,7 +522,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	fclose(skel_f);
-	//remove("skel.txt");
+	remove("skel.txt");
 	FD_CLR(mult_sock, &write_fds);
       }
     }

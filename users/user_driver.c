@@ -5,7 +5,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-#include <botan/ffi.h>
 #include "../skeleton.h"
 #include "../group_manager/trees/trees.h"
 #include "user.h"
@@ -64,7 +63,7 @@ struct Ciphertext *get_ct(uint8_t **buf, int parent_id, void *cipher, size_t ct_
   printf("ct child: %d\n", *((int *) child_id));  
   
   num_bytes = 0;
-  uint8_t *ct_ptr = malloc(sizeof(ct_size));
+  uint8_t *ct_ptr = malloc(sizeof(uint8_t) * ct_size);
   if (ct_ptr == NULL) {
     perror("malloc returned NULL");
     return NULL;
@@ -154,14 +153,14 @@ struct SkeletonNode *build_skel(uint8_t **buf, void *cipher, size_t seed_size) {
       //if (!(strncmp("! ! ", *((char **) buf), 4))) {
       if (!(memcmp(no_child_ct, *buf, 4 + ct_size))) {      
 	printf("no second right ct done strncmp\n");
-	struct Ciphertext* ciphertext = get_ct(buf, id_num, cipher, ct_size);
-	*cts-- = ciphertext;
-	*children_color-- = 1;
-      } else {
-	printf("second right ct done strncmp\n");	
 	*cts-- = NULL;
 	*children_color-- = 0;
 	(*buf) += 4 + ct_size;	
+      } else {
+	printf("second right ct done strncmp\n");
+	struct Ciphertext* ciphertext = get_ct(buf, id_num, cipher, ct_size);
+	*cts-- = ciphertext;
+	*children_color-- = 1;	
       }
     }
     skel->children_color = children_color;
@@ -194,7 +193,7 @@ struct SkeletonNode *build_skel(uint8_t **buf, void *cipher, size_t seed_size) {
       if (!memcmp(no_children, *buf, 1)) {
 	printf("no left child done strncmp\n");	
 	*children++ = NULL;
-	(*buf) += 1;
+	(*buf) += 2;
 	struct SkeletonNode *right_skel = build_skel(buf, cipher, seed_size);
 	right_skel->parent = skel;
 	*children-- = right_skel;
@@ -373,30 +372,31 @@ int main (int argc, char *argv[]) {
       printf("rcvd: %d\n", rcvd);
       //printf("rcvd: %d buf: %s\n", rcvd, mult_buf);
 
-      skel_f = fopen("skel.txt", "ab+");
-      fwrite(&mult_buf, 1, rcvd, skel_f);
-      fclose(skel_f);
-
       uint8_t id[4096]; //TODO: HACK!!
       get_bytes(&mult_buf, id, 4);
-
-      //skel_f = fopen("skel.txt", "rb");
-      //fread(id, 1, 4, skel_f);
-      
       printf("%d\n", *((int *)  id));
-      //remove("skel.txt");      
-      struct SkeletonNode *skel = build_skel(&mult_buf, cipher, seed_size);
       
-      //pretty_traverse_skeleton(skel, 0, &printSkeleton);
-      skel->parent = NULL;
-      uint8_t *root_seed = proc_ct(user, *((int *) id), skel, seed, generator, cipher, seed_size);
-      if (root_seed == NULL && user->secrets->head == NULL) {
-	printf("not in group\n");
-      } else if (root_seed == NULL) {
-	printf("removed from group\n");
+      if (*((int *) id) == -2) {
+	printf("broadcast incoming...\n");
+	if (user->in_group)
+	  proc_broadcast(user, &mult_buf, generator, cipher, seed_size);
       } else {
-	traverseList(user->secrets, &print_secrets);
-	printf("root seed: %d\n", *((int *) root_seed + 3));
+	struct SkeletonNode *skel = build_skel(&mult_buf, cipher, seed_size);
+      
+	pretty_traverse_skeleton(skel, 0, &printSkeleton);
+	skel->parent = NULL;
+	uint8_t *root_seed = proc_ct(user, *((int *) id), skel, seed, generator, cipher, seed_size);
+	if (root_seed == NULL && user->secrets->head == NULL) {
+	  printf("not in group\n");
+	  user->in_group = 0; //TODO: possibly redundant?
+	} else if (root_seed == NULL) {
+	  printf("removed from group\n");
+	  user->in_group = 0;
+	} else {
+	  user->in_group = 1;
+	  traverseList(user->secrets, &print_secrets);
+	  printf("root seed: %d\n", *((int *) root_seed + 3));
+	}
       }
     }
   }

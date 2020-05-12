@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <stdint.h>
 #include "trees.h"
 #include "../../ll/ll.h"
 #include "../../skeleton.h"
