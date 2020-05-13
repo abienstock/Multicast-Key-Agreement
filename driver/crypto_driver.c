@@ -18,7 +18,7 @@
 struct SockObj {
   int sock;
   int id;
-  uint8_t *oob;
+  void *oob;
   size_t oob_bytes;
 };
 
@@ -50,8 +50,8 @@ static void printNode(void *p)
     printf("BLANK, id: %d", data->id);
   else {
     printf("id: %d, ", data->id);
-    printf("key: %d, ", *((int *) data->key));
-    printf("seed: %d.", *((int *) data->seed));
+    printf("seed: %d, ", *((int *) data->seed));
+    printf("key: %d.", *((int *) data->key));
   }
 }
 
@@ -105,7 +105,6 @@ void write_skeleton(struct SkeletonNode *skel_node, FILE *f, size_t ct_size) {
       //fprintf(f, "%d ", child_data->id);
       fwrite(&child_data->id, 4, 1, f);
       //fprintf(f, " ");	        
-      printf("%d\n", *((int *) ciphertext->ct));
       fwrite((uint8_t *) ciphertext->ct, ct_size, 1, f);
       //fprintf(f, " ");
     } else {
@@ -130,7 +129,6 @@ void write_skeleton(struct SkeletonNode *skel_node, FILE *f, size_t ct_size) {
   uint8_t no_child = 0;
   if (skel_node->children != NULL){
     if (*skel_node->children != NULL) {
-      printf("left child\n");
       //fprintf(f, "1 ");
       fwrite(&child, 1, 1, f);
       write_skeleton(*skel_node->children, f, ct_size);
@@ -139,7 +137,6 @@ void write_skeleton(struct SkeletonNode *skel_node, FILE *f, size_t ct_size) {
       fwrite(&no_child, 1, 1, f);
     }
     if (*(skel_node->children + 1) != NULL) {
-      printf("right child\n");      
       //fprintf(f, "1 ");
       fwrite(&child, 1, 1, f);
       write_skeleton(*(skel_node->children + 1), f, ct_size);
@@ -218,7 +215,6 @@ int main(int argc, char *argv[]) {
   mult_addr.sin_addr.s_addr = inet_addr(mult_host);
   mult_addr.sin_port = htons(mult_port);
 
-  printf("set up crypto\n");
   //FILE *mult_f = fdopen(mult_sock, "ab+");
   FILE *skel_f;
   
@@ -230,7 +226,6 @@ int main(int argc, char *argv[]) {
   size_t seed_size, ct_size;
   get_seed_size(generator, &seed_size);
   get_ct_size(cipher, seed_size, &ct_size);
-  printf("done setting up crypto\n");
 
   clnt_len = sizeof(oob_addr);
   N_uni = 0;
@@ -285,7 +280,6 @@ int main(int argc, char *argv[]) {
 
       if (op == -1) {
 	struct MultInitRet init_ret = mult_init(id, tree_flags, 0, sampler, generator, cipher);
-	printf("initialized\n");
 	multicast = init_ret.multicast;
 	struct SkeletonNode *skeleton = init_ret.skeleton;
 	struct List *oob_seeds = init_ret.oob_seeds;
@@ -299,7 +293,7 @@ int main(int argc, char *argv[]) {
 	uint8_t *out = malloc(out_size);
 	if (out == NULL) {
 	  perror("malloc returned NULL");
-	  return NULL;
+	  return -1;
 	}
 	struct NodeData *data = ((struct LBBT *)multicast->tree)->root->data;
 	prg(generator, data->seed, out);
@@ -311,7 +305,6 @@ int main(int argc, char *argv[]) {
 	for (i = 0; i < N_uni; i++) { //TODO: FIX THIS HACK
 	  struct SockObj *sock = (struct SockObj *) socks_curr->data;
 	  if (sock->id < id) { //TODO: FIX THIS HACK
-	    printf("id: %d\n", sock->id);
 	    sock->oob = oob_curr->data;
 	    sock->oob_bytes = seed_size;
 	    FD_SET(sock->sock, &write_fds);
@@ -337,7 +330,7 @@ int main(int argc, char *argv[]) {
 	uint8_t *out = malloc(out_size);
 	if (out == NULL) {
 	  perror("malloc returned NULL");
-	  return NULL;
+	  return -1;
 	}
 	struct NodeData *data = ((struct LBBT *)multicast->tree)->root->data;
 	prg(generator, data->seed, out);
@@ -380,7 +373,7 @@ int main(int argc, char *argv[]) {
 	uint8_t *out = malloc(out_size);
 	if (out == NULL) {
 	  perror("malloc returned NULL");
-	  return NULL;
+	  return -1;
 	}
 	struct NodeData *data = ((struct LBBT *)multicast->tree)->root->data;
 	prg(generator, data->seed, out);
@@ -423,7 +416,7 @@ int main(int argc, char *argv[]) {
 	uint8_t *out = malloc(out_size);
 	if (out == NULL) {
 	  perror("malloc returned NULL");
-	  return NULL;
+	  return -1;
 	}
 	struct NodeData *data = ((struct LBBT *)multicast->tree)->root->data;
 	prg(generator, data->seed, out);
@@ -443,7 +436,7 @@ int main(int argc, char *argv[]) {
 	uint8_t *out = malloc(out_size);
 	if (out == NULL) {
 	  perror("malloc returned NULL");
-	  return NULL;
+	  return -1;
 	}
 	struct NodeData *data = ((struct LBBT *)multicast->tree)->root->data;
 	prg(generator, data->seed, out);
@@ -460,7 +453,6 @@ int main(int argc, char *argv[]) {
 	uint8_t *ct = malloc(new_ct_size);
 	char *pltxt = malloc(5);
 	pltxt = "test";
-	printf("test size: %zu\n", new_ct_size);
 	enc(cipher, generator, key, new_seed, nonce, pltxt, ct, 5, new_ct_size);
 	skel_f = fopen("skel.txt", "ab+");
 	fwrite(&op, 4, 1, skel_f);
@@ -499,10 +491,7 @@ int main(int argc, char *argv[]) {
 	
 	uint8_t f_content[4096]; //TODO: HACK!!
 	size_t n;
-	printf("sending skel\n");
 	while ((n = fread(f_content, 1, 4096, skel_f)) > 0) {
-	  printf("len: %zu\n", n);
-	  printf("content: \n");
 	  //printf("%s\n", f_content);
 	  //fwrite(f_content, 1, n, mult_f);
 

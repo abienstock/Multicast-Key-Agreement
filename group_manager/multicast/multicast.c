@@ -22,7 +22,6 @@ int split(uint8_t *out, uint8_t *seed, uint8_t *key, uint8_t *nonce, uint8_t *ne
 int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct NodeData *data, uint8_t *seed, void *cipher, void *generator, size_t seed_size) {
   size_t ct_size;
   get_ct_size(cipher, seed_size, &ct_size);
-  printf("ct size: %zu\n", ct_size);
   if (skeleton->children_color != NULL) {
     struct Ciphertext **cts = malloc(sizeof(struct Ciphertext *) * 2);
     if (cts == NULL) {
@@ -49,7 +48,6 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
       enc(cipher, generator, left_data->key, left_data->seed, left_data->nonce, seed, ct, seed_size, ct_size);
       left_ct->ct = ct;
       left_ct->num_bytes = ct_size;      
-      printf("ct: %d\n", *((int *) left_ct->ct));
     }
     if (*(skeleton->children_color + 1) == 1) {
       (*(multicast->counts + 1))++;
@@ -70,7 +68,6 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
       enc(cipher, generator, right_data->key, right_data->seed, right_data->nonce, seed, ct, seed_size, ct_size);
       right_ct->ct = ct;
       right_ct->num_bytes = ct_size;
-      printf("ct: %d\n", *((int *) right_ct->ct));      
     }
     *cts++ = left_ct;
     *cts-- = right_ct;
@@ -97,7 +94,6 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
     enc(cipher, generator, root_data->key, root_data->seed, root_data->nonce, seed, ct, seed_size, ct_size);
     left_ct->ct = ct;
     left_ct->num_bytes = ct_size;          
-    printf("ct: %d\n", *((int *) left_ct->ct));    
     *cts++ = left_ct;
     *cts-- = NULL;
     skeleton->ciphertexts = cts;
@@ -112,7 +108,6 @@ uint8_t *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, 
   get_key_size(cipher, &key_size);
   get_nonce_size(cipher, &nonce_size);
   get_seed_size(generator, &seed_size);
-  printf("got sizes\n");
   uint8_t *prev_seed;
   uint8_t *next_seed = malloc(seed_size);
   if (next_seed == NULL) {
@@ -165,7 +160,6 @@ uint8_t *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, 
 	perror("malloc returned NULL");
 	return NULL;
       }
-      printf("sampling\n");
       sample(sampler, prev_seed);
     }
   } else {
@@ -174,7 +168,6 @@ uint8_t *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, 
       perror("malloc returned NULL");
       return NULL;
     }
-    printf("sampling\n");    
     sample(sampler, prev_seed);
     if (skeleton->node->num_leaves == 1 && skeleton->parent != NULL) // if node is a leaf that is not the root
       addFront(oob_seeds, prev_seed);
@@ -191,7 +184,6 @@ uint8_t *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, 
   data->seed = seed;
 
   ct_gen(multicast, skeleton, data, prev_seed, cipher, generator, seed_size);
-  printf("encrypted\n");
   //if (skeleton->node->num_leaves > 1 || skeleton->parent == NULL)
   //free(prev_seed); // need to do it here if not oob_seed
   
@@ -245,9 +237,7 @@ struct MultInitRet mult_init(int n, int *tree_flags, int tree_type, void *sample
     return ret;
   }
   initList(oob_seeds);
-  printf("generating secrets\n");
   secret_gen(lbbt_multicast, tree_ret.skeleton, oob_seeds, sampler, generator, cipher);// free
-  printf("done generating secrets\n");  
 
   ret.multicast = lbbt_multicast;
   ret.skeleton = tree_ret.skeleton;

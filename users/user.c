@@ -87,7 +87,6 @@ struct Entry find_entry(struct User *user, struct SkeletonNode *skeleton) {
 }
 
 struct SkeletonNode *find_skel_node(int id, struct SkeletonNode *skeleton) {
-  printf("skeleton id: %d\n", skeleton->node_id);
   if (skeleton->children == NULL) {
     if (skeleton->node_id == id)
       return skeleton;
@@ -166,7 +165,6 @@ struct ListNode *path_gen(struct User *user, uint8_t *prop_seed, uint8_t *prev_s
   void *next_seed = out_split[2];*/
   //free(seed);
   //free(out);
-  printf("prev seed: %d, new seed: %d, key: %d, nonce: %d, next seed: %d\n", *((int *) seed), *((int *) new_seed), *((int *) key), *((int *) nonce), *((int *) next_seed));
 
   data->node_id = skel_node->node_id;
   //if (data->key != NULL)
@@ -243,7 +241,6 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, uint8_t 
 	  path_node = path_node->next;
 	}
       } else { // TODO: make sure compatible w/ non network drivers
-	printf("no entry found\n");
 	return NULL;
       }
     }
@@ -251,8 +248,6 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, uint8_t 
     seed = oob_seed;
     skel_node = find_skel_node(user->id, skeleton);
     if (skel_node == NULL) { // TODO: make sure compatible w/ non network drivers; destroy user path secrest??
-      printf("passed id: %d user id: %d\n", id, user->id);
-      printf("no skeleton\n");
       return NULL;
     }
     if (user->secrets->head == NULL) {
@@ -268,12 +263,12 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, uint8_t 
     path_node = user->secrets->head;
   }
 
-  printf("here\n");
   struct ListNode *end_node = path_gen(user, seed, NULL, NULL, NULL, skel_node, NULL, path_node, generator, cipher, seed_size, ct_size);
 
   //free rest of path if not at tail
   while (end_node != user->secrets->tail) {
-    struct PathData *data = (struct PathData *) popBack(user->secrets);
+    popBack(user->secrets);    
+    //struct PathData *data = (struct PathData *)
     //free(data->key);
     //free(data->seed);
     //free(data);
@@ -313,9 +308,9 @@ void proc_broadcast(struct User *user, uint8_t **buf, void *generator, void *cip
 void destroy_users(struct List *users) {
   struct ListNode *user_curr = users->head;
   while (user_curr != 0) {
-    struct User *user = ((struct User *) user_curr->data);
+    //struct User *user = ((struct User *) user_curr->data);
     //destroy_user(user);
-    struct ListNode *old_user = user_curr;
+    //struct ListNode *old_user = user_curr;
     user_curr = user_curr->next;
     //free(old_user);
   }
@@ -326,11 +321,11 @@ void destroy_user(struct User *user) {
   struct List *secrets = user->secrets;
   struct ListNode *secret_curr = secrets->head;
   while (secret_curr != 0) {
-    struct PathData *path_data = ((struct PathData *) secret_curr->data);
+    //struct PathData *path_data = ((struct PathData *) secret_curr->data);
     //free(path_data->key);
     //free(path_data->seed);
     //free(path_data);
-    struct ListNode *old_sec = secret_curr;
+    //struct ListNode *old_sec = secret_curr;
     secret_curr = secret_curr->next;
     //free(old_sec);
   }

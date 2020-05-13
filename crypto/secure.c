@@ -60,7 +60,6 @@ int prg(void *generator, void *seed, void *out) {
 int get_prg_out_size(void *generator, size_t *size) {
   botan_mac_t *prf = (botan_mac_t *) generator;
   botan_mac_output_length(*prf, size);
-  printf("got prg out size\n");
   *size *= 3;
   return 0; //TODO Fix
 }
@@ -98,23 +97,20 @@ int enc(void *cipher, void *generator, void *key, void *seed, void *nonce, void 
   botan_cipher_start(*botan_cipher, nonce_bytes, 8);
   botan_cipher_update(*botan_cipher, 0, ctxt_bytes, ctxt_size, &num_written, pltxt_bytes, pltxt_size, &num_consumed);
 
-  printf("consumed: %zu, written: %zu\n", num_consumed, num_written);
-
   size_t key_size, seed_size, nonce_size, out_size;
   get_prg_out_size(generator, &out_size);
   get_key_size(cipher, &key_size);
   get_nonce_size(cipher, &nonce_size);
   get_seed_size(generator, &seed_size);
-  printf("got sizes\n");
   uint8_t *next_seed = malloc(seed_size);
   if (next_seed == NULL) {
     perror("malloc returned NULL");
-    return NULL;
+    return -1;
   }
   uint8_t *out = malloc(out_size);
   if (out == NULL) {
     perror("malloc returned NULL");
-    return NULL;
+    return -1;
   }
   prg(generator, seed, out);
   crypto_split(out, seed, key, nonce, next_seed, seed_size, key_size, nonce_size);
@@ -135,23 +131,20 @@ int dec(void *cipher, void *generator, void *key, void *seed, void *nonce, void 
   botan_cipher_start(*botan_cipher, nonce_bytes, 8);
   botan_cipher_update(*botan_cipher, 0, pltxt_bytes, pltxt_size, &num_written, ctxt_bytes, ctxt_size, &num_consumed);
 
-  printf("consumed: %zu, written: %zu\n", num_consumed, num_written);
-
   size_t key_size, seed_size, nonce_size, out_size;
   get_prg_out_size(generator, &out_size);
   get_key_size(cipher, &key_size);
   get_nonce_size(cipher, &nonce_size);
   get_seed_size(generator, &seed_size);
-  printf("got sizes\n");
   uint8_t *next_seed = malloc(seed_size);
   if (next_seed == NULL) {
     perror("malloc returned NULL");
-    return NULL;
+    return -1;
   }
   uint8_t *out = malloc(out_size);
   if (out == NULL) {
     perror("malloc returned NULL");
-    return NULL;
+    return -1;
   }
   prg(generator, seed, out);
   crypto_split(out, seed, key, nonce, next_seed, seed_size, key_size, nonce_size);  
