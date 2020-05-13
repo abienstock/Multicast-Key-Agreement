@@ -350,6 +350,7 @@ int main (int argc, char *argv[]) {
 	struct SkeletonNode *skel = build_skel(&mult_buf, cipher, seed_size);
       
 	pretty_traverse_skeleton(skel, 0, &printSkeleton);
+	printf("\n..................\n");	
 	skel->parent = NULL;
 	uint8_t *root_seed = proc_ct(user, *((int *) id), skel, seed, generator, cipher, seed_size);
 	if (root_seed == NULL && user->secrets->head == NULL) {
@@ -363,6 +364,7 @@ int main (int argc, char *argv[]) {
 	  traverseList(user->secrets, &print_secrets);
 	  printf("root seed: %d\n", *((int *) root_seed + 3));
 	}
+	printf("\n===================\n");	
       }
     }
   }
