@@ -18,6 +18,6 @@ int get_seed_size(void *generator, size_t *size); // in bytes
 
 int get_ct_size(void *cipher, size_t in_size, size_t *ct_size);
 
-int enc(void *cipher, void *key, void *nonce, void *pltxt, void *ctxt, size_t pltxt_size, size_t ct_size);
+int enc(void *cipher, void *generator, void *key, void *seed, void *nonce, void *pltxt, void *ctxt, size_t pltxt_size, size_t ct_size);
 
-int dec(void *cipher, void *key, void *nonce, void *ctxt, void *pltxt, size_t ctxt_size, size_t pltxt_size);
+int dec(void *cipher, void *generator, void *key, void *seed, void *nonce, void *ctxt, void *pltxt, size_t ctxt_size, size_t pltxt_size);

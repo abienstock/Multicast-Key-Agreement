@@ -461,7 +461,7 @@ int main(int argc, char *argv[]) {
 	char *pltxt = malloc(5);
 	pltxt = "test";
 	printf("test size: %zu\n", new_ct_size);
-	enc(cipher, key, nonce, pltxt, ct, 5, new_ct_size);
+	enc(cipher, generator, key, new_seed, nonce, pltxt, ct, 5, new_ct_size);
 	skel_f = fopen("skel.txt", "ab+");
 	fwrite(&op, 4, 1, skel_f);
 	fwrite(ct, new_ct_size, 1, skel_f);

@@ -3,6 +3,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+int crypto_split(uint8_t *out, uint8_t *seed, uint8_t *key, uint8_t *nonce, uint8_t *next_seed, size_t seed_size, size_t key_size, size_t nonce_size) {
+  uint8_t *out_bytes = (uint8_t *) out;
+  uint8_t *seed_bytes = (uint8_t *) seed;
+  uint8_t *key_bytes = (uint8_t *) key;
+  uint8_t *nonce_bytes = (uint8_t *) nonce;
+  uint8_t *next_seed_bytes = (uint8_t *) next_seed;
+  memcpy(seed_bytes, out_bytes, seed_size);
+  memcpy(key_bytes, out_bytes + seed_size, key_size);
+  memcpy(nonce_bytes, out_bytes + seed_size + key_size, nonce_size);
+  memcpy(next_seed_bytes, out_bytes + seed_size + key_size + nonce_size, seed_size);
+  return 0;
+}
+
 int sampler_init(void **sampler) {
   *sampler = malloc(sizeof(botan_rng_t));
   botan_rng_t *rng = *((botan_rng_t **) sampler);
@@ -72,7 +85,7 @@ int get_ct_size(void *cipher, size_t in_size, size_t *ct_size) {
   return botan_cipher_output_length(*botan_cipher, in_size, ct_size);
 }
 
-int enc(void *cipher, void *key, void *nonce, void *pltxt, void *ctxt, size_t pltxt_size, size_t ctxt_size) {
+int enc(void *cipher, void *generator, void *key, void *seed, void *nonce, void *pltxt, void *ctxt, size_t pltxt_size, size_t ctxt_size) {
   botan_cipher_t *botan_cipher = (botan_cipher_t *) cipher;
   uint8_t *key_bytes = (uint8_t *) key;
   uint8_t *nonce_bytes = (uint8_t *) nonce;
@@ -86,10 +99,30 @@ int enc(void *cipher, void *key, void *nonce, void *pltxt, void *ctxt, size_t pl
   botan_cipher_update(*botan_cipher, 0, ctxt_bytes, ctxt_size, &num_written, pltxt_bytes, pltxt_size, &num_consumed);
 
   printf("consumed: %zu, written: %zu\n", num_consumed, num_written);
+
+  size_t key_size, seed_size, nonce_size, out_size;
+  get_prg_out_size(generator, &out_size);
+  get_key_size(cipher, &key_size);
+  get_nonce_size(cipher, &nonce_size);
+  get_seed_size(generator, &seed_size);
+  printf("got sizes\n");
+  uint8_t *next_seed = malloc(seed_size);
+  if (next_seed == NULL) {
+    perror("malloc returned NULL");
+    return NULL;
+  }
+  uint8_t *out = malloc(out_size);
+  if (out == NULL) {
+    perror("malloc returned NULL");
+    return NULL;
+  }
+  prg(generator, seed, out);
+  crypto_split(out, seed, key, nonce, next_seed, seed_size, key_size, nonce_size);
+
   return num_written;
 }
 
-int dec(void *cipher, void *key, void *nonce, void *ctxt, void *pltxt, size_t ctxt_size, size_t pltxt_size) {
+int dec(void *cipher, void *generator, void *key, void *seed, void *nonce, void *ctxt, void *pltxt, size_t ctxt_size, size_t pltxt_size) {
   botan_cipher_t *botan_cipher = (botan_cipher_t *) cipher;
   uint8_t *key_bytes = (uint8_t *) key;
   uint8_t *nonce_bytes = (uint8_t *) nonce;
@@ -103,5 +136,25 @@ int dec(void *cipher, void *key, void *nonce, void *ctxt, void *pltxt, size_t ct
   botan_cipher_update(*botan_cipher, 0, pltxt_bytes, pltxt_size, &num_written, ctxt_bytes, ctxt_size, &num_consumed);
 
   printf("consumed: %zu, written: %zu\n", num_consumed, num_written);
+
+  size_t key_size, seed_size, nonce_size, out_size;
+  get_prg_out_size(generator, &out_size);
+  get_key_size(cipher, &key_size);
+  get_nonce_size(cipher, &nonce_size);
+  get_seed_size(generator, &seed_size);
+  printf("got sizes\n");
+  uint8_t *next_seed = malloc(seed_size);
+  if (next_seed == NULL) {
+    perror("malloc returned NULL");
+    return NULL;
+  }
+  uint8_t *out = malloc(out_size);
+  if (out == NULL) {
+    perror("malloc returned NULL");
+    return NULL;
+  }
+  prg(generator, seed, out);
+  crypto_split(out, seed, key, nonce, next_seed, seed_size, key_size, nonce_size);  
+  
   return num_written;
 }

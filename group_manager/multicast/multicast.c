@@ -19,7 +19,7 @@ int split(uint8_t *out, uint8_t *seed, uint8_t *key, uint8_t *nonce, uint8_t *ne
   return 0;
 }
 
-int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct NodeData *data, uint8_t *seed, void *cipher, size_t seed_size) {
+int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct NodeData *data, uint8_t *seed, void *cipher, void *generator, size_t seed_size) {
   size_t ct_size;
   get_ct_size(cipher, seed_size, &ct_size);
   printf("ct size: %zu\n", ct_size);
@@ -46,7 +46,7 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
       struct NodeData *left_data = (struct NodeData *) (*(skeleton->node->children))->data;
       left_ct->parent_id = data->id;
       left_ct->child_id = left_data->id;
-      enc(cipher, left_data->key, left_data->nonce, seed, ct, seed_size, ct_size);
+      enc(cipher, generator, left_data->key, left_data->seed, left_data->nonce, seed, ct, seed_size, ct_size);
       left_ct->ct = ct;
       left_ct->num_bytes = ct_size;      
       printf("ct: %d\n", *((int *) left_ct->ct));
@@ -67,7 +67,7 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
       struct NodeData *right_data = (struct NodeData *) (*(skeleton->node->children + 1))->data;
       right_ct->parent_id = data->id;
       right_ct->child_id = right_data->id;
-      enc(cipher, right_data->key, right_data->nonce, seed, ct, seed_size, ct_size);
+      enc(cipher, generator, right_data->key, right_data->seed, right_data->nonce, seed, ct, seed_size, ct_size);
       right_ct->ct = ct;
       right_ct->num_bytes = ct_size;
       printf("ct: %d\n", *((int *) right_ct->ct));      
@@ -94,7 +94,7 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
     left_ct->parent_id = -1; // TODO: make sure IDs are never negative!
     struct NodeData *root_data = (struct NodeData *) skeleton->node->data;
     left_ct->child_id = root_data->id;
-    enc(cipher, root_data->key, root_data->nonce, seed, ct, seed_size, ct_size);
+    enc(cipher, generator, root_data->key, root_data->seed, root_data->nonce, seed, ct, seed_size, ct_size);
     left_ct->ct = ct;
     left_ct->num_bytes = ct_size;          
     printf("ct: %d\n", *((int *) left_ct->ct));    
@@ -190,7 +190,7 @@ uint8_t *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, 
   data->nonce = nonce;
   data->seed = seed;
 
-  ct_gen(multicast, skeleton, data, prev_seed, cipher, seed_size);
+  ct_gen(multicast, skeleton, data, prev_seed, cipher, generator, seed_size);
   printf("encrypted\n");
   //if (skeleton->node->num_leaves > 1 || skeleton->parent == NULL)
   //free(prev_seed); // need to do it here if not oob_seed

@@ -101,7 +101,7 @@ struct SkeletonNode *find_skel_node(int id, struct SkeletonNode *skeleton) {
   return NULL;
 }
 
-struct ListNode *path_gen(struct User *user, uint8_t *prev_seed, uint8_t *prev_key, uint8_t *prev_nonce, struct SkeletonNode *skel_node, struct SkeletonNode *child_skel, struct ListNode *path_node, void *generator, void *cipher, size_t seed_size, size_t ct_size) {
+struct ListNode *path_gen(struct User *user, uint8_t *prop_seed, uint8_t *prev_seed, uint8_t *prev_key, uint8_t *prev_nonce, struct SkeletonNode *skel_node, struct SkeletonNode *child_skel, struct ListNode *path_node, void *generator, void *cipher, size_t seed_size, size_t ct_size) {
   uint8_t *seed;
   size_t key_size, nonce_size, out_size;
   get_prg_out_size(generator, &out_size);
@@ -134,23 +134,23 @@ struct ListNode *path_gen(struct User *user, uint8_t *prev_seed, uint8_t *prev_k
   }
   
   if (child_skel == NULL) {
-    seed = prev_seed;
+    seed = prop_seed;
   } else {
     int child_pos = 1;
     if (*skel_node->children == child_skel) {
       child_pos = 0;
     }
     if (*(skel_node->children_color + child_pos) == 0) {
-      seed = prev_seed;
+      seed = prop_seed;
     } else { // TODO: make sure only other option is color = 1
-      //free(prev_seed);
+      //free(prop_seed);
       struct Ciphertext *ciphertext = *(skel_node->ciphertexts + child_pos);
       seed = malloc(seed_size);
       if (seed == NULL) {
 	perror("malloc returned NULL");
 	return NULL;
       }
-      dec(cipher, prev_key, prev_nonce, ciphertext->ct, seed, ct_size, seed_size);
+      dec(cipher, generator, prev_key, prev_seed, prev_nonce, ciphertext->ct, seed, ct_size, seed_size);
     }
   }
 
@@ -193,7 +193,7 @@ struct ListNode *path_gen(struct User *user, uint8_t *prev_seed, uint8_t *prev_k
     } else {
       next = path_node->next;
     }
-    return path_gen(user, next_seed, key, nonce, skel_node->parent, skel_node, next, generator, cipher, seed_size, ct_size);
+    return path_gen(user, next_seed, new_seed, key, nonce, skel_node->parent, skel_node, next, generator, cipher, seed_size, ct_size);
   }
   //free(next_seed);
   return path_node;
@@ -216,7 +216,7 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, uint8_t 
 	perror("malloc returned NULL");
 	return NULL;
       }
-      dec(cipher, path_node_data->key, path_node_data->nonce, ciphertext->ct, seed, ct_size, seed_size);
+      dec(cipher, generator, path_node_data->key, path_node_data->seed, path_node_data->nonce, ciphertext->ct, seed, ct_size, seed_size);
     } else {
       struct Entry entry = find_entry(user, skeleton);
       skel_node = entry.skel_node;
@@ -229,7 +229,7 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, uint8_t 
 	  perror("malloc returned NULL");
 	  return NULL;
 	}
-	dec(cipher, path_node_data->key, path_node_data->nonce, ciphertext->ct, seed, ct_size, seed_size);
+	dec(cipher, generator, path_node_data->key, path_node_data->seed, path_node_data->nonce, ciphertext->ct, seed, ct_size, seed_size);
 	if (path_node->next == NULL) {
 	  struct PathData *data = malloc(sizeof(struct PathData));
 	  if (data == NULL) {
@@ -269,7 +269,7 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, uint8_t 
   }
 
   printf("here\n");
-  struct ListNode *end_node = path_gen(user, seed, NULL, NULL, skel_node, NULL, path_node, generator, cipher, seed_size, ct_size);
+  struct ListNode *end_node = path_gen(user, seed, NULL, NULL, NULL, skel_node, NULL, path_node, generator, cipher, seed_size, ct_size);
 
   //free rest of path if not at tail
   while (end_node != user->secrets->tail) {
@@ -306,7 +306,7 @@ void proc_broadcast(struct User *user, uint8_t **buf, void *generator, void *cip
   user_split(out, new_seed, key, nonce, next_seed, seed_size, key_size, nonce_size);
   get_ct_size(cipher, 5, &ct_size);
   uint8_t *pltxt = malloc(ct_size);
-  dec(cipher, key, nonce, *buf, pltxt, ct_size, 5);
+  dec(cipher, generator, key, new_seed, nonce, *buf, pltxt, ct_size, 5);
   printf("decrypted: %s\n", (char *) pltxt);
 }
 
