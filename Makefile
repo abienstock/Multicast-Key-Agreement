@@ -24,7 +24,7 @@ $(BUILDDIRS):
 libbotan:
 	mkdir -p $@
 	git clone https://github.com/randombit/botan.git $@ || (cd $@; git pull)
-	cd $@; ./configure.py --prefix=$(CURDIR)/$@ --minimized-build --enable-modules=auto_rng,system_rng,hmac,mac,aead,rng,ffi,chacha --without-documentation && make && make install && (cd include; ln -sf botan-2/botan botan)
+	cd $@; ./configure.py --prefix=$(CURDIR)/$@ --enable-modules=auto_rng,system_rng,hmac,mac,aead,rng,ffi,chacha --without-documentation && make && make install && (cd include; ln -sf botan-2/botan botan)
 	cd $@; ./botan-test
 
 
