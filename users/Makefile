@@ -1,14 +1,14 @@
 CC = gcc
 CXX = g++
 
-INCLUDES = -I../lib/include
+INCLUDES = -I../libbotan/include
 
 CFLAGS = -g -Wall -O2 $(INCLUDES)
 CXXFLAGS = -g -Wall -O2 $(INCLUDES)
 
 LDFLAGS = -g -lm -O2
 
-LDLIBS = -L../lib/lib -lbotan-2
+LDLIBS = -L../libbotan/lib -lbotan-2
 
 user_driver: user_driver.o user.o ../ll/ll.o ../group_manager/trees/tree-utils.o ../crypto/secure.o
 
