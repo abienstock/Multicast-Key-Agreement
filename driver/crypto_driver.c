@@ -286,8 +286,9 @@ int main(int argc, char *argv[]) {
 	//struct NodeData *root_data = (struct NodeData *) skeleton->node->data;
 	//printf("skeleton root seed: %d\n", *((int *) int_prg(root_data->seed)));
 	
+	printf("MKA Tree:\n");
 	pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
-	printf("\n..................\n");	
+	printf("\n..................\nSkeleton:\n");	
 	pretty_traverse_skeleton(skeleton, 0, &printSkeleton);
 	size_t out_size;
 	get_prg_out_size(generator, &out_size);
@@ -325,8 +326,9 @@ int main(int argc, char *argv[]) {
 	FD_SET(mult_sock, &write_fds);
       } else if (op == 0) {
 	struct MultAddRet add_ret = mult_add(multicast, id, sampler, generator, cipher);
+	printf("MKA Tree:\n");
 	pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
-	printf("\n..................\n");	
+	printf("\n..................\nSkeleton:\n");	
 	pretty_traverse_skeleton(add_ret.skeleton, 0, &printSkeleton);
 	size_t out_size;
 	get_prg_out_size(generator, &out_size);
@@ -370,8 +372,9 @@ int main(int argc, char *argv[]) {
 	  users_curr = users_curr->next;
 	}
 	struct MultUpdRet upd_ret = mult_update(multicast, user_node, sampler, generator, cipher);
+	printf("MKA Tree:\n");
 	pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
-	printf("\n..................\n");	
+	printf("\n..................\nSkeleton:\n");	
 	pretty_traverse_skeleton(upd_ret.skeleton, 0, &printSkeleton);
 	size_t out_size;
 	get_prg_out_size(generator, &out_size);
@@ -415,8 +418,9 @@ int main(int argc, char *argv[]) {
 	  users_curr = users_curr->next;
 	}
 	struct RemRet rem_ret = mult_rem(multicast, user_node, sampler, generator, cipher);
+	printf("MKA Tree:\n");
 	pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
-	printf("\n..................\n");
+	printf("\n..................\nSkeleton:\n");	
 	pretty_traverse_skeleton(rem_ret.skeleton, 0, &printSkeleton);
 	size_t out_size;
 	get_prg_out_size(generator, &out_size);

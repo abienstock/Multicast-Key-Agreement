@@ -207,7 +207,7 @@ int main (int argc, char *argv[]) {
   
   
   if (argc != 5) {
-    perror("Incorrect number of arguments");
+    printf("Usage: [oob host] [oob port] [mult host] [mult port]\n\nParameter Description:\n[oob host]: oob ip addr (-1 if no network)\n[oob port] oob port (-1 if no network)\n[mult host] multicast ip addr (-1 if no network)\n[mult port] multicast port (-1 if no network)\n");
     exit(-1);
   }
 
@@ -348,7 +348,8 @@ int main (int argc, char *argv[]) {
 	  proc_broadcast(user, &mult_buf, generator, cipher, seed_size);
       } else {
 	struct SkeletonNode *skel = build_skel(&mult_buf, cipher, seed_size);
-      
+
+	printf("Skeleton:\n");
 	pretty_traverse_skeleton(skel, 0, &printSkeleton);
 	printf("\n..................\n");	
 	skel->parent = NULL;
@@ -361,6 +362,7 @@ int main (int argc, char *argv[]) {
 	  user->in_group = 0;
 	} else {
 	  user->in_group = 1;
+	  printf("Secret Path:\n");
 	  traverseList(user->secrets, &print_secrets);
 	  printf("root seed: %d\n", *((int *) root_seed + 3));
 	}
