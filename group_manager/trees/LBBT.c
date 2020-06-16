@@ -39,7 +39,6 @@ struct _InitRet init_perfect(int h, int leftmost_id, int *ids, struct List *user
    root->data = data;
    data->blank = 0;
    data->key = NULL;
-   data->nonce = NULL;
    data->seed = NULL;
    
    root->num_leaves = 1 << h;	
@@ -129,7 +128,6 @@ struct _InitRet root_init(int n, int leftmost_id, int *ids, struct List *users){
   root->data = data;
   data->blank = 0;
   data->key = NULL;
-  data->nonce = NULL;
   data->seed = NULL;
   
   root->num_leaves = n;
@@ -293,7 +291,6 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, int id, s
     leaf->data = leaf_data;
     leaf_data->blank = 0;
     leaf_data->key = NULL;
-    leaf_data->nonce = NULL;
     leaf_data->seed = NULL;
     leaf_data->id = id;
     
@@ -321,7 +318,6 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, int id, s
     root->data = root_data;
     root_data->blank = 0;
     root_data->key = NULL;
-    root_data->nonce = NULL;
     root_data->seed = NULL;
     root_data->id = rand();
 
@@ -486,7 +482,6 @@ struct TruncRet truncate(struct LBBT *lbbt, struct Node *node, int on_dir_path) 
   if (data->blank == 1) {
     popBack(lbbt->blanks);
     //free(data->key);
-    //free(data->nonce);
     //free(data->seed);
     //free(data);
     //free(node);
@@ -590,8 +585,6 @@ struct RemRet lbbt_rem(void *tree, struct Node *node) {
     if (node != lbbt->rightmost_leaf) {
       //free(data->key);
       data->key = NULL;
-      //free(data->nonce);
-      data->nonce = NULL;
       //free(data->seed);
       data->seed = NULL;
       ret.skeleton = augment_blanks_build_skel(node->parent, node, NULL);

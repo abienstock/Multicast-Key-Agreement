@@ -48,7 +48,7 @@ int get_bytes(uint8_t **buf, uint8_t *result, int num_bytes) {
   return 0;
 }
 
-struct Ciphertext *get_ct(uint8_t **buf, int parent_id, void *cipher, size_t ct_size) {
+struct Ciphertext *get_ct(uint8_t **buf, int parent_id, size_t ct_size) {
   int num_bytes;
   struct Ciphertext *ciphertext = malloc(sizeof(struct Ciphertext));
   if (ciphertext == NULL) {
@@ -74,14 +74,14 @@ struct Ciphertext *get_ct(uint8_t **buf, int parent_id, void *cipher, size_t ct_
   return ciphertext;
 }
 
-struct SkeletonNode *build_skel(uint8_t **buf, void *cipher, size_t seed_size) {
+struct SkeletonNode *build_skel(uint8_t **buf, void *generator, size_t seed_size) {
   /*if (**buf == '\0') {
     printf("return\n");
     return NULL;
     }*/
   int num_bytes;
   size_t ct_size;
-  get_ct_size(cipher, seed_size, &ct_size);  
+  get_seed_size(generator, &ct_size);  
   
   //printf("%s\n", *buf);
   struct SkeletonNode *skel = malloc(sizeof(struct SkeletonNode));
@@ -124,12 +124,12 @@ struct SkeletonNode *build_skel(uint8_t **buf, void *cipher, size_t seed_size) {
     if (!(memcmp(no_child_ct, *buf, 4 + ct_size))) {
       *cts++ = NULL;
       (*buf) += 4 + ct_size;
-      struct Ciphertext* ciphertext = get_ct(buf, id_num, cipher, ct_size);
+      struct Ciphertext* ciphertext = get_ct(buf, id_num, ct_size);
       *cts-- = ciphertext;
       *children_color++ = 0;
       *children_color-- = 1;
     } else {
-      struct Ciphertext* ciphertext = get_ct(buf, id_num, cipher, ct_size);
+      struct Ciphertext* ciphertext = get_ct(buf, id_num, ct_size);
       *cts++ = ciphertext;
       *children_color++ = 1;
       uint8_t no_child_ct[4 + ct_size];
@@ -140,7 +140,7 @@ struct SkeletonNode *build_skel(uint8_t **buf, void *cipher, size_t seed_size) {
 	*children_color-- = 0;
 	(*buf) += 4 + ct_size;	
       } else {
-	struct Ciphertext* ciphertext = get_ct(buf, id_num, cipher, ct_size);
+	struct Ciphertext* ciphertext = get_ct(buf, id_num, ct_size);
 	*cts-- = ciphertext;
 	*children_color-- = 1;	
       }
@@ -169,12 +169,12 @@ struct SkeletonNode *build_skel(uint8_t **buf, void *cipher, size_t seed_size) {
       if (!memcmp(no_children, *buf, 1)) {
 	*children++ = NULL;
 	(*buf) += 2;
-	struct SkeletonNode *right_skel = build_skel(buf, cipher, seed_size);
+	struct SkeletonNode *right_skel = build_skel(buf, generator, seed_size);
 	right_skel->parent = skel;
 	*children-- = right_skel;
       } else {
 	(*buf) += 1;
-	struct SkeletonNode *left_skel = build_skel(buf, cipher, seed_size);
+	struct SkeletonNode *left_skel = build_skel(buf, generator, seed_size);
 	left_skel->parent = skel;
 	*children++ = left_skel;
 	//if (!(strncmp("0 ", *((char **) buf), 2))) {
@@ -183,7 +183,7 @@ struct SkeletonNode *build_skel(uint8_t **buf, void *cipher, size_t seed_size) {
 	  (*buf) += 1;
 	} else {
 	  (*buf) += 1;
-	  struct SkeletonNode *right_skel = build_skel(buf, cipher, seed_size);
+	  struct SkeletonNode *right_skel = build_skel(buf, generator, seed_size);
 	  right_skel->parent = skel;
 	  *children-- = right_skel;
 	}
@@ -203,7 +203,7 @@ int main (int argc, char *argv[]) {
   unsigned short mult_port;
   struct ip_mreq mreq;
   int max_sock;
-  void *generator = NULL, *cipher = NULL;
+  void *generator = NULL;
   
   
   if (argc != 5) {
@@ -265,7 +265,6 @@ int main (int argc, char *argv[]) {
 
   struct User *user;
   prg_init(&generator);
-  cipher_init(&cipher, 1); //1 for dec mode
   /*generator = malloc(sizeof(botan_mac_t));
   botan_mac_t *prf = (botan_mac_t *) generator;
   botan_mac_init(prf, "HMAC(SHA-512)", 0);
@@ -345,15 +344,15 @@ int main (int argc, char *argv[]) {
       if (*((int *) id) == -2) {
 	printf("broadcast incoming...\n");
 	if (user->in_group)
-	  proc_broadcast(user, &mult_buf, generator, cipher, seed_size);
+	  proc_broadcast(user, &mult_buf, generator, seed_size);
       } else {
-	struct SkeletonNode *skel = build_skel(&mult_buf, cipher, seed_size);
+	struct SkeletonNode *skel = build_skel(&mult_buf, generator, seed_size);
 
 	printf("Skeleton:\n");
 	pretty_traverse_skeleton(skel, 0, &printSkeleton);
 	printf("\n..................\n");	
 	skel->parent = NULL;
-	uint8_t *root_seed = proc_ct(user, *((int *) id), skel, seed, generator, cipher, seed_size);
+	uint8_t *root_seed = proc_ct(user, *((int *) id), skel, seed, generator, seed_size);
 	if (root_seed == NULL && user->secrets->head == NULL) {
 	  printf("not in group\n");
 	  user->in_group = 0; //TODO: possibly redundant?

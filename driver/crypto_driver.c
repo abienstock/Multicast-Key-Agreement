@@ -60,16 +60,14 @@ static void printNode(void *p)
   printf("id: %d, seed: %d, key %d\n", path_data->node_id, *((int *) path_data->seed), *((int *) path_data->key));
   }*/
 
-int driver_split(uint8_t *out, uint8_t *seed, uint8_t *key, uint8_t *nonce, uint8_t *next_seed, size_t seed_size, size_t key_size, size_t nonce_size) {
+int driver_split(uint8_t *out, uint8_t *seed, uint8_t *key, uint8_t *next_seed, size_t seed_size, size_t key_size) {
   uint8_t *out_bytes = (uint8_t *) out;
   uint8_t *seed_bytes = (uint8_t *) seed;
   uint8_t *key_bytes = (uint8_t *) key;
-  uint8_t *nonce_bytes = (uint8_t *) nonce;
   uint8_t *next_seed_bytes = (uint8_t *) next_seed;
   memcpy(seed_bytes, out_bytes, seed_size);
   memcpy(key_bytes, out_bytes + seed_size, key_size);
-  memcpy(nonce_bytes, out_bytes + seed_size + key_size, nonce_size);
-  memcpy(next_seed_bytes, out_bytes + seed_size + key_size + nonce_size, seed_size);
+  memcpy(next_seed_bytes, out_bytes + seed_size + key_size, seed_size);
   return 0;
 }
 
@@ -163,7 +161,7 @@ int main(int argc, char *argv[]) {
   unsigned char multicast_ttl = 1;  
   int max_sock;
   int N_uni;
-  void *sampler = NULL, *generator = NULL, *cipher = NULL, *test_cipher = NULL;
+  void *sampler = NULL, *generator = NULL;
 
   srand(time(0));
 
@@ -220,12 +218,10 @@ int main(int argc, char *argv[]) {
   
   sampler_init(&sampler);
   prg_init(&generator);
-  cipher_init(&cipher, 0); //0 for enc mode
-  cipher_init(&test_cipher, 1);
   
   size_t seed_size, ct_size;
   get_seed_size(generator, &seed_size);
-  get_ct_size(cipher, seed_size, &ct_size);
+  get_seed_size(generator, &ct_size);
 
   clnt_len = sizeof(oob_addr);
   N_uni = 0;
@@ -279,7 +275,7 @@ int main(int argc, char *argv[]) {
       scanf("%d %d", &op, &id);
 
       if (op == -1) {
-	struct MultInitRet init_ret = mult_init(id, tree_flags, 0, sampler, generator, cipher);
+	struct MultInitRet init_ret = mult_init(id, tree_flags, 0, sampler, generator);
 	multicast = init_ret.multicast;
 	struct SkeletonNode *skeleton = init_ret.skeleton;
 	struct List *oob_seeds = init_ret.oob_seeds;
@@ -325,7 +321,7 @@ int main(int argc, char *argv[]) {
 	fclose(skel_f);	
 	FD_SET(mult_sock, &write_fds);
       } else if (op == 0) {
-	struct MultAddRet add_ret = mult_add(multicast, id, sampler, generator, cipher);
+	struct MultAddRet add_ret = mult_add(multicast, id, sampler, generator);
 	printf("MKA Tree:\n");
 	pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
 	printf("\n..................\nSkeleton:\n");	
@@ -371,7 +367,7 @@ int main(int argc, char *argv[]) {
 	    break;
 	  users_curr = users_curr->next;
 	}
-	struct MultUpdRet upd_ret = mult_update(multicast, user_node, sampler, generator, cipher);
+	struct MultUpdRet upd_ret = mult_update(multicast, user_node, sampler, generator);
 	printf("MKA Tree:\n");
 	pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
 	printf("\n..................\nSkeleton:\n");	
@@ -417,7 +413,7 @@ int main(int argc, char *argv[]) {
 	    break;
 	  users_curr = users_curr->next;
 	}
-	struct RemRet rem_ret = mult_rem(multicast, user_node, sampler, generator, cipher);
+	struct RemRet rem_ret = mult_rem(multicast, user_node, sampler, generator);
 	printf("MKA Tree:\n");
 	pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
 	printf("\n..................\nSkeleton:\n");	
@@ -452,23 +448,19 @@ int main(int argc, char *argv[]) {
 	}
 	struct NodeData *data = ((struct LBBT *)multicast->tree)->root->data;
 	prg(generator, data->seed, out);
-	size_t key_size, nonce_size;
-	get_key_size(cipher, &key_size);
-	get_nonce_size(cipher, &nonce_size);
+	size_t key_size;
+	get_key_size(&key_size);
 	uint8_t *new_seed = malloc(seed_size);
 	uint8_t *key = malloc(key_size);
-	uint8_t *nonce = malloc(nonce_size);
 	uint8_t *next_seed = malloc(seed_size);
-	driver_split(out, new_seed, key, nonce, next_seed, seed_size, key_size, nonce_size);
-	size_t new_ct_size;
-	get_ct_size(cipher, 5, &new_ct_size);
-	uint8_t *ct = malloc(new_ct_size);
+	driver_split(out, new_seed, key, next_seed, seed_size, key_size);
+	uint8_t *ct = malloc(5);
 	char *pltxt = malloc(5);
 	pltxt = "test";
-	enc(cipher, generator, key, new_seed, nonce, pltxt, ct, 5, new_ct_size);
+	enc(generator, key, new_seed, pltxt, ct, 5);
 	skel_f = fopen("skel.txt", "ab+");
 	fwrite(&op, 4, 1, skel_f);
-	fwrite(ct, new_ct_size, 1, skel_f);
+	fwrite(ct, 5, 1, skel_f);
 	fclose(skel_f);
 	FD_SET(mult_sock, &write_fds);
       } //TODO: error handling

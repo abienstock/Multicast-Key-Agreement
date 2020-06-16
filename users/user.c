@@ -32,16 +32,14 @@ struct User *init_user(int id) {
   return user;
 }
 
-int user_split(uint8_t *out, uint8_t *seed, uint8_t *key, uint8_t *nonce, uint8_t *next_seed, size_t seed_size, size_t key_size, size_t nonce_size) {
+int user_split(uint8_t *out, uint8_t *seed, uint8_t *key, uint8_t *next_seed, size_t seed_size, size_t key_size) {
   uint8_t *out_bytes = (uint8_t *) out;
   uint8_t *seed_bytes = (uint8_t *) seed;
   uint8_t *key_bytes = (uint8_t *) key;
-  uint8_t *nonce_bytes = (uint8_t *) nonce;
   uint8_t *next_seed_bytes = (uint8_t *) next_seed;
   memcpy(seed_bytes, out_bytes, seed_size);
   memcpy(key_bytes, out_bytes + seed_size, key_size);
-  memcpy(nonce_bytes, out_bytes + seed_size + key_size, nonce_size);
-  memcpy(next_seed_bytes, out_bytes + seed_size + key_size + nonce_size, seed_size);
+  memcpy(next_seed_bytes, out_bytes + seed_size + key_size, seed_size);
   return 0;
 }
 
@@ -100,12 +98,11 @@ struct SkeletonNode *find_skel_node(int id, struct SkeletonNode *skeleton) {
   return NULL;
 }
 
-struct ListNode *path_gen(struct User *user, uint8_t *prop_seed, uint8_t *prev_seed, uint8_t *prev_key, uint8_t *prev_nonce, struct SkeletonNode *skel_node, struct SkeletonNode *child_skel, struct ListNode *path_node, void *generator, void *cipher, size_t seed_size, size_t ct_size) {
+struct ListNode *path_gen(struct User *user, uint8_t *prop_seed, uint8_t *prev_seed, uint8_t *prev_key, struct SkeletonNode *skel_node, struct SkeletonNode *child_skel, struct ListNode *path_node, void *generator, size_t seed_size, size_t ct_size) {
   uint8_t *seed;
-  size_t key_size, nonce_size, out_size;
+  size_t key_size, out_size;
   get_prg_out_size(generator, &out_size);
-  get_key_size(cipher, &key_size);
-  get_nonce_size(cipher, &nonce_size);  
+  get_key_size(&key_size);
   uint8_t *next_seed = malloc(seed_size);
   if (next_seed == NULL) {
     perror("malloc returned NULL");
@@ -118,11 +115,6 @@ struct ListNode *path_gen(struct User *user, uint8_t *prop_seed, uint8_t *prev_s
   }
   uint8_t *key = malloc(key_size);
   if (key == NULL) {
-    perror("malloc returned NULL");
-    return NULL;
-  }
-  uint8_t *nonce = malloc(nonce_size);
-  if (nonce == NULL) {
     perror("malloc returned NULL");
     return NULL;
   }
@@ -149,20 +141,20 @@ struct ListNode *path_gen(struct User *user, uint8_t *prop_seed, uint8_t *prev_s
 	perror("malloc returned NULL");
 	return NULL;
       }
-      dec(cipher, generator, prev_key, prev_seed, prev_nonce, ciphertext->ct, seed, ct_size, seed_size);
+      dec(generator, prev_key, prev_seed, ciphertext->ct, seed, ct_size);
     }
   }
 
   struct PathData *data = (struct PathData *) path_node->data;
 
   prg(generator, seed, out);
-  user_split(out, new_seed, key, nonce, next_seed, seed_size, key_size, nonce_size);
+  user_split(out, new_seed, key, next_seed, seed_size, key_size);
   //printf("seed: %s\n", (char *) seed);  
   /*void *out = prg(seed);
   void **out_split = split(out);
   void *new_seed = out_split[0];
   void *key = out_split[1];
-  void *next_seed = out_split[2];*/
+3  void *next_seed = out_split[2];*/
   //free(seed);
   //free(out);
 
@@ -172,7 +164,6 @@ struct ListNode *path_gen(struct User *user, uint8_t *prop_seed, uint8_t *prev_s
   data->key = key;
   //if (data->nonce != NULL)
   //free(data->nonce);
-  data->nonce = nonce;
   //if (data->seed != NULL)
   //free(data->seed);
   data->seed = new_seed;
@@ -191,16 +182,16 @@ struct ListNode *path_gen(struct User *user, uint8_t *prop_seed, uint8_t *prev_s
     } else {
       next = path_node->next;
     }
-    return path_gen(user, next_seed, new_seed, key, nonce, skel_node->parent, skel_node, next, generator, cipher, seed_size, ct_size);
+    return path_gen(user, next_seed, new_seed, key, skel_node->parent, skel_node, next, generator, seed_size, ct_size);
   }
   //free(next_seed);
   return path_node;
 }
 
-void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, uint8_t *oob_seed, void *generator, void *cipher, size_t seed_size) {
+void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, uint8_t *oob_seed, void *generator, size_t seed_size) {
   uint8_t *seed;
   size_t ct_size;
-  get_ct_size(cipher, seed_size, &ct_size);  
+  get_seed_size(generator, &ct_size);  
   struct SkeletonNode *skel_node;
   struct ListNode *path_node;
   if (id != -1 && id != user->id) { // -1 for create
@@ -214,7 +205,7 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, uint8_t 
 	perror("malloc returned NULL");
 	return NULL;
       }
-      dec(cipher, generator, path_node_data->key, path_node_data->seed, path_node_data->nonce, ciphertext->ct, seed, ct_size, seed_size);
+      dec(generator, path_node_data->key, path_node_data->seed, ciphertext->ct, seed, ct_size);
     } else {
       struct Entry entry = find_entry(user, skeleton);
       skel_node = entry.skel_node;
@@ -227,7 +218,7 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, uint8_t 
 	  perror("malloc returned NULL");
 	  return NULL;
 	}
-	dec(cipher, generator, path_node_data->key, path_node_data->seed, path_node_data->nonce, ciphertext->ct, seed, ct_size, seed_size);
+	dec(generator, path_node_data->key, path_node_data->seed, ciphertext->ct, seed, ct_size);
 	if (path_node->next == NULL) {
 	  struct PathData *data = malloc(sizeof(struct PathData));
 	  if (data == NULL) {
@@ -263,7 +254,7 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, uint8_t 
     path_node = user->secrets->head;
   }
 
-  struct ListNode *end_node = path_gen(user, seed, NULL, NULL, NULL, skel_node, NULL, path_node, generator, cipher, seed_size, ct_size);
+  struct ListNode *end_node = path_gen(user, seed, NULL, NULL, skel_node, NULL, path_node, generator, seed_size, ct_size);
 
   //free rest of path if not at tail
   while (end_node != user->secrets->tail) {
@@ -285,23 +276,20 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, uint8_t 
   return out;
 }
 
-void proc_broadcast(struct User *user, uint8_t **buf, void *generator, void *cipher, size_t seed_size) {
+void proc_broadcast(struct User *user, uint8_t **buf, void *generator, size_t seed_size) {
   struct ListNode *root_node = user->secrets->tail;
   struct PathData *data = (struct PathData *) root_node->data;
-  size_t out_size, key_size, nonce_size, ct_size;
+  size_t out_size, key_size;
   get_prg_out_size(generator, &out_size);
   uint8_t out[out_size];
   prg(generator, data->seed, out);
-  get_key_size(cipher, &key_size);
-  get_nonce_size(cipher, &nonce_size);
+  get_key_size(&key_size);
   uint8_t *new_seed = malloc(seed_size);
   uint8_t *key = malloc(key_size);
-  uint8_t *nonce = malloc(nonce_size);
   uint8_t *next_seed = malloc(seed_size);
-  user_split(out, new_seed, key, nonce, next_seed, seed_size, key_size, nonce_size);
-  get_ct_size(cipher, 5, &ct_size);
-  uint8_t *pltxt = malloc(ct_size);
-  dec(cipher, generator, key, new_seed, nonce, *buf, pltxt, ct_size, 5);
+  user_split(out, new_seed, key, next_seed, seed_size, key_size);
+  uint8_t *pltxt = malloc(5);
+  dec(generator, key, new_seed, *buf, pltxt, 5);
   printf("decrypted: %s\n", (char *) pltxt);
 }
 

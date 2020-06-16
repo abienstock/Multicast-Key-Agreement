@@ -11,3 +11,4 @@
 - REFACTOR!! - ex. : function for skeleton mallocs, destroy nodes, etc
 - get rid of gen tree funcs that do nothing (in tree-utils)??
 - multicast return types
+- return types of crypto funcs
