@@ -236,7 +236,8 @@ int main(int argc, char *argv[]) {
 
   int ops[3] = { 0, 0, 0 };
 
-  for (int i = 0; i < atoi(argv[2]); i++) {
+  int i;
+  for (i = 0; i < atoi(argv[2]); i++) {
     ops[next_op(lbbt_multicast, add_wt, upd_wt, distrib, geo_param, max_id)]++;
   }
 

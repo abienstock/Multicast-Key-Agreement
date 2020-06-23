@@ -88,7 +88,8 @@ int enc(void *generator, void *key, void *seed, void *pltxt, void *ctxt, size_t 
   uint8_t *pltxt_bytes = (uint8_t *) pltxt;
   uint8_t *ctxt_bytes = (uint8_t *) ctxt;
 
-  for (int i = 0; i < pltxt_size; i ++)
+  int i;
+  for (i = 0; i < pltxt_size; i ++)
     *(ctxt_bytes + i) = *(pltxt_bytes + i) ^ *(key_bytes + i);
 
   size_t seed_size, out_size;
@@ -115,7 +116,8 @@ int dec(void *generator, void *key, void *seed, void *ctxt, void *pltxt, size_t 
   uint8_t *pltxt_bytes = (uint8_t *) pltxt;
   uint8_t *ctxt_bytes = (uint8_t *) ctxt;
 
-  for (int i = 0; i < ctxt_size; i ++)
+  int i;
+  for (i = 0; i < ctxt_size; i ++)
     *(pltxt_bytes + i) = *(ctxt_bytes + i) ^ *(key_bytes + i);
 
   size_t seed_size, out_size;

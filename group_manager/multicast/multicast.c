@@ -136,7 +136,7 @@ uint8_t *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, 
       addFront(oob_seeds, prev_seed);
   }
 
-  *multicast->counts++;
+  (*(multicast->counts))++;
 
   struct NodeData *data = (struct NodeData *) skeleton->node->data;  
   if (!multicast->testing) {
@@ -217,22 +217,8 @@ struct MultInitRet mult_init(int n, int testing, int *tree_flags, int tree_type,
   //  else
   //    added = gen_tree_add(multicast->tree, data, &btree_add);
   
-  struct Multicast *lbbt_multicast = malloc(sizeof(struct Multicast));
-  if (lbbt_multicast == NULL) {
-    perror("malloc returned NULL");
-    return ret;
-  }
-
-  size_t prg_out_size, seed_size;
-  get_prg_out_size(generator, &prg_out_size);
-  get_seed_size(generator, &seed_size);
-  struct Multicast multicast = { 1, users, tree, counts, tree_type, testing, prg_out_size, seed_size };
-  *lbbt_multicast = multicast;
-
-  ret.multicast = lbbt_multicast;
-  ret.skeleton = tree_ret.skeleton;
-
   struct List *oob_seeds = NULL;
+  size_t prg_out_size = NULL, seed_size = NULL;
   if (!testing) {
     oob_seeds = malloc(sizeof(struct List));
     if (oob_seeds == NULL) {
@@ -240,7 +226,23 @@ struct MultInitRet mult_init(int n, int testing, int *tree_flags, int tree_type,
       return ret;
     }
     initList(oob_seeds);
+
+    get_prg_out_size(generator, &prg_out_size);
+    get_seed_size(generator, &seed_size);
   }
+
+  struct Multicast *lbbt_multicast = malloc(sizeof(struct Multicast));
+  if (lbbt_multicast == NULL) {
+    perror("malloc returned NULL");
+    return ret;
+  }
+
+  struct Multicast multicast = { 1, users, tree, counts, tree_type, testing, prg_out_size, seed_size };
+  *lbbt_multicast = multicast;
+
+  ret.multicast = lbbt_multicast;
+  ret.skeleton = tree_ret.skeleton;
+
   secret_gen(lbbt_multicast, tree_ret.skeleton, oob_seeds, sampler, generator);// free
 
   ret.oob_seeds = oob_seeds;
@@ -269,11 +271,11 @@ struct MultAddRet mult_add(struct Multicast *multicast, int id, void *sampler, v
       return ret;
     }
     initList(oob_seeds);
+    ret.oob_seed = oob_seeds->head->data;
+    removeAllNodes(oob_seeds);
   }
   secret_gen(multicast, ret.skeleton, oob_seeds, sampler, generator); //free
 
-  ret.oob_seed = oob_seeds->head->data;
-  removeAllNodes(oob_seeds);
   //free(oob_seeds);
 
   return ret;
@@ -351,11 +353,11 @@ struct MultUpdRet mult_update(struct Multicast *multicast, struct Node *user, vo
       return ret;
     }
     initList(oob_seeds);
+    ret.oob_seed = oob_seeds->head->data;
+    removeAllNodes(oob_seeds);
   }
   secret_gen(multicast, skeleton, oob_seeds, sampler, generator);//free
 
-  ret.oob_seed = oob_seeds->head->data;
-  removeAllNodes(oob_seeds);
   //free(oob_seeds);
   
   return ret;

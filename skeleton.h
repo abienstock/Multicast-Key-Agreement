@@ -1,6 +1,7 @@
 #ifndef _SKELETON_H_
 #define _SKELETON_H_
 
+#include <stdint.h>
 #include "group_manager/trees/trees.h"
 
 // TODO: store children ids, parent skel node
