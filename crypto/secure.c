@@ -3,14 +3,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-int crypto_split(uint8_t *out, uint8_t *seed, uint8_t *key, uint8_t *next_seed, size_t seed_size, size_t key_size) {
+int crypto_split(uint8_t *out, uint8_t *seed, uint8_t *key, uint8_t *next_seed, size_t seed_size) {
   uint8_t *out_bytes = (uint8_t *) out;
   uint8_t *seed_bytes = (uint8_t *) seed;
   uint8_t *key_bytes = (uint8_t *) key;
   uint8_t *next_seed_bytes = (uint8_t *) next_seed;
   memcpy(seed_bytes, out_bytes, seed_size);
-  memcpy(key_bytes, out_bytes + seed_size, key_size);
-  memcpy(next_seed_bytes, out_bytes + seed_size + key_size, seed_size);
+  memcpy(key_bytes, out_bytes + seed_size, seed_size);
+  memcpy(next_seed_bytes, out_bytes + 2 * seed_size, seed_size);
   return 0;
 }
 
@@ -63,12 +63,12 @@ int get_prg_out_size(void *generator, size_t *size) {
   return 0; //TODO Fix
 }
 
-int get_key_size(size_t *size) {
+/*int get_key_size(size_t *size) {
   *size = 64; //TODO: Fix hardocde
   return 0;
 }
 
-/*int get_nonce_size(void *cipher, size_t *size) {
+int get_nonce_size(void *cipher, size_t *size) {
   *size = 8;
   return 0;
   }*/
@@ -91,9 +91,8 @@ int enc(void *generator, void *key, void *seed, void *pltxt, void *ctxt, size_t 
   for (int i = 0; i < pltxt_size; i ++)
     *(ctxt_bytes + i) = *(pltxt_bytes + i) ^ *(key_bytes + i);
 
-  size_t key_size, seed_size, out_size;
+  size_t seed_size, out_size;
   get_prg_out_size(generator, &out_size);
-  get_key_size(&key_size);
   get_seed_size(generator, &seed_size);
   uint8_t *next_seed = malloc(seed_size);
   if (next_seed == NULL) {
@@ -106,7 +105,7 @@ int enc(void *generator, void *key, void *seed, void *pltxt, void *ctxt, size_t 
     return -1;
   }
   prg(generator, seed, out);
-  crypto_split(out, seed, key, next_seed, seed_size, key_size);
+  crypto_split(out, seed, key, next_seed, seed_size);
 
   return pltxt_size;
 }
@@ -119,9 +118,8 @@ int dec(void *generator, void *key, void *seed, void *ctxt, void *pltxt, size_t 
   for (int i = 0; i < ctxt_size; i ++)
     *(pltxt_bytes + i) = *(ctxt_bytes + i) ^ *(key_bytes + i);
 
-  size_t key_size, seed_size, out_size;
+  size_t seed_size, out_size;
   get_prg_out_size(generator, &out_size);
-  get_key_size(&key_size);
   get_seed_size(generator, &seed_size);
   uint8_t *next_seed = malloc(seed_size);
   if (next_seed == NULL) {
@@ -134,7 +132,7 @@ int dec(void *generator, void *key, void *seed, void *ctxt, void *pltxt, size_t 
     return -1;
   }
   prg(generator, seed, out);
-  crypto_split(out, seed, key, next_seed, seed_size, key_size);
+  crypto_split(out, seed, key, next_seed, seed_size);
   
   return ctxt_size;
 }

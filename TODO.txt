@@ -2,7 +2,6 @@
 - (IMPORANT!!) fix get_int to take in number of bytes to proc
 - (IMPORTANT!!) change all crypto stuff to bytes (uint8_t)
 - (IMPORTANT!! (networks)) make separate modes for driver (crypto/not secret_gen) -- crypto/test drivers
-- (IMPORTANT!! (networks)) make separate modes for driver (networks/not) -- within crypto driver, networks or not
 - (IMPORTANT!!) MAKE SURE REMOVE IS log(n) TIME!!
 - (IMPORTANT!!) make sure geometric distr on ops is correct
 - Remove parent_id from Ciphertext struct
@@ -12,3 +11,4 @@
 - get rid of gen tree funcs that do nothing (in tree-utils)??
 - multicast return types
 - return types of crypto funcs
+- one split func

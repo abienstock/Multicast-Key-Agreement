@@ -10,7 +10,7 @@ int prg(void *generator, void *seed, void *out);
 
 int get_prg_out_size(void *generator, size_t *size); // in bytes
 
-int get_key_size(size_t *size); // in bytes
+//int get_key_size(size_t *size); // in bytes
 
 //int get_nonce_size(void *cipher, size_t *size); // in bytes
 

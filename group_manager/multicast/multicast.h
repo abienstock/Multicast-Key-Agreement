@@ -10,6 +10,9 @@ struct Multicast {
   void *tree;
   int *counts; //0th index is PRGs (from children in skeleton), 1st index is encs (that the grp mgr performs)
   int tree_type; //0 for lbbt, 1 for btree
+  int testing; //0 if crypto mode, 1 if testing mode
+  size_t prg_out_size;
+  size_t seed_size;
 };
 
 struct MultInitRet {
@@ -29,13 +32,13 @@ struct MultUpdRet {
   void *oob_seed;
 };
 
-struct MultInitRet mult_init(int n, int *tree_flags, int tree_type, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *));
+struct MultInitRet mult_init(int n, int testing, int *tree_flags, int tree_type, void *sampler, void *prg);
 
-struct MultAddRet mult_add(struct Multicast *multicast, int id, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *)); //TODO: id is for new user
+struct MultAddRet mult_add(struct Multicast *multicast, int id, void *sampler, void *prg); //TODO: id is for new user
 
-struct MultUpdRet mult_update(struct Multicast *multicast, struct Node *user, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *));
+struct MultUpdRet mult_update(struct Multicast *multicast, struct Node *user, void *sampler, void *prg);
 
-struct RemRet mult_rem(struct Multicast *multicast, struct Node *user, void *(*gen_seed)(), void *(*prg)(void *), void **(*split)(void *), void *(*encrypt)(void *, void *));
+struct RemRet mult_rem(struct Multicast *multicast, struct Node *user, void *sampler, void *prg);
 
 void mult_destroy(struct Multicast *multicast);
 

@@ -43,48 +43,6 @@
   printf("id: %d, seed: %d, key %d\n", path_data->node_id, *((int *) path_data->seed), *((int *) path_data->key));
   }*/
 
-void *int_gen() {
-  int *seed = malloc(sizeof(int));
-  if (seed == NULL) {
-    perror("malloc returned NULL");
-    return NULL;
-  }
-  *seed = rand();
-  return (void *) seed;
-}
-
-void *int_prg(void *seed) {
-  int *out = malloc(sizeof(int));
-  if (out == NULL) {
-    perror("malloc returned NULL");
-    return NULL;
-  }
-  *out = *((int *) seed) + 2;
-  return (void *) out;
-}
-
-void **int_split(void *data) {
-  int **split = malloc(sizeof(int *) * 3);
-  int *seed = malloc(sizeof(int));
-  int *key = malloc(sizeof(int));
-  int *next_seed = malloc(sizeof(int));
-  int out = *(int *) data;
-  *seed = out;
-  *key = out + 1;
-  *next_seed = out + 2;
-
-  *split = seed;
-  *(split + 1) = key;
-  *(split + 2) = next_seed;
-  return (void **) split;
-}
-
-void *int_identity(void *key, void *data) {
-  int *plaintext = malloc(sizeof(int));
-  *plaintext = *((int *) data);
-  return (void *) plaintext;
-}
-
 int rand_int(int n, int distrib, float geo_param) {
   int i;
   switch (distrib) {
@@ -101,13 +59,13 @@ int rand_int(int n, int distrib, float geo_param) {
   }
 }
 
-int next_op(struct Multicast *multicast, struct List *users, float add_wt, float upd_wt, int distrib, float geo_param, int *max_id) {
+int next_op(struct Multicast *multicast, float add_wt, float upd_wt, int distrib, float geo_param, int *max_id) {
   int num_users = multicast->users->len;
   float operation = (float) rand() / (float) RAND_MAX;
   if (operation < add_wt || num_users == 1) { //TODO: forcing add with n=1 correct??
     (*max_id)++; //so adding new users w.l.o.g.
     printf("add: %d\n", *max_id);
-    struct MultAddRet add_ret = mult_add(multicast, *max_id, &int_gen, &int_prg, &int_split, &int_identity);
+    struct MultAddRet add_ret = mult_add(multicast, *max_id, NULL, NULL);
 
     //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printIntLine);
     //pretty_traverse_skeleton(add_ret.skeleton, 0, &printSkeleton);
@@ -116,10 +74,10 @@ int next_op(struct Multicast *multicast, struct List *users, float add_wt, float
     //struct NodeData *root_data = (struct NodeData *) add_ret.skeleton->node->data;
     //printf("skeleton root seed: %d\n", *((int *) int_prg(root_data->seed)));
 
-    struct ListNode *user_curr = users->head;
+    /*struct ListNode *user_curr = users->head;
     while (user_curr != 0) {
       //void *root_seed =
-      free(proc_ct((struct User *) user_curr->data, *max_id, add_ret.skeleton, NULL, &int_prg, &int_split, &int_identity));
+      free(proc_ct((struct User *) user_curr->data, *max_id, add_ret.skeleton, NULL, 
       //traverseList(((struct User *)user_curr->data)->secrets, &print_secrets);
       //printf("root seed: %d\n", *((int *) root_seed));
       user_curr = user_curr->next;
@@ -130,7 +88,7 @@ int next_op(struct Multicast *multicast, struct List *users, float add_wt, float
     //void *root_seed =
     free(proc_ct(user, *max_id, add_ret.skeleton, add_ret.oob_seed, &int_prg, &int_split, &int_identity));
     //traverseList(user->secrets, &print_secrets);
-    //printf("root seed: %d\n", *((int *) root_seed));
+    //printf("root seed: %d\n", *((int *) root_seed));*/
 
     destroy_skeleton(add_ret.skeleton);
     
@@ -140,13 +98,13 @@ int next_op(struct Multicast *multicast, struct List *users, float add_wt, float
     struct Node *user_node = (struct Node *) findNode(multicast->users, user)->data;
     struct NodeData *user_data = (struct NodeData *) user_node->data;
     printf("upd: %d\n", user_data->id);
-    struct MultUpdRet upd_ret = mult_update(multicast, user_node, &int_gen, &int_prg, &int_split, &int_identity);
+    struct MultUpdRet upd_ret = mult_update(multicast, user_node, NULL, NULL);
     //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printIntLine);
     //pretty_traverse_skeleton(upd_ret.skeleton, 0, &printSkeleton);
     //struct NodeData *root_data = (struct NodeData *) upd_ret.skeleton->node->data;
     //printf("skeleton root seed: %d\n", *((int *) int_prg(root_data->seed)));
 
-    struct ListNode *user_curr = users->head;
+    /*struct ListNode *user_curr = users->head;
     while (user_curr != 0) {
       //void *root_seed;
       if (((struct User *) user_curr->data)->id == user_data->id) {
@@ -159,7 +117,7 @@ int next_op(struct Multicast *multicast, struct List *users, float add_wt, float
       //traverseList(((struct User *)user_curr->data)->secrets, &print_secrets);
       //printf("root seed: %d\n", *((int *) root_seed));
       user_curr = user_curr->next;
-    }
+      }*/
 
     destroy_skeleton(upd_ret.skeleton);
     
@@ -171,7 +129,7 @@ int next_op(struct Multicast *multicast, struct List *users, float add_wt, float
     struct NodeData *user_data = (struct NodeData *) user_node->data;
     int rem_id = user_data->id;
     printf("rem: %d\n", rem_id);
-    struct RemRet rem_ret = mult_rem(multicast, user_node, &int_gen, &int_prg, &int_split, &int_identity);
+    struct RemRet rem_ret = mult_rem(multicast, user_node, NULL, NULL);
 
     //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printIntLine);
     //pretty_traverse_skeleton(rem_ret.skeleton, 0, &printSkeleton);
@@ -179,10 +137,10 @@ int next_op(struct Multicast *multicast, struct List *users, float add_wt, float
     //struct NodeData *root_data = (struct NodeData *) rem_ret.skeleton->node->data;
     //printf("skeleton root seed: %d\n", *((int *) int_prg(root_data->seed)));
 
-    struct User *user = (struct User *) findAndRemoveNode(users, user_num);
-    destroy_user(user);
+    //struct User *user = (struct User *) findAndRemoveNode(users, user_num);
+    //destroy_user(user);
 
-    struct ListNode *user_curr = users->head;
+    /*struct ListNode *user_curr = users->head;
     while (user_curr != 0) {
       if (((struct User *) user_curr->data)->id != rem_id) {
 	//void *root_seed =
@@ -191,7 +149,7 @@ int next_op(struct Multicast *multicast, struct List *users, float add_wt, float
 	//printf("root seed: %d\n", *((int *) root_seed));
       }
       user_curr = user_curr->next;
-    }
+      }*/
 
     destroy_skeleton(rem_ret.skeleton);
     
@@ -239,27 +197,26 @@ int main(int argc, char *argv[]) {
   }
   *max_id = n-1;
 
-  struct List *users = malloc(sizeof(struct List)); // FOR TESTING
+  /*struct List *users = malloc(sizeof(struct List)); // FOR TESTING
   if (users == NULL) {
     perror("malloc returned NULL");
     return -1;
   }
   initList(users);
   
-  int i;
   for (i = 0; i < n; i++) {
     struct User *user = init_user(i);
     addFront(users, (void *) user);
-  }
+    }*/
 
-  struct MultInitRet init_ret = mult_init(n, lbbt_flags, 0, &int_gen, &int_prg, &int_split, &int_identity);
+  struct MultInitRet init_ret = mult_init(n, 1, lbbt_flags, 0, NULL, NULL);
   struct Multicast *lbbt_multicast = init_ret.multicast;
   struct SkeletonNode *skeleton = init_ret.skeleton;
   struct List *oob_seeds = init_ret.oob_seeds;
   //struct NodeData *root_data = (struct NodeData *) skeleton->node->data;
   //printf("skeleton root seed: %d\n", *((int *) int_prg(root_data->seed)));
 
-  struct ListNode *user_curr = users->head;
+  /*struct ListNode *user_curr = users->head;
   //struct ListNode *mult_curr = lbbt_multicast->users->head;
   struct ListNode *oob_curr = oob_seeds->head;
   while (user_curr != 0) {
@@ -274,19 +231,18 @@ int main(int argc, char *argv[]) {
     oob_curr = oob_curr->next;
   }
   removeAllNodes(oob_seeds);
-  free(oob_seeds);
+  free(oob_seeds);*/
   destroy_skeleton(skeleton);
 
   int ops[3] = { 0, 0, 0 };
 
-  for (i = 0; i < atoi(argv[2]); i++) {
-    ops[next_op(lbbt_multicast, users, add_wt, upd_wt, distrib, geo_param, max_id)]++;
+  for (int i = 0; i < atoi(argv[2]); i++) {
+    ops[next_op(lbbt_multicast, add_wt, upd_wt, distrib, geo_param, max_id)]++;
   }
 
   printf("# adds: %d, # updates: %d, # rems %d\n", ops[0], ops[1], ops[2]);
   printf("# PRGs: %d, # encs: %d\n", *(lbbt_multicast->counts), *(lbbt_multicast->counts + 1));
 
-  destroy_users(users);
   mult_destroy(lbbt_multicast);
   free(max_id);
   return 0;
