@@ -24,4 +24,4 @@ clean:
 
 .PHONY: all
 
-all: clean crypto_driver test_driver
+all: clean test_driver
