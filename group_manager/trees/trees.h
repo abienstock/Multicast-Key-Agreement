@@ -54,12 +54,6 @@ struct Node **get_path(struct Node *node);
 
 struct Node **get_copath(struct Node *node);
 
-struct InitRet gen_tree_init(int *ids, int n, int add_strat, int trunc_strat, struct List *users, struct InitRet (*tree_init)(int *, int, int, int, struct List *));
-
-struct AddRet gen_tree_add(void *tree, int id, struct AddRet (*tree_add)(void *, int));
-
-struct RemRet gen_tree_rem(void *tree, struct Node *node, struct RemRet (*tree_rem)(void *, struct Node *));
-
 void traverse_tree(struct Node *root, void (*f)(void *));
 
 void pretty_traverse_tree(struct Node *root, int space, void (*f)(void *));

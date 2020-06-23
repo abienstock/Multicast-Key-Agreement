@@ -10,6 +10,7 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
   if (skeleton->children_color != NULL) {
     struct Ciphertext *left_ct = NULL, *right_ct = NULL;
     if (*(skeleton->children_color) == 1) {
+      (*(multicast->counts))++; // one-time pad refresh      
       (*(multicast->counts + 1))++;
       if (!multicast->testing) {
 	left_ct = malloc(sizeof(struct Ciphertext));
@@ -31,6 +32,7 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
       }
     }
     if (*(skeleton->children_color + 1) == 1) {
+      (*(multicast->counts))++; // one-time pad refresh
       (*(multicast->counts + 1))++;
       if (!multicast->testing) {
 	right_ct = malloc(sizeof(struct Ciphertext));
@@ -62,6 +64,7 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
       skeleton->ciphertexts = cts;
     }
   } else if (((struct LBBT *) multicast->tree)->root == skeleton->node) {
+    (*(multicast->counts))++; // one-time pad refresh    
     (*(multicast->counts + 1))++;
     if (!multicast->testing) {
       struct Ciphertext **cts = malloc(sizeof(struct Ciphertext *) * 2);
@@ -200,7 +203,7 @@ struct MultInitRet mult_init(int n, int testing, int *tree_flags, int tree_type,
   void *tree = NULL;
   struct InitRet tree_ret = { NULL, NULL };
   if (tree_type == 0) {
-    tree_ret = gen_tree_init(ids, n, *tree_flags, *(tree_flags + 1), users, &lbbt_init);
+    tree_ret = lbbt_init(ids, n, *tree_flags, *(tree_flags + 1), users);
     tree = tree_ret.tree;
   }
   //  else
@@ -243,11 +246,11 @@ struct MultAddRet mult_add(struct Multicast *multicast, int id, void *sampler, v
   struct MultAddRet ret = { NULL, NULL, NULL };
   struct AddRet add_ret;
   if (multicast->tree_type == 0)
-    add_ret = gen_tree_add(multicast->tree, id, &lbbt_add);
+    add_ret = lbbt_add(multicast->tree, id);
   //  else
   //    added = gen_tree_add(multicast->tree, data, &btree_add);
 
-  addFront(multicast->users, (void *) add_ret.added);
+  addAfter(multicast->users, multicast->users->tail, (void *) add_ret.added);
   
   ret.added = add_ret.added;
   ret.skeleton = add_ret.skeleton;
@@ -362,7 +365,7 @@ struct RemRet mult_rem(struct Multicast *multicast, int user, void *sampler, voi
   int rem_id = user_data->id;
   printf("rem: %d\n", rem_id);  
   if (multicast->tree_type == 0)
-    ret = gen_tree_rem(multicast->tree, user_node, &lbbt_rem);
+    ret = lbbt_rem(multicast->tree, user_node);
   //    else
   //      gen_tree_rem(multicast->tree, user, &btree_rem);
 

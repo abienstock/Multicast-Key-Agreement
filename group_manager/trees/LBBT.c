@@ -50,7 +50,7 @@ struct _InitRet init_perfect(int h, int leftmost_id, int *ids, struct List *user
      data->id = *(ids+leftmost_id);
      skeleton->node_id = data->id;
      root->children = NULL;
-     addFront(users, (void *) root);
+     addAfter(users, users->tail, (void *) root);
 
      skeleton->children_color = NULL;
      skeleton->children = NULL;
@@ -139,7 +139,7 @@ struct _InitRet root_init(int n, int leftmost_id, int *ids, struct List *users){
     data->id = *(ids+leftmost_id);
     skeleton->node_id = data->id;
     root->children = NULL;
-    addFront(users, (void *) root);
+    addAfter(users, users->tail, (void *) root);
 
     skeleton->children_color = NULL;
     skeleton->children = NULL;

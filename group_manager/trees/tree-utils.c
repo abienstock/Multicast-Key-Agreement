@@ -118,15 +118,3 @@ void pretty_traverse_skeleton(struct SkeletonNode *root, int space, void (*f)(vo
     }
   }
 }
-
-struct InitRet gen_tree_init(int *ids, int n, int add_strat, int trunc_strat, struct List *users, struct InitRet (*tree_init)(int *, int, int, int, struct List *)) {
-  return tree_init(ids, n, add_strat, trunc_strat, users);
-}
-
-struct AddRet gen_tree_add(void *tree, int id, struct AddRet (*tree_add)(void *, int)) {
-  return tree_add(tree, id);
-}
-
-struct RemRet gen_tree_rem(void *tree, struct Node *node, struct RemRet (*tree_rem)(void *, struct Node *)) {
-  return tree_rem(tree, node);
-}

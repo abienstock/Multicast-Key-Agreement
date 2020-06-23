@@ -24,7 +24,7 @@
       printf("right ct: %d, parent id: %d, child id: %d.", *((int *) right_ct->ct), right_ct->parent_id, right_ct->child_id);
     }
   }
-}
+  }
 
 static void printNode(void *p)
 {
@@ -37,6 +37,7 @@ static void printNode(void *p)
     //printf("seed: %d.", *((int *)data->seed));
   }
 }
+
 
 static void print_secrets(void *data) {
   struct PathData *path_data = (struct PathData *) data;
@@ -63,7 +64,7 @@ int next_op(struct Multicast *multicast, float add_wt, float upd_wt, int distrib
   int num_users = multicast->users->len;
   float operation = (float) rand() / (float) RAND_MAX;
   printf("num users: %d\n", num_users);
-  if (operation < add_wt || num_users == 1) { //TODO: forcing add with n=1 correct??
+  if (operation < add_wt || num_users == 1) { // add TODO: forcing add with n=1 correct??
     (*max_id)++; //so adding new users w.l.o.g.
     printf("add: %d\n", *max_id);
     struct MultAddRet add_ret = mult_add(multicast, *max_id, NULL, NULL);
@@ -93,7 +94,7 @@ int next_op(struct Multicast *multicast, float add_wt, float upd_wt, int distrib
     destroy_skeleton(add_ret.skeleton);
     
     return 0;
-  } else if (operation < add_wt + upd_wt) {
+  } else if (operation < add_wt + upd_wt) { // update
     int user_num = rand_int(num_users, distrib, geo_param);
     struct MultUpdRet upd_ret = mult_update(multicast, user_num, NULL, NULL);
     //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
@@ -119,7 +120,7 @@ int next_op(struct Multicast *multicast, float add_wt, float upd_wt, int distrib
     destroy_skeleton(upd_ret.skeleton);
     
     return 1;
-  } else {
+  } else { // rem
     int user_num = rand_int(num_users, distrib, geo_param);    
     printf("user_num: %d\n", user_num);
     struct RemRet rem_ret = mult_rem(multicast, user_num, NULL, NULL);
@@ -205,7 +206,7 @@ int main(int argc, char *argv[]) {
   struct MultInitRet init_ret = mult_init(n, 1, lbbt_flags, 0, NULL, NULL);
   struct Multicast *lbbt_multicast = init_ret.multicast;
   struct SkeletonNode *skeleton = init_ret.skeleton;
-  struct List *oob_seeds = init_ret.oob_seeds;
+  //struct List *oob_seeds = init_ret.oob_seeds;
   //struct NodeData *root_data = (struct NodeData *) skeleton->node->data;
   //printf("skeleton root seed: %d\n", *((int *) int_prg(root_data->seed)));
 

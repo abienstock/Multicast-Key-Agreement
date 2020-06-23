@@ -1,14 +1,9 @@
-- (IMPORANT!!) Fix MAKEFILE
-- (IMPORANT!!) fix get_int to take in number of bytes to proc
-- (IMPORTANT!!) change all crypto stuff to bytes (uint8_t)
-- (IMPORTANT!! (networks)) make separate modes for driver (crypto/not secret_gen) -- crypto/test drivers
-- (IMPORTANT!!) MAKE SURE REMOVE IS log(n) TIME!!
-- (IMPORTANT!!) make sure geometric distr on ops is correct
+- Fix MAKEFILE
+- Fix get_int to take in number of bytes to proc
+- MAKE SURE REMOVE IS log(n) TIME!!
+- Fine for now -- make sure geometric distr on ops is correct -- should weight users from init equally?
 - Remove parent_id from Ciphertext struct
-- replace children arrays with separate non pointers??
 - less mallocs
 - REFACTOR!! - ex. : function for skeleton mallocs, destroy nodes, etc
-- get rid of gen tree funcs that do nothing (in tree-utils)??
-- multicast return types
 - return types of crypto funcs
 - one split func
