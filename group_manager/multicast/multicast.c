@@ -6,18 +6,7 @@
 #include "../../skeleton.h"
 #include "../../crypto/crypto.h"
 
-int split(uint8_t *out, uint8_t *seed, uint8_t *key, uint8_t *next_seed, size_t seed_size) {
-  uint8_t *out_bytes = (uint8_t *) out;
-  uint8_t *seed_bytes = (uint8_t *) seed;
-  uint8_t *key_bytes = (uint8_t *) key;
-  uint8_t *next_seed_bytes = (uint8_t *) next_seed;
-  memcpy(seed_bytes, out_bytes, seed_size);
-  memcpy(key_bytes, out_bytes + seed_size, seed_size);
-  memcpy(next_seed_bytes, out_bytes + 2 * seed_size, seed_size);
-  return 0;
-}
-
-int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct NodeData *data, uint8_t *seed, void *generator) {
+int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct NodeData *data, void *seed, void *generator) {
   if (skeleton->children_color != NULL) {
     struct Ciphertext *left_ct = NULL, *right_ct = NULL;
     if (*(skeleton->children_color) == 1) {
@@ -28,7 +17,7 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
 	  perror("malloc returned NULL");
 	  return -1;
 	}
-	uint8_t *ct = malloc(multicast->seed_size);
+	void *ct = malloc(multicast->seed_size);
 	if (ct == NULL) {
 	  perror("malloc returned NULL");
 	  return -1;
@@ -49,7 +38,7 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
 	  perror("malloc returned NULL");
 	  return -1;
 	}
-	uint8_t *ct = malloc(multicast->seed_size);
+	void *ct = malloc(multicast->seed_size);
 	if (ct == NULL) {
 	  perror("malloc returned NULL");
 	  return -1;
@@ -85,7 +74,7 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
 	perror("malloc returned NULL");
 	return -1;
       }
-      uint8_t *ct = malloc(multicast->seed_size);
+      void *ct = malloc(multicast->seed_size);
       if (ct == NULL) {
 	perror("malloc returned NULL");
 	return -1;
@@ -105,9 +94,9 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
 }
 
 //TODO: make sure this generalizes to any multicast scheme
-uint8_t *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct List *oob_seeds, void *sampler, void *generator) {
-  uint8_t *prev_seed = NULL;
-  uint8_t *next_seed = NULL;
+void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct List *oob_seeds, void *sampler, void *generator) {
+  void *prev_seed = NULL;
+  void *next_seed = NULL;
   if (skeleton->children_color != NULL) {
     if (*(skeleton->children_color) == 0) {
       prev_seed = secret_gen(multicast, *(skeleton->children), oob_seeds, sampler, generator);
@@ -118,7 +107,7 @@ uint8_t *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, 
       if (skeleton->children != NULL && *(skeleton->children) != NULL)
 	secret_gen(multicast, *(skeleton->children), oob_seeds, sampler, generator);
     } else if (!multicast->testing) {
-      prev_seed = malloc(sizeof(uint8_t) * multicast->seed_size);
+      prev_seed = malloc(multicast->seed_size);
       if (prev_seed == NULL) {
 	perror("malloc returned NULL");
 	return NULL;
@@ -126,7 +115,7 @@ uint8_t *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, 
       sample(sampler, prev_seed);
     }
   } else if (!multicast->testing) {
-    prev_seed = malloc(sizeof(uint8_t) * multicast->seed_size);
+    prev_seed = malloc(multicast->seed_size);
     if (prev_seed == NULL) {
       perror("malloc returned NULL");
       return NULL;
@@ -145,17 +134,17 @@ uint8_t *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, 
       perror("malloc returned NULL");
       return NULL;
     }
-    uint8_t *seed = malloc(multicast->seed_size);
+    void *seed = malloc(multicast->seed_size);
     if (seed == NULL) {
       perror("malloc returned NULL");
       return NULL;
     }
-    uint8_t *key = malloc(multicast->seed_size);
+    void *key = malloc(multicast->seed_size);
     if (key == NULL) {
       perror("malloc returned NULL");
       return NULL;
     }
-    uint8_t *out = malloc(multicast->prg_out_size);
+    void *out = malloc(multicast->prg_out_size);
     if (out == NULL) {
       perror("malloc returned NULL");
       return NULL;
@@ -218,7 +207,7 @@ struct MultInitRet mult_init(int n, int testing, int *tree_flags, int tree_type,
   //    added = gen_tree_add(multicast->tree, data, &btree_add);
   
   struct List *oob_seeds = NULL;
-  size_t prg_out_size = NULL, seed_size = NULL;
+  size_t prg_out_size = 0, seed_size = 0;
   if (!testing) {
     oob_seeds = malloc(sizeof(struct List));
     if (oob_seeds == NULL) {

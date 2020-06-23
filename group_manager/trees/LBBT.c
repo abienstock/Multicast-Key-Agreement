@@ -432,7 +432,7 @@ struct AddRet lbbt_add(void *tree, int id) {
   struct AddRet ret = { NULL, NULL };
   
   struct LBBT *lbbt = (struct LBBT *) tree;
-  struct Node *new_leaf = NULL; // pointer to new leaf
+  struct Node *new_leaf = NULL; // // pointer to leaf newly occupied by id
   struct SkeletonNode *skeleton = NULL;
   switch (lbbt->add_strat) {
   case 0: //greedy

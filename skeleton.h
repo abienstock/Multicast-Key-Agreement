@@ -17,7 +17,7 @@ struct SkeletonNode {
 struct Ciphertext {
   int parent_id;
   int child_id;
-  uint8_t *ct;
+  void *ct;
   size_t num_bytes;
 };
 
