@@ -10,7 +10,7 @@ struct Multicast {
   void *tree;
   int *counts; //0th index is PRGs (from children in skeleton), 1st index is encs (that the grp mgr performs)
   int tree_type; //0 for lbbt, 1 for btree
-  int testing; //0 if crypto mode, 1 if testing mode
+  int crypto; //0 for no crypto, 1 for crypto
   size_t prg_out_size;
   size_t seed_size;
 };
@@ -24,15 +24,16 @@ struct MultInitRet {
 struct MultAddRet {
   struct Node *added;
   struct SkeletonNode *skeleton;
-  void *oob_seed;
+  struct List *oob_seeds;
 };
 
 struct MultUpdRet {
+  struct Node *updated;
   struct SkeletonNode *skeleton;
-  void *oob_seed;
+  struct List *oob_seeds;
 };
 
-struct MultInitRet mult_init(int n, int testing, int *tree_flags, int tree_type, void *sampler, void *prg);
+struct MultInitRet mult_init(int n, int crypto, int *tree_flags, int tree_type, void *sampler, void *prg);
 
 struct MultAddRet mult_add(struct Multicast *multicast, int id, void *sampler, void *prg); //TODO: id is for new user
 

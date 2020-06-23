@@ -12,7 +12,7 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
     if (*(skeleton->children_color) == 1) {
       (*(multicast->counts))++; // one-time pad refresh      
       (*(multicast->counts + 1))++;
-      if (!multicast->testing) {
+      if (multicast->crypto) {
 	left_ct = malloc(sizeof(struct Ciphertext));
 	if (left_ct == NULL) {
 	  perror("malloc returned NULL");
@@ -34,7 +34,7 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
     if (*(skeleton->children_color + 1) == 1) {
       (*(multicast->counts))++; // one-time pad refresh
       (*(multicast->counts + 1))++;
-      if (!multicast->testing) {
+      if (multicast->crypto) {
 	right_ct = malloc(sizeof(struct Ciphertext));
 	if (right_ct == NULL) {
 	  perror("malloc returned NULL");
@@ -53,7 +53,7 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
 	right_ct->num_bytes = multicast->seed_size;
       }
     }
-    if (!multicast->testing) {
+    if (multicast->crypto) {
       struct Ciphertext **cts = malloc(sizeof(struct Ciphertext *) * 2);
       if (cts == NULL) {
 	perror("malloc returned NULL");
@@ -66,7 +66,7 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
   } else if (((struct LBBT *) multicast->tree)->root == skeleton->node) {
     (*(multicast->counts))++; // one-time pad refresh    
     (*(multicast->counts + 1))++;
-    if (!multicast->testing) {
+    if (multicast->crypto) {
       struct Ciphertext **cts = malloc(sizeof(struct Ciphertext *) * 2);
       if (cts == NULL) {
 	perror("malloc returned NULL");
@@ -109,7 +109,7 @@ void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, str
       prev_seed = secret_gen(multicast, *(skeleton->children + 1), oob_seeds, sampler, generator);
       if (skeleton->children != NULL && *(skeleton->children) != NULL)
 	secret_gen(multicast, *(skeleton->children), oob_seeds, sampler, generator);
-    } else if (!multicast->testing) {
+    } else if (multicast->crypto) {
       prev_seed = malloc(multicast->seed_size);
       if (prev_seed == NULL) {
 	perror("malloc returned NULL");
@@ -117,7 +117,7 @@ void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, str
       }
       sample(sampler, prev_seed);
     }
-  } else if (!multicast->testing) {
+  } else if (multicast->crypto) {
     prev_seed = malloc(multicast->seed_size);
     if (prev_seed == NULL) {
       perror("malloc returned NULL");
@@ -131,7 +131,7 @@ void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, str
   (*(multicast->counts))++;
 
   struct NodeData *data = (struct NodeData *) skeleton->node->data;  
-  if (!multicast->testing) {
+  if (multicast->crypto) {
     next_seed = malloc(multicast->seed_size);
     if (next_seed == NULL) {
       perror("malloc returned NULL");
@@ -176,7 +176,7 @@ void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, str
   return next_seed;
 }
 
-struct MultInitRet mult_init(int n, int testing, int *tree_flags, int tree_type, void *sampler, void *generator) {
+struct MultInitRet mult_init(int n, int crypto, int *tree_flags, int tree_type, void *sampler, void *generator) {
   struct MultInitRet ret = { NULL, NULL, NULL };
   
   struct List *users = malloc(sizeof(struct List));
@@ -211,7 +211,7 @@ struct MultInitRet mult_init(int n, int testing, int *tree_flags, int tree_type,
   
   struct List *oob_seeds = NULL;
   size_t prg_out_size = 0, seed_size = 0;
-  if (!testing) {
+  if (crypto) {
     oob_seeds = malloc(sizeof(struct List));
     if (oob_seeds == NULL) {
       perror("malloc returned NULL");
@@ -229,7 +229,7 @@ struct MultInitRet mult_init(int n, int testing, int *tree_flags, int tree_type,
     return ret;
   }
 
-  struct Multicast multicast = { 1, users, tree, counts, tree_type, testing, prg_out_size, seed_size };
+  struct Multicast multicast = { 1, users, tree, counts, tree_type, crypto, prg_out_size, seed_size };
   *lbbt_multicast = multicast;
 
   ret.multicast = lbbt_multicast;
@@ -256,19 +256,16 @@ struct MultAddRet mult_add(struct Multicast *multicast, int id, void *sampler, v
   ret.skeleton = add_ret.skeleton;
 
   struct List *oob_seeds = NULL;  
-  if (!multicast->testing) {  
+  if (multicast->crypto) {  
     oob_seeds = malloc(sizeof(struct List));
     if (oob_seeds == NULL) {
       perror("malloc returned NULL");
       return ret;
     }
     initList(oob_seeds);
-    ret.oob_seed = oob_seeds->head->data;
-    removeAllNodes(oob_seeds);
+    ret.oob_seeds = oob_seeds;
   }
   secret_gen(multicast, ret.skeleton, oob_seeds, sampler, generator); //free
-
-  //free(oob_seeds);
 
   return ret;
 }
@@ -320,10 +317,10 @@ struct SkeletonNode *gen_upd_skel(struct Node *node, struct Node *child, struct 
 }
 
 struct MultUpdRet mult_update(struct Multicast *multicast, int user, void *sampler, void *generator) { //TODO: user should be node???
-  struct MultUpdRet ret = { NULL, NULL };
+  struct MultUpdRet ret = { NULL, NULL, NULL };
   struct Node *user_node = (struct Node *) findNode(multicast->users, user)->data;
+  ret.updated = user_node;
   struct NodeData *user_data = (struct NodeData *) user_node->data;
-  printf("upd: %d\n", user_data->id);
   struct SkeletonNode *leaf_skeleton = malloc(sizeof(struct SkeletonNode));
   if (leaf_skeleton == NULL) {
     perror("malloc returned NULL");
@@ -341,29 +338,23 @@ struct MultUpdRet mult_update(struct Multicast *multicast, int user, void *sampl
   ret.skeleton = skeleton;
 
   struct List *oob_seeds = NULL;  
-  if (!multicast->testing) {
+  if (multicast->crypto) {
     oob_seeds = malloc(sizeof(struct List));
     if (oob_seeds == NULL) {
       perror("malloc returned NULL");
       return ret;
     }
     initList(oob_seeds);
-    ret.oob_seed = oob_seeds->head->data;
-    removeAllNodes(oob_seeds);
+    ret.oob_seeds = oob_seeds;
   }
   secret_gen(multicast, skeleton, oob_seeds, sampler, generator);//free
 
-  //free(oob_seeds);
-  
   return ret;
 }
 
 struct RemRet mult_rem(struct Multicast *multicast, int user, void *sampler, void *generator) { //TODO: user should be node??
   struct RemRet ret = { NULL, NULL };
   struct Node *user_node = (struct Node *) findAndRemoveNode(multicast->users, user);
-  struct NodeData *user_data = (struct NodeData *) user_node->data;
-  int rem_id = user_data->id;
-  printf("rem: %d\n", rem_id);  
   if (multicast->tree_type == 0)
     ret = lbbt_rem(multicast->tree, user_node);
   //    else

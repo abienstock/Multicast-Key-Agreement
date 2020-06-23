@@ -1,9 +1,11 @@
 - Fix MAKEFILE
 - Fix get_int to take in number of bytes to proc
 - MAKE SURE REMOVE IS log(n) TIME!!
-- Fine for now -- make sure geometric distr on ops is correct -- should weight users from init equally?
+- Fine for now -- make sure geometric distr on ops is correct -- should weight users from init equally? (ALSO CHECK users list in test_driver)
 - Remove parent_id from Ciphertext struct
 - less mallocs
 - REFACTOR!! - ex. : function for skeleton mallocs, destroy nodes, etc
 - return types of crypto funcs
 - one split func
+- check key agreement AND path secrets??
+- crypto struct
