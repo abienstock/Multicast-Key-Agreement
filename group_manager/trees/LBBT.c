@@ -480,10 +480,10 @@ struct TruncRet truncate(struct LBBT *lbbt, struct Node *node, int on_dir_path) 
   struct NodeData *data = (struct NodeData *) node->data;
   if (data->blank == 1) {
     popBack(lbbt->blanks);
-    free(data->key);    
+    /*free(data->key);    
     free(data->seed);
     free(data);
-    free(node);
+    free(node);*/
     return ret;
   }
   if (node->children == NULL) {
@@ -546,11 +546,11 @@ struct TruncRet truncate(struct LBBT *lbbt, struct Node *node, int on_dir_path) 
     lbbt->root = replacement;
     replacement->parent = NULL;
   }
-  free(node->children);
+  /*free(node->children);
   free(data->key);
   free(data->seed);
   free(data);
-  free(node);
+  free(node);*/
   ret.node = replacement;
   return ret;
 }
@@ -582,10 +582,10 @@ struct RemRet lbbt_rem(void *tree, struct Node *node) {
 
     // TODO: check aug_blanks works once have identifiers for leaves; more efficient?? (NOTE need augment after truncate too!)
     if (node != lbbt->rightmost_leaf) {
-      free(data->key);
+      /*free(data->key);
       data->key = NULL;
       free(data->seed);
-      data->seed = NULL;
+      data->seed = NULL;*/
       ret.skeleton = augment_blanks_build_skel(node->parent, node, NULL);
       ret.skeleton->parent = NULL;
     } else {

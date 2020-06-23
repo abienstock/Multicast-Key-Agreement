@@ -327,20 +327,23 @@ struct SkeletonNode *gen_upd_skel(struct Node *node, struct Node *child, struct 
   return child_skel;
 }
 
-struct MultUpdRet mult_update(struct Multicast *multicast, struct Node *user, void *sampler, void *generator) { //TODO: user should be node???
+struct MultUpdRet mult_update(struct Multicast *multicast, int user, void *sampler, void *generator) { //TODO: user should be node???
   struct MultUpdRet ret = { NULL, NULL };
+  struct Node *user_node = (struct Node *) findNode(multicast->users, user)->data;
+  struct NodeData *user_data = (struct NodeData *) user_node->data;
+  printf("upd: %d\n", user_data->id);
   struct SkeletonNode *leaf_skeleton = malloc(sizeof(struct SkeletonNode));
   if (leaf_skeleton == NULL) {
     perror("malloc returned NULL");
     return ret;
   }
-  leaf_skeleton->node_id = ((struct NodeData *) user->data)->id;  
-  leaf_skeleton->node = user;
+  leaf_skeleton->node_id = user_data->id;  
+  leaf_skeleton->node = user_node;
   leaf_skeleton->children = NULL;
   leaf_skeleton->children_color = NULL;
   leaf_skeleton->ciphertexts = NULL;
   
-  struct SkeletonNode *skeleton = gen_upd_skel(user->parent, user, leaf_skeleton);
+  struct SkeletonNode *skeleton = gen_upd_skel(user_node->parent, user_node, leaf_skeleton);
   skeleton->parent = NULL;
 
   ret.skeleton = skeleton;
@@ -363,10 +366,14 @@ struct MultUpdRet mult_update(struct Multicast *multicast, struct Node *user, vo
   return ret;
 }
 
-struct RemRet mult_rem(struct Multicast *multicast, struct Node *user, void *sampler, void *generator) { //TODO: user should be node??
+struct RemRet mult_rem(struct Multicast *multicast, int user, void *sampler, void *generator) { //TODO: user should be node??
   struct RemRet ret = { NULL, NULL };
+  struct Node *user_node = (struct Node *) findAndRemoveNode(multicast->users, user);
+  struct NodeData *user_data = (struct NodeData *) user_node->data;
+  int rem_id = user_data->id;
+  printf("rem: %d\n", rem_id);  
   if (multicast->tree_type == 0)
-    ret = gen_tree_rem(multicast->tree, user, &lbbt_rem);
+    ret = gen_tree_rem(multicast->tree, user_node, &lbbt_rem);
   //    else
   //      gen_tree_rem(multicast->tree, user, &btree_rem);
 

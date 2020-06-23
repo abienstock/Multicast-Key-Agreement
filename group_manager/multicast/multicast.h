@@ -36,9 +36,9 @@ struct MultInitRet mult_init(int n, int testing, int *tree_flags, int tree_type,
 
 struct MultAddRet mult_add(struct Multicast *multicast, int id, void *sampler, void *prg); //TODO: id is for new user
 
-struct MultUpdRet mult_update(struct Multicast *multicast, struct Node *user, void *sampler, void *prg);
+struct MultUpdRet mult_update(struct Multicast *multicast, int user, void *sampler, void *prg);
 
-struct RemRet mult_rem(struct Multicast *multicast, struct Node *user, void *sampler, void *prg);
+struct RemRet mult_rem(struct Multicast *multicast, int user, void *sampler, void *prg);
 
 void mult_destroy(struct Multicast *multicast);
 
