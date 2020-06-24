@@ -217,6 +217,7 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, void *oo
 	  path_node = path_node->next;
 	}
       } else { // TODO: make sure compatible w/ non network drivers
+	printf("err 1\n");
 	return NULL;
       }
     }
@@ -224,6 +225,7 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, void *oo
     seed = oob_seed;
     skel_node = find_skel_node(user->id, skeleton);
     if (skel_node == NULL) { // TODO: make sure compatible w/ non network drivers; destroy user path secrest??
+      printf("err 2\n");
       return NULL;
     }
     if (user->secrets->head == NULL) {

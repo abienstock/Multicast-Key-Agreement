@@ -357,7 +357,7 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, int id, s
     return root_skeleton;
   }
 
-  skeleton->node_id = ((struct NodeData *) node)->id;
+  skeleton->node_id = ((struct NodeData *) node->data)->id;
   skeleton->node = node;
   skeleton->ciphertexts = NULL;
   skeleton->children_color = children_color;

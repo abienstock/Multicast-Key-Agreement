@@ -125,12 +125,13 @@ void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, str
     }
     sample(sampler, prev_seed);
     if (skeleton->node->num_leaves == 1 && skeleton->parent != NULL) // if node is a leaf that is not the root
-      addFront(oob_seeds, prev_seed);
+      addAfter(oob_seeds, oob_seeds->tail, prev_seed);
   }
 
   (*(multicast->counts))++;
 
-  struct NodeData *data = (struct NodeData *) skeleton->node->data;  
+  struct NodeData *data = (struct NodeData *) skeleton->node->data;
+  ct_gen(multicast, skeleton, data, prev_seed, generator);
   if (multicast->crypto) {
     next_seed = malloc(multicast->seed_size);
     if (next_seed == NULL) {
@@ -168,8 +169,7 @@ void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, str
     data->key = key;
     data->seed = seed;
   }
-  
-  ct_gen(multicast, skeleton, data, prev_seed, generator);
+
   //if (skeleton->node->num_leaves > 1 || skeleton->parent == NULL)
   //free(prev_seed); // need to do it here if not oob_seed
   

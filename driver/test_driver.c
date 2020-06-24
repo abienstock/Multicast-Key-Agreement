@@ -2,15 +2,17 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#include <assert.h>
+#include <string.h>
 #include "../group_manager/trees/trees.h"
 #include "../ll/ll.h"
 #include "../group_manager/multicast/multicast.h"
 #include "../users/user.h"
 #include "../crypto/crypto.h"
 
-/*
-static void printSkeleton(void *p) {
+/*static void printSkeleton(void *p) {
   struct SkeletonNode *node = (struct SkeletonNode *) p;
+  printf("id: %d, ", node->node_id);
   if (node->children_color == NULL)
     printf("no children");
   else {
@@ -33,16 +35,15 @@ static void printNode(void *p) {
     printf("BLANK, id: %d", data->id);
   else {
     printf("id: %d, ", data->id);
-    //printf("key: %d, ", *((int *)data->key));
-    //printf("seed: %d.", *((int *)data->seed));
+    printf("key: %d, ", *((int *)data->key));
+    printf("seed: %d.", *((int *)data->seed));
   }
-  }*/
-
+}
 
 static void print_secrets(void *data) {
   struct PathData *path_data = (struct PathData *) data;
   printf("id: %d, seed: %d, key %d\n", path_data->node_id, *((int *) path_data->seed), *((int *) path_data->key));
-}
+  }*/
 
 void check_agreement(struct Multicast *multicast, struct List *users, int id, struct SkeletonNode *skeleton, struct List *oob_seeds, void *generator) {
   struct NodeData *root_data = (struct NodeData *) skeleton->node->data;
@@ -51,10 +52,10 @@ void check_agreement(struct Multicast *multicast, struct List *users, int id, st
     perror("malloc returned NULL");
   }
   prg(generator, root_data->seed, mgr_key);  
-  //printf("skeleton root seed: %d\n", *((int *) int_prg(root_data->seed)));
+  //printf("skeleton out key: %d\n", *((int *) mgr_key));
 
   struct ListNode *user_curr = users->head;
-  struct ListNode *oob_curr;
+  struct ListNode *oob_curr = NULL;
   if (oob_seeds != NULL)
     oob_curr = oob_seeds->head;
   while (user_curr != 0) {
@@ -64,9 +65,12 @@ void check_agreement(struct Multicast *multicast, struct List *users, int id, st
       oob_seed = oob_curr->data;
       oob_curr = oob_curr->next;      
     }
-    void *key = proc_ct(user, id, skeleton, oob_seed, generator);
-    free(key);
     //traverseList(user->secrets, print_secrets);
+    void *user_key = proc_ct(user, id, skeleton, oob_seed, generator);
+    //printf("user out key: %d\n", *((int *) user_key));
+    //traverseList(user->secrets, print_secrets);
+    assert(!memcmp(mgr_key, user_key, multicast->prg_out_size));
+    free(user_key);
     user_curr = user_curr->next;
   }
   //removeAllNodes(oob_seeds);
