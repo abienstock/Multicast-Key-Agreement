@@ -8,8 +8,8 @@
 #include "../users/user.h"
 #include "../crypto/crypto.h"
 
-/*static void printSkeleton(void *p)
-{
+/*
+static void printSkeleton(void *p) {
   struct SkeletonNode *node = (struct SkeletonNode *) p;
   if (node->children_color == NULL)
     printf("no children");
@@ -25,10 +25,9 @@
       printf("right ct: %d, parent id: %d, child id: %d.", *((int *) right_ct->ct), right_ct->parent_id, right_ct->child_id);
     }
   }
-  }
+}
 
-static void printNode(void *p)
-{
+static void printNode(void *p) {
   struct NodeData *data = (struct NodeData *) ((struct Node *) p)->data;
   if (data->blank == 1)
     printf("BLANK, id: %d", data->id);
@@ -37,13 +36,13 @@ static void printNode(void *p)
     //printf("key: %d, ", *((int *)data->key));
     //printf("seed: %d.", *((int *)data->seed));
   }
-}
+  }*/
 
 
 static void print_secrets(void *data) {
   struct PathData *path_data = (struct PathData *) data;
   printf("id: %d, seed: %d, key %d\n", path_data->node_id, *((int *) path_data->seed), *((int *) path_data->key));
-  }*/
+}
 
 void check_agreement(struct Multicast *multicast, struct List *users, int id, struct SkeletonNode *skeleton, struct List *oob_seeds, void *generator) {
   struct NodeData *root_data = (struct NodeData *) skeleton->node->data;
@@ -67,10 +66,11 @@ void check_agreement(struct Multicast *multicast, struct List *users, int id, st
     }
     void *key = proc_ct(user, id, skeleton, oob_seed, generator);
     free(key);
+    //traverseList(user->secrets, print_secrets);
     user_curr = user_curr->next;
   }
-  removeAllNodes(oob_seeds);
-  free(oob_seeds);
+  //removeAllNodes(oob_seeds);
+  //free(oob_seeds);
 }
 
 int rand_int(int n, int distrib, float geo_param) {
@@ -89,7 +89,7 @@ int rand_int(int n, int distrib, float geo_param) {
   }
 }
 
-int next_op(struct Multicast *multicast, struct List *users, float add_wt, float upd_wt, int distrib, float geo_param, int *max_id, void *generator) {
+int next_op(struct Multicast *multicast, struct List *users, float add_wt, float upd_wt, int distrib, float geo_param, int *max_id, void *sampler, void *generator) {
   int op, id;
   struct SkeletonNode *skeleton;
   struct List *oob_seeds;
@@ -99,11 +99,11 @@ int next_op(struct Multicast *multicast, struct List *users, float add_wt, float
   if (operation < add_wt || num_users == 1) { // add TODO: forcing add with n=1 correct??
     (*max_id)++; //so adding new users w.l.o.g.
     printf("add: %d\n", *max_id);
-    struct MultAddRet add_ret = mult_add(multicast, *max_id, NULL, NULL);
+    struct MultAddRet add_ret = mult_add(multicast, *max_id, sampler, generator);
     //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
     //pretty_traverse_skeleton(add_ret.skeleton, 0, &printSkeleton);
     if (multicast->crypto) {
-      struct User *user = init_user(*max_id);
+      struct User *user = init_user(*max_id, multicast->prg_out_size, multicast->seed_size);
       addAfter(users, users->tail, (void *) user);
     }
     id = *max_id;
@@ -112,7 +112,7 @@ int next_op(struct Multicast *multicast, struct List *users, float add_wt, float
     op = 0;
   } else if (operation < add_wt + upd_wt) { // update
     int user_num = rand_int(num_users, distrib, geo_param);
-    struct MultUpdRet upd_ret = mult_update(multicast, user_num, NULL, NULL);
+    struct MultUpdRet upd_ret = mult_update(multicast, user_num, sampler, generator);
     //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
     //pretty_traverse_skeleton(upd_ret.skeleton, 0, &printSkeleton);
     id = ((struct NodeData *) upd_ret.updated->data)->id;
@@ -123,7 +123,7 @@ int next_op(struct Multicast *multicast, struct List *users, float add_wt, float
   } else { // rem
     int user_num = rand_int(num_users, distrib, geo_param);    
     printf("user_num: %d\n", user_num);
-    struct RemRet rem_ret = mult_rem(multicast, user_num, NULL, NULL);
+    struct RemRet rem_ret = mult_rem(multicast, user_num, sampler, generator);
     //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
     //pretty_traverse_skeleton(rem_ret.skeleton, 0, &printSkeleton);
     if (multicast->crypto) {
@@ -185,12 +185,20 @@ int main(int argc, char *argv[]) {
   *max_id = n-1;
   
   int crypto = atoi(argv[1]);
-  struct List *users = NULL;
   int i;  
   if (crypto) {
     sampler_init(&sampler);
     prg_init(&generator);
+  }
+  struct MultInitRet init_ret = mult_init(n, crypto, lbbt_flags, 0, sampler, generator);
+  struct Multicast *lbbt_multicast = init_ret.multicast;
+  struct SkeletonNode *skeleton = init_ret.skeleton;
+  struct List *oob_seeds = init_ret.oob_seeds;
+  //pretty_traverse_tree(((struct LBBT *)lbbt_multicast->tree)->root, 0, &printNode);
+  //pretty_traverse_skeleton(skeleton, 0, &printSkeleton);
 
+  struct List *users = NULL;
+  if (crypto) {
     users = malloc(sizeof(struct List));
     if (users == NULL) {
       perror("malloc returned NULL");
@@ -199,23 +207,17 @@ int main(int argc, char *argv[]) {
     initList(users);
     
     for (i = 0; i < n; i++) {
-      struct User *user = init_user(i);
+      struct User *user = init_user(i, lbbt_multicast->prg_out_size, lbbt_multicast->seed_size);
       addAfter(users, users->tail, (void *) user);
     }
-  }
-  struct MultInitRet init_ret = mult_init(n, crypto, lbbt_flags, 0, sampler, generator);
-  struct Multicast *lbbt_multicast = init_ret.multicast;
-  struct SkeletonNode *skeleton = init_ret.skeleton;
-  struct List *oob_seeds = init_ret.oob_seeds;
-
-  if (crypto)
     check_agreement(lbbt_multicast, users, -1, skeleton, oob_seeds, generator);
+  }
   destroy_skeleton(skeleton);
 
   int ops[3] = { 0, 0, 0 };
 
   for (i = 0; i < atoi(argv[3]); i++) {
-    ops[next_op(lbbt_multicast, users, add_wt, upd_wt, distrib, geo_param, max_id, generator)]++;
+    ops[next_op(lbbt_multicast, users, add_wt, upd_wt, distrib, geo_param, max_id, sampler, generator)]++;
   }
 
   printf("# adds: %d, # updates: %d, # rems %d\n", ops[0], ops[1], ops[2]);

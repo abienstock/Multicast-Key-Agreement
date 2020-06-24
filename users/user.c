@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h> //for memcpy
 #include "../ll/ll.h"
 #include "../skeleton.h"
 #include "user.h"
@@ -12,7 +11,7 @@ struct Entry {
   int child_pos;
 };
 
-struct User *init_user(int id) {
+struct User *init_user(int id, size_t prg_out_size, size_t seed_size) {
   struct User *user = malloc(sizeof(struct User));
   if (user == NULL) {
     perror("malloc returned NULL");
@@ -28,6 +27,8 @@ struct User *init_user(int id) {
   user->secrets = secrets;
   user->id = id;
   user->in_group = 0;
+  user->prg_out_size = prg_out_size;
+  user->seed_size = seed_size;
 
   return user;
 }

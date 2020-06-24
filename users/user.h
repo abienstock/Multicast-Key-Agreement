@@ -20,7 +20,7 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, void *oo
 
 int proc_broadcast(struct User *user, void **buf, void *generator);
 
-struct User *init_user(int id);
+struct User *init_user(int id, size_t prg_out_size, size_t seed_size);
 
 void destroy_users(struct List *users);
 

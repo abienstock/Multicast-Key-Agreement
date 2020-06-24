@@ -77,6 +77,7 @@ struct _InitRet init_perfect(int h, int leftmost_id, int *ids, struct List *user
    skeleton->children_color = children_color;
 
    data->id = rand();
+   skeleton->node_id = data->id;
    
    struct Node **children = malloc(sizeof(struct Node *) * 2);
    if (children == NULL) {
@@ -166,6 +167,8 @@ struct _InitRet root_init(int n, int leftmost_id, int *ids, struct List *users){
   skeleton->children_color = children_color;
   
   data->id = rand();
+  skeleton->node_id = data->id;
+
   // n-1???
   struct Node **children = malloc(sizeof(struct Node *) * 2);
   if (children == NULL) {
