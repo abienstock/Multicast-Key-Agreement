@@ -5,4 +5,3 @@
 - REFACTOR!! - ex. : function for skeleton mallocs, destroy nodes, etc
 - err checking crypto funcs?
 - check path secrets for each user with tree??
-- crypto struct

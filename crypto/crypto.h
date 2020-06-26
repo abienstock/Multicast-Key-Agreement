@@ -1,8 +1,12 @@
+#include <stdlib.h>
+
 int sampler_init(void *sampler);
 
 int prg_init(void *prg);
 
 int sample(void *sampler, void *seed);
+
+void alloc_prg_out(void *out, void *seed, void *key, void *next_seed, size_t prg_out_size, size_t seed_size);
 
 int prg(void *generator, void *seed, void *out);
 

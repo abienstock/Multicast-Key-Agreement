@@ -10,13 +10,15 @@ LDFLAGS = -g -lm -O2
 
 LDLIBS = -L../libbotan/lib -lbotan-2
 
+crypto_utils.o: crypto_utils.c ../utils.h
+
 insecure.o: insecure.c crypto.h
 
 secure.o: secure.c crypto.h
 
 .PHONY: clean
 clean:
-	rm -f *.o a.out *secure *~ #*
+	rm -f *.o a.out crypto_utils.o *~ #*
 
 .PHONY: all
-all: clean secure.o insecure.o
+all: clean secure.o insecure.o crypto_utils.o

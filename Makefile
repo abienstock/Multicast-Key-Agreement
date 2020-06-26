@@ -16,7 +16,9 @@ SUBDIRS = crypto driver ll group_manager/multicast group_manager/trees users
 BUILDDIRS = $(SUBDIRS:%=build-%)
 CLEANDIRS = $(SUBDIRS:%=clean-%)
 
-all: clean libbotan $(BUILDDIRS)
+utils.o: utils.c utils.h
+
+all: clean libbotan $(BUILDDIRS) utils.o
 $(DIRS): $(BUILDDIRS)
 $(BUILDDIRS):
 	$(MAKE) -C $(@:build-%=%) all
@@ -28,10 +30,8 @@ libbotan:
 	cd $@; ./botan-test
 
 
-driver:
-	$(MAKE) -C driver all
-
 clean: $(CLEANDIRS)
+	rm -rf *~ utils.o
 $(CLEANDIRS):
 	$(MAKE) -C $(@:clean-%=%) clean
 
