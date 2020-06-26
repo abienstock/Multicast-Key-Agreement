@@ -107,19 +107,11 @@ void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, str
       if (skeleton->children != NULL && *(skeleton->children) != NULL)
 	secret_gen(multicast, *(skeleton->children), oob_seeds, sampler, generator);
     } else if (multicast->crypto) {
-      prev_seed = malloc(multicast->seed_size);
-      if (prev_seed == NULL) {
-	perror("malloc returned NULL");
-	return NULL;
-      }
+      prev_seed = malloc_check(multicast->seed_size);
       sample(sampler, prev_seed);
     }
   } else if (multicast->crypto) { // leaf node
-    prev_seed = malloc(multicast->seed_size);
-    if (prev_seed == NULL) {
-      perror("malloc returned NULL");
-      return NULL;
-    }
+    prev_seed = malloc_check(multicast->seed_size);
     sample(sampler, prev_seed);
     if (skeleton->node->num_leaves == 1 && skeleton->parent != NULL) // if node is a leaf that is not the root
       addAfter(oob_seeds, oob_seeds->tail, prev_seed);
@@ -130,7 +122,7 @@ void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, str
   ct_gen(multicast, skeleton, data, prev_seed, generator);
   if (multicast->crypto) {
     void *seed = NULL, *key = NULL, *out = NULL;
-    alloc_prg_out(out, seed, key, next_seed, multicast->prg_out_size, multicast->seed_size);
+    alloc_prg_out(&out, &seed, &key, &next_seed, multicast->prg_out_size, multicast->seed_size);
     prg(generator, prev_seed, out);
     split(out, seed, key, next_seed, multicast->seed_size);
     //printf("seed: %s\n", (char *) prev_seed);
