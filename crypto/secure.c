@@ -2,15 +2,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../utils.h"
 
 int sampler_init(void **sampler) {
-  *sampler = malloc(sizeof(botan_rng_t));
+  *sampler = malloc_check(sizeof(botan_rng_t));
   botan_rng_t *rng = *((botan_rng_t **) sampler);
   return botan_rng_init(rng, "user");
 }
 
 int prg_init(void **prg) {
-  *prg = malloc(sizeof(botan_mac_t));
+  *prg = malloc_check(sizeof(botan_mac_t));
   botan_mac_t *prf = *((botan_mac_t **) prg);
   return botan_mac_init(prf, "HMAC(SHA-512)", 0); //512 bit (64 byte) seeds
 }
@@ -62,24 +63,16 @@ int enc(void *generator, void *key, void *seed, void *pltxt, void *ctxt, size_t 
   uint8_t *pltxt_bytes = (uint8_t *) pltxt;
   uint8_t *ctxt_bytes = (uint8_t *) ctxt;
   int success = 0;
-
   int i;
   for (i = 0; i < pltxt_size; i ++)
     *(ctxt_bytes + i) = *(pltxt_bytes + i) ^ *(key_bytes + i);
 
+  //one-time pad refresh
   size_t out_size, seed_size;
   get_prg_out_size(generator, &out_size);
   get_seed_size(generator, &seed_size);  
-  uint8_t *next_seed = malloc(seed_size); // TODO remove malloc
-  if (next_seed == NULL) {
-    perror("malloc returned NULL");
-    return -1;
-  }
-  uint8_t *out = malloc(out_size);
-  if (out == NULL) {
-    perror("malloc returned NULL");
-    return -1;
-  }
+  uint8_t *next_seed = malloc_check(seed_size); // TODO remove malloc
+  uint8_t *out = malloc_check(out_size);
   success += prg(generator, seed, out);
   split(out, seed, key, next_seed, seed_size);
 
@@ -91,26 +84,18 @@ int dec(void *generator, void *key, void *seed, void *ctxt, void *pltxt, size_t 
   uint8_t *pltxt_bytes = (uint8_t *) pltxt;
   uint8_t *ctxt_bytes = (uint8_t *) ctxt;
   int success = 0;
-  
   int i;
   for (i = 0; i < ctxt_size; i ++)
     *(pltxt_bytes + i) = *(ctxt_bytes + i) ^ *(key_bytes + i);
 
+  //one-time pad refresh  
   size_t out_size, seed_size;
   get_prg_out_size(generator, &out_size);
   get_seed_size(generator, &seed_size);  
-  uint8_t *next_seed = malloc(seed_size); // TODO: remove malloc
-  if (next_seed == NULL) {
-    perror("malloc returned NULL");
-    return -1;
-  }
-  uint8_t *out = malloc(out_size);
-  if (out == NULL) {
-    perror("malloc returned NULL");
-    return -1;
-  }
+  uint8_t *next_seed = malloc_check(seed_size); // TODO: remove malloc
+  uint8_t *out = malloc_check(out_size);
   success += prg(generator, seed, out);
   split(out, seed, key, next_seed, seed_size);
   
-  return seed_size;
+  return success;
 }

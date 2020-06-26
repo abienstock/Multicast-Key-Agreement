@@ -3,6 +3,7 @@
 #include <assert.h>
 #include "trees.h"
 #include "../../ll/ll.h"
+#include "../../utils.h"
 
 int compareIds(const void *data1, const void *data2) { //TODO: data1 id, data2 user node
   if (*(int *) data1 == *(int *) (((struct Node *) data2)->data))
@@ -34,11 +35,7 @@ int main() {
 
   printf("testing init: \n");
 
-  struct List *users = malloc(sizeof(struct List));
-  if (users == NULL) {
-    perror("malloc returned NULL");
-    return -1;
-  }
+  struct List *users = malloc_check(sizeof(struct List));
   initList(users);
 
   struct LBBT *lbbt = (struct LBBT *) lbbt_init(ids, n, 0, 0, users).tree;

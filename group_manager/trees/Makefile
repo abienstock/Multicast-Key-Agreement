@@ -12,7 +12,7 @@ LDLIBS =
 
 LBBT-test: LBBT-test.o LBBT.o ../../ll/ll.o tree-utils.o ../../utils.o
 
-LBBT-test.o: LBBT-test.c trees.h LBBT.o ../../ll/ll.h
+LBBT-test.o: LBBT-test.c trees.h LBBT.o ../../ll/ll.h ../../utils.h
 
 LBBT.o: LBBT.c trees.h ../../ll/ll.h ../../skeleton.h ../../utils.h
 

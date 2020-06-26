@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "ll.h"
+#include "../utils.h"
 
 int compareDouble(const void *data1, const void *data2) {
   if (*(double *)data1 == *(double *)data2)
@@ -12,12 +13,6 @@ int compareDouble(const void *data1, const void *data2) {
 static void printDouble(void *p)
 {
   printf("%.1f ", *(double *)p);
-}
-
-static void die(const char *message)
-{
-  perror(message);
-  exit(1); 
 }
 
 int main() 
@@ -38,7 +33,7 @@ int main()
   printf("testing addFront(): ");
   for (i = 0; i < n; i++) {
     if (addFront(&list, a+i) == NULL)
-      die("addFront() failed");
+      die_with_error("addFront() failed");
     printf("list len: %d\n", list.len);
   }
   
@@ -62,7 +57,7 @@ int main()
     // so we are in effect 'appending' to the list.
     node = addAfter(&list, node, a+i);
     if (node == NULL) 
-      die("addAfter() failed");
+      die_with_error("addAfter() failed");
     printf("list len: %d\n", list.len);
   }
   
@@ -82,7 +77,7 @@ int main()
   struct ListNode *test;
   for (i = 0; i < n; i++) {
     if ((test = addFront(&list, a+i)) == NULL)
-      die("addFront() failed");
+      die_with_error("addFront() failed");
     if (i == 3)
       node = test;
     printf("list len: %d\n", list.len);
@@ -90,7 +85,7 @@ int main()
   
   node = addAfter(&list, node, a+7);
   if (node == NULL) 
-    die("addAfter() failed");
+    die_with_error("addAfter() failed");
   printf("List backwards:\n");
   traverseListBackwards(&list, &printDouble);
   printf("\n");
@@ -106,7 +101,7 @@ int main()
   printf("testing findNode(): ");
   for (i = 0; i < n; i++) {
     if (addFront(&list, a+i) == NULL)
-      die("addFront() failed");
+      die_with_error("addFront() failed");
     printf("list len: %d\n", list.len);
   }
 

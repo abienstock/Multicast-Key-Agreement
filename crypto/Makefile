@@ -14,7 +14,7 @@ crypto_utils.o: crypto_utils.c ../utils.h
 
 insecure.o: insecure.c crypto.h
 
-secure.o: secure.c crypto.h
+secure.o: secure.c crypto.h ../utils.h
 
 .PHONY: clean
 clean:

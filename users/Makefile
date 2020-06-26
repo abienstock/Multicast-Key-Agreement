@@ -10,7 +10,7 @@ LDFLAGS = -g -lm -O2
 
 LDLIBS = -L../libbotan/lib -lbotan-2
 
-user.o: user.c user.h ../ll/ll.h ../crypto/crypto.h
+user.o: user.c user.h ../ll/ll.h ../crypto/crypto.h ../utils.h
 
 .PHONY: clean
 clean:

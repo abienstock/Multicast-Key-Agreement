@@ -10,11 +10,11 @@ LDFLAGS = -g -lm -O2
 
 LDLIBS =
 
-ll-test: ll-test.o ll.o
+ll-test: ll-test.o ll.o ../utils.o
 
-ll-test.o: ll-test.c ll.h
+ll-test.o: ll-test.c ll.h ../utils.h
 
-ll.o: ll.c ll.h
+ll.o: ll.c ll.h ../utils.h
 
 
 .PHONY: clean

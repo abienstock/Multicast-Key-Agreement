@@ -1,16 +1,12 @@
-#include "ll.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include "ll.h"
+#include "../utils.h"
 
 struct ListNode *addFront(struct List *list, void *data) {
   if (data == NULL)
     return NULL;
-  struct ListNode *head = malloc(sizeof(struct ListNode));
-  if (head == NULL)
-    {
-      perror("malloc returned NULL");
-      return NULL;
-    }
+  struct ListNode *head = malloc_check(sizeof(struct ListNode));
   head->data = data;
   
   if (list->head !=0) 
@@ -117,12 +113,7 @@ struct ListNode *addAfter(struct List *list,
     return NULL;
   if (prevNode == NULL)
     return addFront(list, data);
-  struct ListNode *new_node = malloc(sizeof(struct ListNode));
-  if (new_node == NULL)
-    {
-      perror("malloc returned NULL");
-      return NULL;
-    }
+  struct ListNode *new_node = malloc_check(sizeof(struct ListNode));
   new_node->data = data;
   new_node->next = prevNode->next;
   new_node->prev = prevNode;
