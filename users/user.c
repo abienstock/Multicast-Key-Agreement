@@ -261,25 +261,6 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, void *oo
   return out;
 }
 
-int proc_broadcast(struct User *user, void **buf, void *generator) {
-  struct ListNode *root_node = user->secrets->tail;
-  struct PathData *data = (struct PathData *) root_node->data;
-  void *out = malloc(user->prg_out_size);
-  if (out == NULL) {
-    perror("malloc returned NULL");
-    return -1;
-  }  
-  prg(generator, data->seed, out);
-  void *new_seed = malloc(user->seed_size);
-  void *key = malloc(user->seed_size);
-  void *next_seed = malloc(user->seed_size);
-  split(out, new_seed, key, next_seed, user->seed_size);
-  void *pltxt = malloc(5);
-  dec(generator, key, new_seed, *buf, pltxt, 5);
-  printf("decrypted: %s\n", (char *) pltxt);
-  return 5;
-}
-
 void destroy_users(struct List *users) {
   struct ListNode *user_curr = users->head;
   while (user_curr != 0) {

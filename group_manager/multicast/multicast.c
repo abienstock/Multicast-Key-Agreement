@@ -24,11 +24,9 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
 	  return -1;
 	}
 	struct NodeData *left_data = (struct NodeData *) (*(skeleton->node->children))->data;
-	left_ct->parent_id = data->id;
 	left_ct->child_id = left_data->id;
 	enc(generator, left_data->key, left_data->seed, seed, ct, multicast->seed_size);
 	left_ct->ct = ct;
-	left_ct->num_bytes = multicast->seed_size;
       }
     }
     if (*(skeleton->children_color + 1) == 1) {
@@ -46,11 +44,9 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
 	  return -1;
 	}
 	struct NodeData *right_data = (struct NodeData *) (*(skeleton->node->children + 1))->data;
-	right_ct->parent_id = data->id;
 	right_ct->child_id = right_data->id;
 	enc(generator, right_data->key, right_data->seed, seed, ct, multicast->seed_size);
 	right_ct->ct = ct;
-	right_ct->num_bytes = multicast->seed_size;
       }
     }
     if (multicast->crypto) {
@@ -82,12 +78,10 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct No
 	perror("malloc returned NULL");
 	return -1;
       }          
-      left_ct->parent_id = -1; // TODO: make sure IDs are never negative!
       struct NodeData *root_data = (struct NodeData *) skeleton->node->data;
       left_ct->child_id = root_data->id;
       enc(generator, root_data->key, root_data->seed, seed, ct, multicast->seed_size);
       left_ct->ct = ct;
-      left_ct->num_bytes = multicast->seed_size;          
       *cts++ = left_ct;
       *cts-- = NULL;
       skeleton->ciphertexts = cts;
