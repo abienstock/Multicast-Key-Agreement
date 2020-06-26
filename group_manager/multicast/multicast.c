@@ -167,7 +167,7 @@ struct MultInitRet mult_init(int n, int crypto, int *tree_flags, int tree_type, 
  */
 struct MultAddRet mult_add(struct Multicast *multicast, int id, void *sampler, void *generator) {
   struct MultAddRet ret = { NULL, NULL, NULL };
-  struct AddRet add_ret;
+  struct AddRet add_ret = { NULL, NULL };
   if (multicast->tree_type == 0)
     add_ret = lbbt_add(multicast->tree, id);
   //  else
