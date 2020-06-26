@@ -3,7 +3,7 @@
 
 struct User {
   int id;
-  struct List *secrets;
+  struct List *secrets; // direct path of secrets
   int in_group;
   size_t prg_out_size;
   size_t seed_size;

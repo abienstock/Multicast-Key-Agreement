@@ -17,7 +17,6 @@ struct Node {
   struct ListNode *rightmost_blank;
   void *data;
   int num_leaves; // including blanks
-  //int h;
 };
 
 struct LBBT {
@@ -32,7 +31,6 @@ struct BTree {
   struct Node *root;
   int order;
   int add_strat;
-  struct List *leaves; // TODO: should this be ll?
 };
 
 struct InitRet {
@@ -50,12 +48,7 @@ struct RemRet {
   struct SkeletonNode *skeleton;
 };
 
-struct Node **get_path(struct Node *node);
-
-struct Node **get_copath(struct Node *node);
-
 void traverse_tree(struct Node *root, void (*f)(void *));
-
 void pretty_traverse_tree(struct Node *root, int space, void (*f)(void *));
 void pretty_traverse_skeleton(struct SkeletonNode *root, int space, void (*f)(void *));
 

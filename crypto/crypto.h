@@ -10,6 +10,7 @@ void alloc_prg_out(void **out, void **seed, void **key, void **next_seed, size_t
 
 int prg(void *generator, void *seed, void *out);
 
+// to split prg output into three
 void split(void *out, void *seed, void *key, void *next_seed, size_t seed_size);
 
 void get_prg_out_size(void *generator, size_t *size); // in bytes
