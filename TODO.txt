@@ -1,7 +1,7 @@
-- Fix MAKEFILE
 - MAKE SURE REMOVE IS log(n) TIME!!
 - Fine for now -- make sure geometric distr on ops is correct -- should weight users from init equally? (ALSO CHECK users list in test_driver and OOB_SEEDS for init)
-- less mallocs
-- REFACTOR!! - ex. : function for skeleton mallocs, destroy nodes, etc
 - err checking crypto funcs?
 - check path secrets for each user with tree??
+- optimize truncate if right subtree is all blanks?
+- tree-utils.c refactor
+- better testing

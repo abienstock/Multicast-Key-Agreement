@@ -1,7 +1,7 @@
 CC = gcc
 CXX = g++
 
-INCLUDES = -I../libbotan/include
+INCLUDES = 
 
 CFLAGS = -g -Wall -O2 $(INCLUDES)
 CXXFLAGS = -g -Wall -O2 $(INCLUDES)

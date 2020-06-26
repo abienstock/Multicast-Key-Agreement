@@ -12,13 +12,13 @@ LDFLAGS = -g -lm -O2
 
 LDLIBS =
 
-SUBDIRS = crypto driver ll group_manager/multicast group_manager/trees users
+SUBDIRS = crypto ll group_manager/trees group_manager/multicast users driver
 BUILDDIRS = $(SUBDIRS:%=build-%)
 CLEANDIRS = $(SUBDIRS:%=clean-%)
 
 utils.o: utils.c utils.h
 
-all: clean libbotan $(BUILDDIRS) utils.o
+all: clean libbotan utils.o $(BUILDDIRS)
 $(DIRS): $(BUILDDIRS)
 $(BUILDDIRS):
 	$(MAKE) -C $(@:build-%=%) all
@@ -29,8 +29,10 @@ libbotan:
 	cd $@; ./configure.py --prefix=$(CURDIR)/$@ --enable-modules=auto_rng,system_rng,hmac,mac,aead,rng,ffi,chacha --without-documentation && make && make install && (cd include; ln -sf botan-2/botan botan)
 	cd $@; ./botan-test
 
+clean:
+	rm -rf *~ utils.o
 
-clean: $(CLEANDIRS)
+clean_all: $(CLEANDIRS)
 	rm -rf *~ utils.o
 $(CLEANDIRS):
 	$(MAKE) -C $(@:clean-%=%) clean
@@ -39,4 +41,4 @@ $(CLEANDIRS):
 .PHONY: subdirs $(SUBDIRS)
 .PHONY: subdirs $(BUILDDIRS)
 .PHONY: subdirs $(CLEANDIRS)
-.PHONY: all clean
+.PHONY: all clean clean_all

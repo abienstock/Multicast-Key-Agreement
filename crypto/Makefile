@@ -8,7 +8,7 @@ CXXFLAGS = -g -Wall -O2 $(INCLUDES)
 
 LDFLAGS = -g -lm -O2
 
-LDLIBS = -L../libbotan/lib -lbotan-2
+LDLIBS = 
 
 crypto_utils.o: crypto_utils.c ../utils.h
 
