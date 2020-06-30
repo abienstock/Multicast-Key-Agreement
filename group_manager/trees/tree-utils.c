@@ -40,29 +40,31 @@ void free_tree(struct Node *root) {
   free_node(root);
 }
 
-void free_skeleton(struct SkeletonNode *root, int is_root) {
+void free_skeleton(struct SkeletonNode *root, int is_root, int crypto) {
   int i;  
   if (root->children != NULL) {
     for (i = 0; i < root->node->num_children; i++) {
       if (*(root->children + i) != NULL)
-	free_skeleton(*(root->children + i), is_root);
+	free_skeleton(*(root->children + i), is_root, crypto);
     }
     free(root->children);
   }
   if (root->children_color != NULL)
     free(root->children_color);
-  if (is_root) {
-    free((*(root->ciphertexts))->ct);
-    free(*root->ciphertexts);
-    free(root->ciphertexts);
-  } else if (root->ciphertexts != NULL) {
-    for (i = 0; i < root->node->num_children; i++) {
-      if (*(root->ciphertexts + i) != NULL) {
-	free((*(root->ciphertexts + i))->ct);
-	free(*(root->ciphertexts + i));
+  if (crypto) {
+    if (is_root) {
+      free((*(root->ciphertexts))->ct);
+      free(*root->ciphertexts);
+      free(root->ciphertexts);
+    } else if (root->ciphertexts != NULL) {
+      for (i = 0; i < root->node->num_children; i++) {
+	if (*(root->ciphertexts + i) != NULL) {
+	  free((*(root->ciphertexts + i))->ct);
+	  free(*(root->ciphertexts + i));
+	}
       }
+      free(root->ciphertexts);    
     }
-    free(root->ciphertexts);    
   }
   free(root);
 }

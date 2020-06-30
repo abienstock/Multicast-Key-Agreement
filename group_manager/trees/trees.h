@@ -60,7 +60,7 @@ void pretty_traverse_skeleton(struct SkeletonNode *root, int space, void (*f)(vo
 //DESTROYS DATA TOO
 void free_node(struct Node *node);
 void free_tree(struct Node *root);
-void free_skeleton(struct SkeletonNode *root, int is_root);
+void free_skeleton(struct SkeletonNode *root, int is_root, int crypto);
 
 // needs to add created leaf nodes to users (from left to right?)
 struct InitRet lbbt_init(int *ids, int n, int add_strat, int trunc_strat, struct List *users);

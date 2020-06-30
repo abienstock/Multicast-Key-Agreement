@@ -145,10 +145,10 @@ int next_op(struct Multicast *multicast, struct List *users, float add_wt, float
   if (multicast->crypto) {
     check_agreement(multicast, users, id, skeleton, oob_seeds, generator);
   }
-  if (multicast->users->len == 1)
-    free_skeleton(skeleton, 1);
+  if (skeleton->node == ((struct LBBT *) multicast->tree)->root && skeleton->node->num_leaves == 1)
+    free_skeleton(skeleton, 1, multicast->crypto);
   else
-    free_skeleton(skeleton, 0);
+    free_skeleton(skeleton, 0, multicast->crypto);
   return op;
 }
 
@@ -204,7 +204,7 @@ int main(int argc, char *argv[]) {
     }
     check_agreement(init_ret.multicast, users, -1, init_ret.skeleton, init_ret.oob_seeds, generator);
   }
-  free_skeleton(init_ret.skeleton, 0);
+  free_skeleton(init_ret.skeleton, 0, crypto);
 
   int ops[3] = { 0, 0, 0 };
 
