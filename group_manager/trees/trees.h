@@ -4,19 +4,24 @@
 #include "../../ll/ll.h"
 #include "../../skeleton.h"
 
+struct LBBTNodeData {
+  int blank; // 0 = notblank, 1 = blank
+  struct ListNode *rightmost_blank;
+};
+
 struct NodeData {
   int id;
   void *key;
   void *seed;
-  int blank; // 0 = notblank, 1 = blank
+  void *tree_node_data;
 };
 
-struct Node {
+struct Node { 
   struct Node **children;
+  int num_children;
   struct Node *parent;
-  struct ListNode *rightmost_blank;
   void *data;
-  int num_leaves; // including blanks
+  int num_leaves; // including blanks for LBBT
 };
 
 struct LBBT {
@@ -55,14 +60,16 @@ void pretty_traverse_skeleton(struct SkeletonNode *root, int space, void (*f)(vo
 //DESTROYS DATA TOO
 void free_node(struct Node *node);
 void free_tree(struct Node *root);
-void free_skeleton(struct SkeletonNode *root);
+void free_skeleton(struct SkeletonNode *root, int is_root);
 
+// needs to add created leaf nodes to users (from left to right?)
 struct InitRet lbbt_init(int *ids, int n, int add_strat, int trunc_strat, struct List *users);
 
 struct AddRet lbbt_add(void *tree, int id);
 
 struct RemRet lbbt_rem(void *tree, struct Node *node);
 
+// needs to add created leaf nodes to users (from left to right?)
 struct InitRet btree_init(int n);
 
 struct AddRet btree_add(void *tree, int id);

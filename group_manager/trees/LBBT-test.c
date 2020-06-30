@@ -14,7 +14,7 @@ int compareIds(const void *data1, const void *data2) { //TODO: data1 id, data2 u
 static void printIntLine(void *p)
 {
   struct NodeData *data = (struct NodeData *) ((struct Node *) p)->data;
-  if (data->blank == 1)
+  if (((struct LBBTNodeData *) data->tree_node_data)->blank == 1)
     printf("BLANK, id: %d", data->id);
   else
     printf("%d", data->id);

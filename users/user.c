@@ -52,31 +52,26 @@ struct ListNode *find_in_path(int id, struct List *secrets) {
  * TODO: log^2 complexity with ll -- use Hash??
  */
 struct Entry find_entry(struct User *user, struct SkeletonNode *skeleton) {
+  int i;
   struct Entry entry = { skeleton, NULL, -1 };
   if (skeleton->ciphertexts != NULL) {
     struct ListNode *path_node;
-    if (*skeleton->ciphertexts != NULL) {
-      path_node = find_in_path((*skeleton->ciphertexts)->child_id, user->secrets);
-      if (path_node != NULL) {
-	entry.path_node = path_node;
-	entry.child_pos = 0;
-	return entry;
-      }
-    }
-    if (*(skeleton->ciphertexts + 1) != NULL) {
-      path_node = find_in_path((*(skeleton->ciphertexts + 1))->child_id, user->secrets);
-      if (path_node != NULL) {
-	entry.path_node = path_node;
-	entry.child_pos = 1;
-	return entry;
+    for (i = 0; i < skeleton->node->num_children; i++) {
+      if (*(skeleton->ciphertexts + i) != NULL) {
+	path_node = find_in_path((*(skeleton->ciphertexts + i))->child_id, user->secrets);
+	if (path_node != NULL) {
+	  entry.path_node = path_node;
+	  entry.child_pos = i;
+	  return entry;
+	}
       }
     }
   }
   if (skeleton->children != NULL) {
-    if (*skeleton->children != NULL && (entry = find_entry(user, *skeleton->children)).path_node != NULL)
-      return entry;
-    else if (*(skeleton->children + 1) != NULL && (entry = find_entry(user, *(skeleton->children + 1))).path_node != NULL)
-      return entry;
+    for (i = 0; i < skeleton->node->num_children; i++) {
+      if (*(skeleton->children + i) != NULL && (entry = find_entry(user, *(skeleton->children + i))).path_node != NULL)
+	return entry;
+    }
   }
   return entry;
 }
@@ -90,10 +85,11 @@ struct SkeletonNode *find_skel_node(int id, struct SkeletonNode *skeleton) {
       return skeleton;
   } else {
     struct SkeletonNode *ret_skel;
-    if (*skeleton->children != NULL && (ret_skel = find_skel_node(id, *skeleton->children)) != NULL)
-      return ret_skel;
-    if (*(skeleton->children + 1) != NULL && (ret_skel = find_skel_node(id, *(skeleton->children + 1))) != NULL)
-      return ret_skel;
+    int i;
+    for (i = 0; i < skeleton->node->num_children; i++) {
+      if (*(skeleton->children + i) != NULL && (ret_skel = find_skel_node(id, *(skeleton->children + i))) != NULL)
+	return ret_skel;
+    }
   }
   return NULL; // TODO: error checking
 }
@@ -108,9 +104,10 @@ struct ListNode *path_gen(struct User *user, void *proposed_seed, void *child_se
   if (child_skel == NULL) {
     seed = proposed_seed;
   } else {
-    int child_pos = 1;
-    if (*skel_node->children == child_skel) {
-      child_pos = 0;
+    int i, child_pos = 0;
+    for (i = 0; i < skel_node->node->num_children; i++) {
+      if (*(skel_node->children + i) == child_skel)
+	child_pos = i;
     }
     if (*(skel_node->children_color + child_pos) == 0) {
       seed = proposed_seed;

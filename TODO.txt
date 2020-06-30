@@ -2,6 +2,7 @@
 - Fine for now -- make sure geometric distr on ops is correct -- should weight users from init equally? (ALSO CHECK users list in test_driver and OOB_SEEDS for init)
 - err checking crypto funcs?
 - check path secrets for each user with tree??
-- optimize truncate if right subtree is all blanks?
-- tree-utils.c refactor
+- optimize LBBT truncate if right subtree is all blanks?
 - better testing
+- memory checks in testing
+- fix free_skeleton remove seg fault

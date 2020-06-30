@@ -11,50 +11,41 @@
  */
 int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton_node, void *seed, void *generator) {
   if (skeleton_node->children_color != NULL) {
-    struct Ciphertext *left_ct = NULL, *right_ct = NULL;
-    if (*(skeleton_node->children_color) == 1) {
-      (*(multicast->counts))++; // one-time pad refresh      
-      (*(multicast->counts + 1))++;
-      if (multicast->crypto) {
-	left_ct = malloc_check(sizeof(struct Ciphertext));
-	void *ct = malloc_check(multicast->seed_size);
-	struct NodeData *left_data = (struct NodeData *) (*(skeleton_node->node->children))->data;
-	left_ct->child_id = left_data->id;
-	enc(generator, left_data->key, left_data->seed, seed, ct, multicast->seed_size);
-	left_ct->ct = ct;
-      }
-    }
-    if (*(skeleton_node->children_color + 1) == 1) {
-      (*(multicast->counts))++; // one-time pad refresh
-      (*(multicast->counts + 1))++;
-      if (multicast->crypto) {
-	right_ct = malloc_check(sizeof(struct Ciphertext));
-	void *ct = malloc_check(multicast->seed_size);
-	struct NodeData *right_data = (struct NodeData *) (*(skeleton_node->node->children + 1))->data;
-	right_ct->child_id = right_data->id;
-	enc(generator, right_data->key, right_data->seed, seed, ct, multicast->seed_size);
-	right_ct->ct = ct;
-      }
-    }
+    struct Ciphertext **cts = NULL;
     if (multicast->crypto) {
-      struct Ciphertext **cts = malloc_check(sizeof(struct Ciphertext *) * 2);
-      *cts++ = left_ct;
-      *cts-- = right_ct;
+      cts = malloc_check(sizeof(struct Ciphertext *) * skeleton_node->node->num_children);
       skeleton_node->ciphertexts = cts;
+    }
+    int i;
+    for (i = 0; i < skeleton_node->node->num_children; i++) {
+      struct Ciphertext *ct_struct = NULL;
+      if (*(skeleton_node->children_color + i) == 1) {
+	(*(multicast->counts))++; // one-time pad refresh      
+	(*(multicast->counts + 1))++;
+	if (multicast->crypto) {
+	  ct_struct = malloc_check(sizeof(struct Ciphertext));
+	  void *ct = malloc_check(multicast->seed_size);
+	  struct NodeData *data = (struct NodeData *) (*(skeleton_node->node->children + i))->data;
+	  ct_struct->child_id = data->id;
+	  enc(generator, data->key, data->seed, seed, ct, multicast->seed_size);
+	  ct_struct->ct = ct;
+	  *cts++ = ct_struct;	  
+	}
+      } else if (multicast->crypto) 
+	*cts++ = ct_struct;
     }
   } else if (((struct LBBT *) multicast->tree)->root == skeleton_node->node) {
     (*(multicast->counts))++; // one-time pad refresh
     (*(multicast->counts + 1))++;
     if (multicast->crypto) {
-      struct Ciphertext **cts = malloc_check(sizeof(struct Ciphertext *) * 2);
-      struct Ciphertext *left_ct = malloc_check(sizeof(struct Ciphertext));
+      struct Ciphertext **cts = malloc_check(sizeof(struct Ciphertext *));
+      struct Ciphertext *ct_struct = malloc_check(sizeof(struct Ciphertext));
       void *ct = malloc_check(multicast->seed_size);
       struct NodeData *root_data = (struct NodeData *) skeleton_node->node->data;
-      left_ct->child_id = root_data->id;
+      ct_struct->child_id = root_data->id;
       enc(generator, root_data->key, root_data->seed, seed, ct, multicast->seed_size);
-      left_ct->ct = ct;
-      *cts++ = left_ct;
-      *cts-- = NULL;
+      ct_struct->ct = ct;
+      *cts = ct_struct;
       skeleton_node->ciphertexts = cts;
     }
   }
@@ -68,15 +59,16 @@ void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, str
   void *prev_seed = NULL;
   void *next_seed = NULL;
   if (skeleton->children_color != NULL) {
-    if (*(skeleton->children_color) == 0) {
-      prev_seed = secret_gen(multicast, *(skeleton->children), oob_seeds, sampler, generator);
-      if (skeleton->children != NULL && *(skeleton->children + 1) != NULL)
-	free(secret_gen(multicast, *(skeleton->children + 1), oob_seeds, sampler, generator));
-    } else if (*(skeleton->children_color + 1) == 0) {
-      prev_seed = secret_gen(multicast, *(skeleton->children + 1), oob_seeds, sampler, generator);
-      if (skeleton->children != NULL && *(skeleton->children) != NULL)
-	free(secret_gen(multicast, *(skeleton->children), oob_seeds, sampler, generator));
-    } else if (multicast->crypto) {
+    int i, no_prg_edge = 1;
+    for (i = 0; i < skeleton->node->num_children; i++) {
+      if (*(skeleton->children_color + i) == 0) {
+	prev_seed = secret_gen(multicast, *(skeleton->children + i), oob_seeds, sampler, generator);
+	no_prg_edge = 0;
+      }
+      else if (skeleton->children != NULL && *(skeleton->children + i) != NULL)
+	  free(secret_gen(multicast, *(skeleton->children + i), oob_seeds, sampler, generator));
+    }
+    if (no_prg_edge && multicast->crypto) {
       prev_seed = malloc_check(multicast->seed_size);
       sample(sampler, prev_seed);
     }
@@ -136,8 +128,6 @@ struct MultInitRet mult_init(int n, int crypto, int *tree_flags, int tree_type, 
     tree_ret = lbbt_init(ids, n, *tree_flags, *(tree_flags + 1), users);
     tree = tree_ret.tree;
   }
-  //  else
-  //    added = gen_tree_add(multicast->tree, data, &btree_add);
   
   struct List *oob_seeds = NULL;
   size_t prg_out_size = 0, seed_size = 0;
@@ -182,6 +172,9 @@ struct MultAddRet mult_add(struct Multicast *multicast, int id, void *sampler, v
   return ret;
 }
 
+/*
+ * creates skeleton for updates consisting of direct path with prgs along path cts to copath
+ */
 struct SkeletonNode *gen_upd_skel(struct Node *node, struct Node *child, struct SkeletonNode *child_skel) {
   if (node != NULL) {
     struct SkeletonNode *skeleton = malloc_check(sizeof(struct SkeletonNode));
@@ -189,22 +182,26 @@ struct SkeletonNode *gen_upd_skel(struct Node *node, struct Node *child, struct 
     skeleton->node = node;
     skeleton->ciphertexts = NULL;
 
-    int child_pos = 1;
+    int i, child_pos = 0;
     if (child != NULL) {
-      int *children_color = malloc_check(sizeof(int) * 2);      
-      if (child == *(node->children))
-	child_pos = 0;
-      *(children_color + child_pos) = 0;
-      *(children_color + (1 - child_pos)) = 1;
+      int *children_color = malloc_check(sizeof(int) * 2);
+      for (i = 0; i < node->num_children; i++) {
+	if (child == *(node->children + i)) {
+	  child_pos = i;
+	  *(children_color + i) = 0;
+	} else
+	  *(children_color + i) = 1;
+      }
       skeleton->children_color = children_color;      
     } else
       skeleton->children_color = NULL;
     
     if (child_skel != NULL) {
-      struct SkeletonNode **skel_children = malloc_check(sizeof(struct skeletonNode *) * 2);
-      skeleton->children = skel_children;
+      struct SkeletonNode **skel_children = malloc_check(sizeof(struct skeletonNode *) * node->num_children);
+      for (i = 0; i < node->num_children; i++)
+	*(skel_children + i) = NULL;
       *(skel_children + child_pos) = child_skel;
-      *(skel_children + (1 - child_pos)) = NULL;
+      skeleton->children = skel_children;
       child_skel->parent = skeleton;      
     } else
       skeleton->children = NULL;

@@ -23,6 +23,7 @@ void free_node(struct Node *node) {
     free(data->key);
     free(data->seed);
   }
+  free(data->tree_node_data);
   free(data);
   if (node->children != NULL)
     free(node->children);
@@ -32,32 +33,36 @@ void free_node(struct Node *node) {
 //destroys all data too
 void free_tree(struct Node *root) {
   if (root->children != NULL) {
-    free_tree(*(root->children));
-    free_tree(*(root->children +1));
+    int i;
+    for (i = 0; i < root->num_children; i++)
+      free_tree(*(root->children + i));
   }
   free_node(root);
 }
 
-void free_skeleton(struct SkeletonNode *root) {
+void free_skeleton(struct SkeletonNode *root, int is_root) {
+  int i;  
   if (root->children != NULL) {
-    if (*(root->children) != NULL)
-      free_skeleton(*(root->children));
-    if (*(root->children + 1) != NULL)
-      free_skeleton(*(root->children +1));
+    for (i = 0; i < root->node->num_children; i++) {
+      if (*(root->children + i) != NULL)
+	free_skeleton(*(root->children + i), is_root);
+    }
     free(root->children);
   }
   if (root->children_color != NULL)
     free(root->children_color);
-  if (root->ciphertexts != NULL) {
-    if (*(root->ciphertexts) != NULL) {
-      free((*(root->ciphertexts))->ct);
-      free(*(root->ciphertexts));
-    }
-    if (*(root->ciphertexts + 1) != NULL) {
-      free((*(root->ciphertexts + 1))->ct);
-      free(*(root->ciphertexts + 1));
-    }
+  if (is_root) {
+    free((*(root->ciphertexts))->ct);
+    free(*root->ciphertexts);
     free(root->ciphertexts);
+  } else if (root->ciphertexts != NULL) {
+    for (i = 0; i < root->node->num_children; i++) {
+      if (*(root->ciphertexts + i) != NULL) {
+	free((*(root->ciphertexts + i))->ct);
+	free(*(root->ciphertexts + i));
+      }
+    }
+    free(root->ciphertexts);    
   }
   free(root);
 }
@@ -75,8 +80,9 @@ void pretty_traverse_tree(struct Node *root, int space, void (*f)(void *)) {
     if (root->parent != NULL) {
       printf(" parent: %d", ((struct NodeData *) root->parent->data)->id);
     }
-    if (root->rightmost_blank != NULL) {
-      printf(" rightmost blank: %d", ((struct NodeData *) root->rightmost_blank->data)->id);
+    struct LBBTNodeData *lbbt_node_data = (struct LBBTNodeData *) ((struct NodeData *) root->data)->tree_node_data;
+    if (lbbt_node_data->rightmost_blank != NULL) {
+      printf(" rightmost blank: %d", ((struct NodeData *) lbbt_node_data->rightmost_blank->data)->id);
     } else {
       printf(" no rightmost blank");
     }
@@ -90,8 +96,9 @@ void pretty_traverse_tree(struct Node *root, int space, void (*f)(void *)) {
     if (root->parent != NULL) {
       printf(" parent: %d", ((struct NodeData *) root->parent->data)->id);
     }
-    if (root->rightmost_blank != NULL) {
-      printf(" rightmost blank: %d", ((struct NodeData *) root->rightmost_blank->data)->id);
+    struct LBBTNodeData *lbbt_node_data = (struct LBBTNodeData *) ((struct NodeData *) root->data)->tree_node_data;
+    if (lbbt_node_data->rightmost_blank != NULL) {
+      printf(" rightmost blank: %d", ((struct NodeData *) lbbt_node_data->rightmost_blank->data)->id);
     } else {
       printf(" no rightmost blank");
     }
