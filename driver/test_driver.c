@@ -74,8 +74,11 @@ void check_agreement(struct Multicast *multicast, struct List *users, int id, st
     free(user_key);
     user_curr = user_curr->next;
   }
-  //removeAllNodes(oob_seeds);
-  //free(oob_seeds);
+  free(mgr_key);
+  if (oob_seeds != NULL) {
+    removeAllNodes(oob_seeds);
+    free(oob_seeds);
+  }
 }
 
 int rand_int(int n, int distrib, float geo_param) {
@@ -129,10 +132,10 @@ int next_op(struct Multicast *multicast, struct List *users, float add_wt, float
     struct RemRet rem_ret = mult_rem(multicast, user_num, sampler, generator);
     if (multicast->crypto) {
       struct User *user = (struct User *) findAndRemoveNode(users, user_num);
-      destroy_user(user);
+      free_user(user);
     }
-    id = ((struct NodeData *) rem_ret.data)->id;
-    printf("rem: %d\n", id);      
+    id = rem_ret.id;
+    printf("rem: %d\n", id);
     skeleton = rem_ret.skeleton;
     oob_seeds = NULL;
     op = 2;
@@ -142,7 +145,7 @@ int next_op(struct Multicast *multicast, struct List *users, float add_wt, float
   if (multicast->crypto) {
     check_agreement(multicast, users, id, skeleton, oob_seeds, generator);
   }
-  destroy_skeleton(skeleton);  
+  free_skeleton(skeleton);
   return op;
 }
 
@@ -198,7 +201,7 @@ int main(int argc, char *argv[]) {
     }
     check_agreement(init_ret.multicast, users, -1, init_ret.skeleton, init_ret.oob_seeds, generator);
   }
-  destroy_skeleton(init_ret.skeleton);
+  free_skeleton(init_ret.skeleton);
 
   int ops[3] = { 0, 0, 0 };
 
@@ -209,6 +212,11 @@ int main(int argc, char *argv[]) {
   printf("# adds: %d, # updates: %d, # rems %d\n", ops[0], ops[1], ops[2]);
   printf("# PRGs: %d, # encs: %d\n", *(init_ret.multicast->counts), *(init_ret.multicast->counts + 1));
 
-  mult_destroy(init_ret.multicast);
+  free_mult(init_ret.multicast);
+  if (crypto) {
+    free_users(users);
+    free_sampler(sampler);
+    free_prg(generator);
+  }
   return 0;
 }

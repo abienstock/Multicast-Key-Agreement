@@ -44,7 +44,7 @@ struct AddRet {
 };
 
 struct RemRet {
-  void *data;
+  int id;
   struct SkeletonNode *skeleton;
 };
 
@@ -52,10 +52,10 @@ void traverse_tree(struct Node *root, void (*f)(void *));
 void pretty_traverse_tree(struct Node *root, int space, void (*f)(void *));
 void pretty_traverse_skeleton(struct SkeletonNode *root, int space, void (*f)(void *));
 
-//DESTROYS ALL DATA TOO
-void destroy_tree(struct Node *root);
-
-void destroy_skeleton(struct SkeletonNode *root);
+//DESTROYS DATA TOO
+void free_node(struct Node *node);
+void free_tree(struct Node *root);
+void free_skeleton(struct SkeletonNode *root);
 
 struct InitRet lbbt_init(int *ids, int n, int add_strat, int trunc_strat, struct List *users);
 

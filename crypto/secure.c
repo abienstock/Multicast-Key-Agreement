@@ -75,7 +75,8 @@ int enc(void *generator, void *key, void *seed, void *pltxt, void *ctxt, size_t 
   uint8_t *out = malloc_check(out_size);
   success += prg(generator, seed, out);
   split(out, seed, key, next_seed, seed_size);
-
+  free(out);
+  free(next_seed);
   return success;
 }
 
@@ -96,6 +97,21 @@ int dec(void *generator, void *key, void *seed, void *ctxt, void *pltxt, size_t 
   uint8_t *out = malloc_check(out_size);
   success += prg(generator, seed, out);
   split(out, seed, key, next_seed, seed_size);
-  
+  free(out);
+  free(next_seed);
   return success;
+}
+
+int free_sampler(void *sampler) {
+  botan_rng_t *rng = (botan_rng_t *) sampler;
+  int ret = botan_rng_destroy(*rng);
+  free(sampler);
+  return ret;
+}
+
+int free_prg(void *prg) {
+  botan_mac_t *prf = (botan_mac_t *) prg;
+  int ret = botan_mac_destroy(*prf);
+  free(prg);
+  return ret;
 }

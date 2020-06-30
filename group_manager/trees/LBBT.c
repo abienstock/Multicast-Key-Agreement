@@ -369,10 +369,7 @@ struct TruncRet truncate(struct LBBT *lbbt, struct Node *node, int on_dir_path) 
   struct NodeData *data = (struct NodeData *) node->data;
   if (data->blank == 1) {
     popBack(lbbt->blanks);
-    /*free(data->key);    
-    free(data->seed);
-    free(data);
-    free(node);*/
+    free_node(node);
     return ret;
   }
   if (node->children == NULL) { //rightmost non_blank node
@@ -440,11 +437,7 @@ struct TruncRet truncate(struct LBBT *lbbt, struct Node *node, int on_dir_path) 
     skeleton->ciphertexts = NULL;
     ret.skeleton = skeleton;
   }
-  /*free(node->children);
-  free(data->key);
-  free(data->seed);
-  free(data);
-  free(node);*/
+  free_node(node);
   ret.node = replacement;
   return ret;
 }
@@ -466,15 +459,15 @@ struct ListNode *find_prev_blank(struct Node *node, struct Node *prev_node) {
  */
 struct RemRet lbbt_rem(void *tree, struct Node *node) {
   struct LBBT *lbbt = (struct LBBT *) tree;
-  struct RemRet ret = { NULL, NULL };
+  struct RemRet ret = { -1, NULL };
   
   switch (lbbt->trunc_strat) {
   case 0: //truncate
     if (node == lbbt->root)
       die_with_error("Cannot delete root");
-    ret.data = node->data;
     struct NodeData *data = (struct NodeData *) node->data;
     data->blank = 1;
+    ret.id = data->id;
     struct ListNode *prev_blank = find_prev_blank(node->parent, node);
     struct ListNode *new_list_node = addAfter(lbbt->blanks, prev_blank, node); //insert new blank node into list
     node->rightmost_blank = new_list_node;

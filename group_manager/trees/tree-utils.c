@@ -17,28 +17,33 @@ void traverse_tree(struct Node *root, void (*f)(void *)) {
   }
 }
 
-//destroys all data too
-void destroy_tree(struct Node *root) {
-  if (root->children != NULL) {
-    destroy_tree(*(root->children));
-    destroy_tree(*(root->children +1));
-    free(root->children);
-  }
-  if (root->data != NULL) {
-    struct NodeData *data = (struct NodeData *) root->data;
+void free_node(struct Node *node) {
+  struct NodeData *data = (struct NodeData *) node->data;
+  if (data->key != NULL) {
     free(data->key);
     free(data->seed);
-    free(data);
   }
-  free(root);
+  free(data);
+  if (node->children != NULL)
+    free(node->children);
+  free(node);
 }
 
-void destroy_skeleton(struct SkeletonNode *root) {
+//destroys all data too
+void free_tree(struct Node *root) {
+  if (root->children != NULL) {
+    free_tree(*(root->children));
+    free_tree(*(root->children +1));
+  }
+  free_node(root);
+}
+
+void free_skeleton(struct SkeletonNode *root) {
   if (root->children != NULL) {
     if (*(root->children) != NULL)
-      destroy_skeleton(*(root->children));
+      free_skeleton(*(root->children));
     if (*(root->children + 1) != NULL)
-      destroy_skeleton(*(root->children +1));
+      free_skeleton(*(root->children +1));
     free(root->children);
   }
   if (root->children_color != NULL)

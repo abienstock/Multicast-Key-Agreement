@@ -20,3 +20,7 @@ void get_seed_size(void *generator, size_t *size); // in bytes
 int enc(void *generator, void *key, void *seed, void *pltxt, void *ctxt, size_t pltxt_size);
 
 int dec(void *generator, void *key, void *seed, void *ctxt, void *pltxt, size_t ctxt_size);
+
+int free_sampler(void *sampler);
+
+int free_prg(void *prg);

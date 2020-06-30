@@ -12,6 +12,13 @@ struct Entry {
   int child_pos;
 };
 
+void free_path_data(void *data) {
+  struct PathData *path_data = (struct PathData *) data;
+  free(path_data->key);
+  free(path_data->seed);
+  free(path_data);
+}
+
 /*
  * initialize a user with id
  */
@@ -108,7 +115,7 @@ struct ListNode *path_gen(struct User *user, void *proposed_seed, void *child_se
     if (*(skel_node->children_color + child_pos) == 0) {
       seed = proposed_seed;
     } else { 
-      //free(proposed_seed);
+      free(proposed_seed);
       struct Ciphertext *ciphertext = *(skel_node->ciphertexts + child_pos);
       seed = malloc_check(user->seed_size);
       dec(generator, child_key, child_seed, ciphertext->ct, seed, user->seed_size);
@@ -120,17 +127,15 @@ struct ListNode *path_gen(struct User *user, void *proposed_seed, void *child_se
   alloc_prg_out(&out, &new_seed, &key, &next_seed, user->prg_out_size, user->seed_size);
   prg(generator, seed, out);
   split(out, new_seed, key, next_seed, user->seed_size);
-  //free(seed);
-  //free(out);
+  free(seed);
+  free(out);
 
   data->node_id = skel_node->node_id;
-  //if (data->key != NULL)
-  //free(data->key);
+  if (data->key != NULL)
+    free(data->key);
   data->key = key;
-  //if (data->nonce != NULL)
-  //free(data->nonce);
-  //if (data->seed != NULL)
-  //free(data->seed);
+  if (data->seed != NULL)
+    free(data->seed);
   data->seed = new_seed;
 
   if (skel_node->parent != NULL) {
@@ -145,7 +150,7 @@ struct ListNode *path_gen(struct User *user, void *proposed_seed, void *child_se
     }
     return path_gen(user, next_seed, new_seed, key, skel_node->parent, skel_node, next, generator);
   }
-  //free(next_seed);
+  free(next_seed);
   return path_node;
 }
 
@@ -202,11 +207,7 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, void *oo
 
   //free rest of path if not at tail
   while (end_node != user->secrets->tail) {
-    popBack(user->secrets);    
-    //struct PathData *data = (struct PathData *)
-    //free(data->key);
-    //free(data->seed);
-    //free(data);
+    free_path_data(popBack(user->secrets));
   }
 
   // generate group secret
@@ -215,30 +216,27 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, void *oo
   return out;
 }
 
-void destroy_users(struct List *users) {
+void free_users(struct List *users) {
   struct ListNode *user_curr = users->head;
   while (user_curr != 0) {
-    //struct User *user = ((struct User *) user_curr->data);
-    //destroy_user(user);
-    //struct ListNode *old_user = user_curr;
+    struct User *user = ((struct User *) user_curr->data);
+    free_user(user);
+    struct ListNode *old_user = user_curr;
     user_curr = user_curr->next;
-    //free(old_user);
+    free(old_user);
   }
-  //free(users);
+  free(users);
 }
 
-void destroy_user(struct User *user) {
+void free_user(struct User *user) {
   struct List *secrets = user->secrets;
   struct ListNode *secret_curr = secrets->head;
   while (secret_curr != 0) {
-    //struct PathData *path_data = ((struct PathData *) secret_curr->data);
-    //free(path_data->key);
-    //free(path_data->seed);
-    //free(path_data);
-    //struct ListNode *old_sec = secret_curr;
+    free_path_data(secret_curr->data);
+    struct ListNode *old_sec = secret_curr;
     secret_curr = secret_curr->next;
-    //free(old_sec);
+    free(old_sec);
   }
-  //free(secrets);
-  //free(user);
+  free(secrets);
+  free(user);
 }

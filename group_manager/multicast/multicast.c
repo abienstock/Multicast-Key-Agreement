@@ -72,11 +72,11 @@ void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, str
     if (*(skeleton->children_color) == 0) {
       prev_seed = secret_gen(multicast, *(skeleton->children), oob_seeds, sampler, generator);
       if (skeleton->children != NULL && *(skeleton->children + 1) != NULL)
-	secret_gen(multicast, *(skeleton->children + 1), oob_seeds, sampler, generator);
+	free(secret_gen(multicast, *(skeleton->children + 1), oob_seeds, sampler, generator));
     } else if (*(skeleton->children_color + 1) == 0) {
       prev_seed = secret_gen(multicast, *(skeleton->children + 1), oob_seeds, sampler, generator);
       if (skeleton->children != NULL && *(skeleton->children) != NULL)
-	secret_gen(multicast, *(skeleton->children), oob_seeds, sampler, generator);
+	free(secret_gen(multicast, *(skeleton->children), oob_seeds, sampler, generator));
     } else if (multicast->crypto) {
       prev_seed = malloc_check(multicast->seed_size);
       sample(sampler, prev_seed);
@@ -96,22 +96,19 @@ void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, str
     alloc_prg_out(&out, &seed, &key, &next_seed, multicast->prg_out_size, multicast->seed_size);
     prg(generator, prev_seed, out);
     split(out, seed, key, next_seed, multicast->seed_size);
+    free(out);
     //printf("seed: %s\n", (char *) prev_seed);
-    //free(out);
     
-    /*if (data->key != NULL)
+    if (data->key != NULL)
       free(data->key);
-      if (data->nonce != NULL)
-      free(data->nonce);
       if (data->seed != NULL)
-      free(data->seed);*/  
-    
+      free(data->seed);
     data->key = key;
     data->seed = seed;
   }
 
-  //if (skeleton->node->num_leaves > 1 || skeleton->parent == NULL)
-  //free(prev_seed); // need to do it here if not oob_seed
+  if (skeleton->node->num_leaves > 1 || skeleton->parent == NULL)
+    free(prev_seed); // need to free here if not oob_seed
   
   return next_seed;
 }
@@ -157,7 +154,7 @@ struct MultInitRet mult_init(int n, int crypto, int *tree_flags, int tree_type, 
   *lbbt_multicast = multicast;
   ret.multicast = lbbt_multicast;
   ret.skeleton = tree_ret.skeleton;
-  secret_gen(lbbt_multicast, ret.skeleton, oob_seeds, sampler, generator);// free
+  free(secret_gen(lbbt_multicast, ret.skeleton, oob_seeds, sampler, generator));
   ret.oob_seeds = oob_seeds;
   return ret;
 }
@@ -182,7 +179,7 @@ struct MultAddRet mult_add(struct Multicast *multicast, int id, void *sampler, v
     initList(oob_seeds);
     ret.oob_seeds = oob_seeds;
   }
-  secret_gen(multicast, ret.skeleton, oob_seeds, sampler, generator); //free
+  free(secret_gen(multicast, ret.skeleton, oob_seeds, sampler, generator));
   return ret;
 }
 
@@ -235,7 +232,7 @@ struct MultUpdRet mult_update(struct Multicast *multicast, int user, void *sampl
     initList(oob_seeds);
     ret.oob_seeds = oob_seeds;
   }
-  secret_gen(multicast, skeleton, oob_seeds, sampler, generator);//free
+  free(secret_gen(multicast, skeleton, oob_seeds, sampler, generator));
 
   return ret;
 }
@@ -244,27 +241,24 @@ struct MultUpdRet mult_update(struct Multicast *multicast, int user, void *sampl
  * remove the id that was the user-th added id of the group
  */
 struct RemRet mult_rem(struct Multicast *multicast, int user, void *sampler, void *generator) { 
-  struct RemRet ret = { NULL, NULL };
+  struct RemRet ret = { -1, NULL };
   struct Node *user_node = (struct Node *) findAndRemoveNode(multicast->users, user);
   if (multicast->tree_type == 0)
     ret = lbbt_rem(multicast->tree, user_node);
   //    else
   //      gen_tree_rem(multicast->tree, user, &btree_rem);
 
-  secret_gen(multicast, ret.skeleton, NULL, sampler, generator); //free
+  free(secret_gen(multicast, ret.skeleton, NULL, sampler, generator));
   return ret;
 }
 
-void mult_destroy(struct Multicast *multicast) {
-  destroy_tree(((struct LBBT *) multicast->tree)->root);
+void free_mult(struct Multicast *multicast) {
+  free_tree(((struct LBBT *) multicast->tree)->root);
   removeAllNodes(((struct LBBT *) multicast->tree)->blanks);
-  //free(((struct LBBT *) multicast->tree)->blanks); THIS WAS COMMENTED
-  //free(multicast->tree); THIS WAS COMMENTED
-
+  free(((struct LBBT *) multicast->tree)->blanks);
+  free(multicast->tree);
   removeAllNodes(multicast->users);
-  //free(multicast->users);
-
-  //free(multicast->counts);
-
-  //free(multicast);
+  free(multicast->users);
+  free(multicast->counts);
+  free(multicast);
 }

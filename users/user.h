@@ -22,6 +22,6 @@ int proc_broadcast(struct User *user, void **buf, void *generator);
 
 struct User *init_user(int id, size_t prg_out_size, size_t seed_size);
 
-void destroy_users(struct List *users);
+void free_user(struct User *user);
 
-void destroy_user(struct User *user);
+void free_users(struct List *users);

@@ -60,3 +60,11 @@ int dec(void *generator, void *key, void *seed, void *ctxt, void *pltxt, size_t 
   memcpy(pltxt, ctxt, sizeof(int));
   return 0;
 }
+
+int free_sampler(void *sampler) {
+  return 0;
+}
+
+int free_prg(void *prg) {
+  return 0;
+}

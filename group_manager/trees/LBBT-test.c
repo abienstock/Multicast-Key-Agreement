@@ -31,7 +31,7 @@ int main() {
     ids[i] = i;
   }
 
-  struct NodeData *data;
+  int id;
 
   printf("testing init: \n");
 
@@ -64,8 +64,8 @@ int main() {
   struct Node *rem = (struct Node *) findAndRemoveNode(users, n);
   printf("traverse users list:\n");
   traverseList(users, &printIntLine);  
-  data = (struct NodeData *) lbbt_rem((void *) lbbt, rem).data;
-  printf("removed node data: %d\n", data->id);
+  id = lbbt_rem((void *) lbbt, rem).id;
+  printf("removed node data: %d\n", id);
   pretty_traverse_tree(lbbt->root, 0, &printIntLine);
   printf("\n traverse blank list \n");
   traverseList(lbbt->blanks, &printIntLine);
@@ -102,15 +102,15 @@ int main() {
     rem = (struct Node *) findAndRemoveNode(users, remove_nodes[i]);
     printf("traverse users list:\n");
     traverseList(users, &printIntLine);
-    data = (struct NodeData *) lbbt_rem((void *) lbbt, rem).data;
-    printf("removed node data: %d\n", data->id);
+    id = lbbt_rem((void *) lbbt, rem).id;
+    printf("removed node data: %d\n", id);
     pretty_traverse_tree(lbbt->root, 0, &printIntLine);    
     printf("\n traverse blank list \n");
     traverseList(lbbt->blanks, &printIntLine);
     printf("rightmost leaf: %d\n", *(int *) lbbt->rightmost_leaf->data);
   }
 
-  destroy_tree(lbbt->root);
+  free_tree(lbbt->root);
   removeAllNodes(lbbt->blanks);
   free(lbbt->blanks);
   free(lbbt);

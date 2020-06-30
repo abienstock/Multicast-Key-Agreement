@@ -41,6 +41,6 @@ struct MultUpdRet mult_update(struct Multicast *multicast, int user, void *sampl
 
 struct RemRet mult_rem(struct Multicast *multicast, int user, void *sampler, void *prg);
 
-void mult_destroy(struct Multicast *multicast);
+void free_mult(struct Multicast *multicast);
 
 #endif /* #ifndef _MULTICAST_H_ */
