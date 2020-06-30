@@ -35,7 +35,7 @@ struct MultUpdRet {
 
 struct MultInitRet mult_init(int n, int crypto, int *tree_flags, int tree_type, void *sampler, void *prg);
 
-struct MultAddRet mult_add(struct Multicast *multicast, int id, void *sampler, void *prg); //TODO: id is for new user
+struct MultAddRet mult_add(struct Multicast *multicast, int id, void *sampler, void *prg); // id is for new user
 
 struct MultUpdRet mult_update(struct Multicast *multicast, int user, void *sampler, void *prg);
 

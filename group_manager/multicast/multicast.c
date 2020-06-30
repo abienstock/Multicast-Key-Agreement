@@ -63,7 +63,6 @@ int ct_gen(struct Multicast *multicast, struct SkeletonNode *skeleton_node, void
 
 /*
  * recursively generates the secrets in a skeleton for a MKA op and the corresponding ciphertexts
- * TODO: generalize for any MKA tree
  */
 void *secret_gen(struct Multicast *multicast, struct SkeletonNode *skeleton, struct List *oob_seeds, void *sampler, void *generator) {
   void *prev_seed = NULL;

@@ -71,12 +71,11 @@ int enc(void *generator, void *key, void *seed, void *pltxt, void *ctxt, size_t 
   size_t out_size, seed_size;
   get_prg_out_size(generator, &out_size);
   get_seed_size(generator, &seed_size);  
-  uint8_t *next_seed = malloc_check(seed_size); // TODO remove malloc
+  uint8_t next_seed[seed_size];
   uint8_t *out = malloc_check(out_size);
   success += prg(generator, seed, out);
   split(out, seed, key, next_seed, seed_size);
   free(out);
-  free(next_seed);
   return success;
 }
 
@@ -93,12 +92,11 @@ int dec(void *generator, void *key, void *seed, void *ctxt, void *pltxt, size_t 
   size_t out_size, seed_size;
   get_prg_out_size(generator, &out_size);
   get_seed_size(generator, &seed_size);  
-  uint8_t *next_seed = malloc_check(seed_size); // TODO: remove malloc
+  uint8_t next_seed[seed_size];
   uint8_t *out = malloc_check(out_size);
   success += prg(generator, seed, out);
   split(out, seed, key, next_seed, seed_size);
   free(out);
-  free(next_seed);
   return success;
 }
 
