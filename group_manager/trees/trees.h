@@ -34,7 +34,7 @@ struct LBBT {
 
 struct BTree {
   struct Node *root;
-  int order;
+  int order; // max # of children
   int add_strat;
 };
 
@@ -70,7 +70,7 @@ struct AddRet lbbt_add(void *tree, int id);
 struct RemRet lbbt_rem(void *tree, struct Node *node);
 
 // needs to add created leaf nodes to users (from left to right?)
-struct InitRet btree_init(int n);
+struct InitRet btree_init(int *ids, int n, int add_strat, int order, struct List *users);
 
 struct AddRet btree_add(void *tree, int id);
 
