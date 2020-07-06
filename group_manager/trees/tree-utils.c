@@ -73,7 +73,7 @@ void pretty_traverse_tree(struct Node *root, int space, void (*f)(void *)) {
   int i;
   space += COUNT;
   if (root == NULL) {
-    printf("Empty skeleton!\n");
+    printf("Empty Tree!\n");
   } else if (root->children == NULL) {
     printf("\n");
     for (i = COUNT; i < space; i++)
@@ -82,30 +82,33 @@ void pretty_traverse_tree(struct Node *root, int space, void (*f)(void *)) {
     if (root->parent != NULL) {
       printf(" parent: %d", ((struct NodeData *) root->parent->data)->id);
     }
-    struct LBBTNodeData *lbbt_node_data = (struct LBBTNodeData *) ((struct NodeData *) root->data)->tree_node_data;
+    /*struct LBBTNodeData *lbbt_node_data = (struct LBBTNodeData *) ((struct NodeData *) root->data)->tree_node_data;
     if (lbbt_node_data->rightmost_blank != NULL) {
       printf(" rightmost blank: %d", ((struct NodeData *) lbbt_node_data->rightmost_blank->data)->id);
     } else {
       printf(" no rightmost blank");
-    }
+      }*/
     printf("\n");    
   } else {
-    pretty_traverse_tree(*(root->children+1), space, f);
-    printf("\n");
-    for (i = COUNT; i < space; i++)
-      printf(" ");
-    f(root);
-    if (root->parent != NULL) {
-      printf(" parent: %d", ((struct NodeData *) root->parent->data)->id);
+    for (i = 0; i < root->num_children; i++) {
+      pretty_traverse_tree(*(root->children + i), space, f); // TODO: fix
+      printf("\n");
+      if (i == 0) {
+	int j;
+	for (j = COUNT; j < space; j++)
+	  printf(" ");
+	f(root);
+	if (root->parent != NULL) {
+	  printf(" parent: %d", ((struct NodeData *) root->parent->data)->id);
+	}
+      }
     }
-    struct LBBTNodeData *lbbt_node_data = (struct LBBTNodeData *) ((struct NodeData *) root->data)->tree_node_data;
+    /*struct LBBTNodeData *lbbt_node_data = (struct LBBTNodeData *) ((struct NodeData *) root->data)->tree_node_data;
     if (lbbt_node_data->rightmost_blank != NULL) {
       printf(" rightmost blank: %d", ((struct NodeData *) lbbt_node_data->rightmost_blank->data)->id);
     } else {
       printf(" no rightmost blank");
-    }
-    printf("\n");    
-    pretty_traverse_tree(*(root->children), space, f);
+      }*/
   }
 }
 

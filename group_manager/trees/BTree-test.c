@@ -17,10 +17,10 @@ static void printIntLine(void *p)
 }
 
 int main() {
-  int n = 7;
+  int n = 17;
   int a1 = 5;
   int a2 = 3;
-  int order = 3;
+  int order = 4;
 
   int ids[n];
   int i;
@@ -35,7 +35,7 @@ int main() {
   struct List *users = malloc_check(sizeof(struct List));
   initList(users);
 
-  struct BTree *btree = (struct BTree *) btree_init(ids, n, 0, 3, users).tree;
+  struct BTree *btree = (struct BTree *) btree_init(ids, n, 0, order, users).tree;
   pretty_traverse_tree(btree->root, 0, &printIntLine);
   printf("traverse users list:\n");
   traverseList(users, &printIntLine);
