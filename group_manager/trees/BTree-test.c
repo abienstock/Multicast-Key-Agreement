@@ -19,9 +19,9 @@ static void printIntLine(void *p)
 
 int main() {
   int n = 1;
-  int a1 = 5;
+  int a1 = 9;
   int a2 = 3;
-  int order = 4;
+  int order = 3;
 
   int ids[n];
   int i;

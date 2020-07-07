@@ -166,19 +166,18 @@ void add_node(struct Node *parent, struct Node *child, struct BTree *btree) {
     child->parent = split;        
     split->num_leaves = child->num_leaves;
     split->num_children = half + 1;
-    parent->num_children = half;
+    parent->num_children = ceil(order / 2.0);
     int i;
-    for (i = 0; i < half; i++) {
-      struct Node *moved_child = *(parent->children + order - (i + 1));
+    for (i = 1; i < half + 1; i++) {
+      struct Node *moved_child = *(parent->children + order - i);
       *split_children++ = moved_child;
-      *(parent->children + order - (i + 1)) = NULL;
+      *(parent->children + order - i) = NULL;
       moved_child->parent = split;
       split->num_leaves += moved_child->num_leaves;
       parent->num_leaves -= moved_child->num_leaves;
     }
     for (; i < order; i++)
       *split_children++ = NULL;
-    split->children = split_children;
 
     if (parent_data->opt_add_child >= parent->num_children) {
       parent_data->lowest_nonfull = INT_MAX;
