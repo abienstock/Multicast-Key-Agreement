@@ -13,11 +13,12 @@ int compareIds(const void *data1, const void *data2) { //TODO: data1 id, data2 u
 static void printIntLine(void *p)
 {
   struct NodeData *data = (struct NodeData *) ((struct Node *) p)->data;
-  printf("%d", data->id);
+  struct BTreeNodeData *btree_data = (struct BTreeNodeData *) data->tree_node_data;
+  printf("id: %d, height: %d, opt add child: %d, lowest nonfull: %d", data->id, btree_data->height, btree_data->opt_add_child, btree_data->lowest_nonfull);
 }
 
 int main() {
-  int n = 17;
+  int n = 1;
   int a1 = 5;
   int a2 = 3;
   int order = 4;
@@ -40,7 +41,7 @@ int main() {
   printf("traverse users list:\n");
   traverseList(users, &printIntLine);
 
-  /*printf("\n\n\n==================================\n");
+  printf("\n\n\n==================================\n");
   printf("testing add: \n");
 
   for (i = n; i < n+a1; i++) {
@@ -51,9 +52,9 @@ int main() {
     pretty_traverse_tree(btree->root, 0, &printIntLine);
     printf("traverse users list:\n");
     traverseList(users, &printIntLine);    
-    printf("rightmost leaf: %d\n", *(int *) btree->rightmost_leaf->data);
   }
 
+  /*
   printf("\n\n\n==================================\n");
   printf("testing rem \n");
   printf("node to be removed (in ascending order of time in tree): %d\n", n);
