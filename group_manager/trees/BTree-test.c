@@ -14,13 +14,14 @@ static void printIntLine(void *p)
 {
   struct NodeData *data = (struct NodeData *) ((struct Node *) p)->data;
   struct BTreeNodeData *btree_data = (struct BTreeNodeData *) data->tree_node_data;
-  printf("id: %d, height: %d, opt add child: %d, lowest nonfull: %d", data->id, btree_data->height, btree_data->opt_add_child, btree_data->lowest_nonfull);
+  printf("id: %d, height: %d, opt add child: %d, lowest nonfull: %d, num leaves: %d", data->id, btree_data->height, btree_data->opt_add_child, btree_data->lowest_nonfull, ((struct Node *) p)->num_leaves);
 }
 
 int main() {
   int n = 1;
   int a1 = 9;
   int a2 = 3;
+  int r = 6;
   int order = 3;
 
   int ids[n];
@@ -45,7 +46,7 @@ int main() {
   printf("testing add: \n");
 
   for (i = n; i < n+a1; i++) {
-    printf("add:\n");
+    printf("\nadd:\n");
     struct Node *added = btree_add(btree, i).added;
     addFront(users, (void *) added);
     printf("added: %d\n", *(int *)added->data);
@@ -61,11 +62,8 @@ int main() {
   printf("traverse users list:\n");
   traverseList(users, &printIntLine);  
   id = btree_rem((void *) btree, rem).id;
-  printf("removed node data: %d\n", id);
+  printf("\nremoved node data: %d\n", id);
   pretty_traverse_tree(btree, btree->root, 0, &printIntLine);
-  printf("\n traverse blank list \n");
-  //traverseList(btree->blanks, &printIntLine);
-  //printf("rightmost leaf: %d\n", *(int *) btree->rightmost_leaf->data);
 
   printf("\n\n\n==================================\n");
   printf("testing add in blank \n");
@@ -74,41 +72,32 @@ int main() {
   printf("traverse users list:\n");
   traverseList(users, &printIntLine);    
 
-  printf("\n traverse blank list \n");
-  //traverseList(btree->blanks, &printIntLine);
-
   pretty_traverse_tree(btree, btree->root, 0, &printIntLine);
-  //printf("rightmost leaf: %d\n", *(int *) btree->rightmost_leaf->data);
 
   printf("\n\n\n==================================\n");
   printf("testing truncate\n");
   for (i = n+a1+1; i < n+a1+a2+1; i++) {
-    printf("add:\n");
+    printf("\nadd:\n");
     struct Node *added = btree_add(btree, i).added;
     printf("added: %d\n", *(int *)added->data);
     addFront(users, (void *) added);    
     pretty_traverse_tree(btree, btree->root, 0, &printIntLine);
     printf("traverse users list:\n");
     traverseList(users, &printIntLine);    
-    //printf("rightmost leaf: %d\n", *(int *) btree->rightmost_leaf->data);
   }
 
-  int remove_nodes[3] = {1, 1, 0};
-  for (i=0; i<a2; i++) {
-    rem = (struct Node *) findAndRemoveNode(users, remove_nodes[i]);
+  //int remove_nodes[3] = {1, 1, 0};
+  for (i=0; i<r; i++) {
+    //rem = (struct Node *) findAndRemoveNode(users, remove_nodes[i]);
+    rem = (struct Node *) findAndRemoveNode(users, 0);
     printf("traverse users list:\n");
     traverseList(users, &printIntLine);
     id = btree_rem((void *) btree, rem).id;
-    printf("removed node data: %d\n", id);
+    printf("\nremoved node id: %d\n", id);
     pretty_traverse_tree(btree, btree->root, 0, &printIntLine);    
-    printf("\n traverse blank list \n");
-    //traverseList(btree->blanks, &printIntLine);
-    //printf("rightmost leaf: %d\n", *(int *) btree->rightmost_leaf->data);
   }
 
-  free_tree(btree->root);
-  //removeAllNodes(btree->blanks);
-  //free(btree->blanks);
+  //free_tree(btree->root);
   free(btree);
 
   removeAllNodes(users);

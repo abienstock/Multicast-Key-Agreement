@@ -111,9 +111,8 @@ void update_add_hints(struct Node *node, int order, int recurse) {
   struct Node **children = node->children;
   struct BTreeNodeData *btree_data = (struct BTreeNodeData *) ((struct NodeData *) node->data)->tree_node_data;
   int i;
-  int curr_lowest_nonfull = ((struct BTreeNodeData *) ((struct NodeData *) (*(children + btree_data->opt_add_child))->data)->tree_node_data)->lowest_nonfull;
-  // optimum add child subtree has been at least partially filled -- also if lowest_nonfull is height of node and node now has order-many children
-  if (btree_data->lowest_nonfull < curr_lowest_nonfull) {
+  // optimum add child has been removed or its subtree has been at least partially filled; also if lowest_nonfull is height of node and node now has order-many children        
+  if (*(children + btree_data->opt_add_child) == NULL || btree_data->lowest_nonfull < ((struct BTreeNodeData *) ((struct NodeData *) (*(children + btree_data->opt_add_child))->data)->tree_node_data)->lowest_nonfull) {
     btree_data->lowest_nonfull = INT_MAX;
     // find first non-NULL child and set opt_add to it
     for (i = 0; i < order; i++) {
@@ -123,8 +122,11 @@ void update_add_hints(struct Node *node, int order, int recurse) {
       }
     }
   }
+  // find new candidate lowest_nonfull and opt_add_child and also update num_leaves
+  node->num_leaves = 0;
   for (i = 0; i < order; i++) {
     if (*(children + i) != NULL) {
+      node->num_leaves += (*(children + i))->num_leaves;
       int child_lowest_nonfull = ((struct BTreeNodeData *) ((struct NodeData *) (*(children + i))->data)->tree_node_data)->lowest_nonfull;
       if (btree_data->lowest_nonfull > child_lowest_nonfull) {
 	btree_data->lowest_nonfull = child_lowest_nonfull;
@@ -157,7 +159,6 @@ void add_node(struct Node *parent, struct Node *child, struct BTree *btree) {
     }
     parent->num_children++;
     child->parent = parent;
-    parent->num_leaves += child->num_leaves;
     update_add_hints(parent, order, 1);
     return;
   } else if (parent->children != NULL) {
@@ -178,7 +179,6 @@ void add_node(struct Node *parent, struct Node *child, struct BTree *btree) {
     split->children = split_children;    
     *split_children++ = child;
     child->parent = split;        
-    split->num_leaves = child->num_leaves;
     split->num_children = half + 1;
     parent->num_children = ceil(order / 2.0);
     int i;
@@ -187,16 +187,10 @@ void add_node(struct Node *parent, struct Node *child, struct BTree *btree) {
       *split_children++ = moved_child;
       *(parent->children + order - i) = NULL;
       moved_child->parent = split;
-      split->num_leaves += moved_child->num_leaves;
-      parent->num_leaves -= moved_child->num_leaves;
     }
     for (; i < order; i++)
       *split_children++ = NULL;
 
-    if (parent_data->opt_add_child >= parent->num_children) {
-      parent_data->lowest_nonfull = INT_MAX;
-      parent_data->opt_add_child = 0;
-    }
     update_add_hints(parent, order, 0);
     update_add_hints(split, order, 0);
     
@@ -226,7 +220,6 @@ void add_node(struct Node *parent, struct Node *child, struct BTree *btree) {
   *new_root_children++ = child;
   child->parent = new_root;
   parent->parent = new_root;
-  new_root->num_leaves = child->num_leaves + parent->num_leaves;
   int i;
   for (i = 2; i < order; i++)
     *new_root_children++ = NULL;  
@@ -291,59 +284,80 @@ struct AddRet btree_add(void *tree, int id) {
 void remove_node(struct Node *parent, struct Node *child, struct BTree *btree) {
   int order = btree->order;
   parent->num_children--;
-  child = NULL; // TODO: correct?
-  parent->num_leaves -= child->num_leaves;  
+  int i;
+  for (i = 0; i < order; i++) {
+    if (*(parent->children + i) == child)
+      *(parent->children + i) = NULL;
+  }
   if (parent->num_children < ceil(order / 2.0)) {
-    struct Node *grandparent = parent->parent;
-    struct Node **siblings = grandparent->children;
-    struct Node *borrowed = NULL;
-    struct Node *sibling;        
-    int i;
-    for (i = 0; i < order; i++) {
-      if ((sibling = *(siblings + i)) != NULL && sibling->num_children > ceil(order / 2.0)) {
-	struct Node **sibling_children = sibling->children;
-	// borrow first non-NULL child of sibling
-	int j;
-	for (j = 0; j < order; j++) {
-	  if (*(sibling_children + j) != NULL) {
-	    borrowed = *(sibling_children + j);
-	    *(sibling_children + j) = NULL;	    
-	    break;
+    if (parent->parent != NULL) {
+      struct Node *grandparent = parent->parent;
+      struct Node **siblings = grandparent->children;
+      struct Node *borrowed = NULL, *sibling = NULL;
+      for (i = 0; i < order; i++) {
+	if ((sibling = *(siblings + i)) != NULL && sibling->num_children > ceil(order / 2.0)) {
+	  struct Node **sibling_children = sibling->children;
+	  // borrow first non-NULL child of sibling
+	  int j;
+	  for (j = 0; j < order; j++) {
+	    if (*(sibling_children + j) != NULL) {
+	      borrowed = *(sibling_children + j);
+	      *(sibling_children + j) = NULL;	    
+	      break;
+	    }
 	  }
+	  sibling->num_children--;
+	  for (j = 0; j < order; j++) {
+	    if (*(parent->children + j) == NULL) {
+	      *(parent->children + j) = borrowed;
+	      break;
+	    }
+	  }
+	  parent->num_children++;
+	  borrowed->parent = parent;
+	  
+	  update_add_hints(sibling, order, 0);
+	  update_add_hints(parent, order, 1);
+	  return;
 	}
-	sibling->num_children--;
-	sibling->num_leaves -= borrowed->num_leaves;
-	child = borrowed; // TODO: correct?
-	borrowed->parent = parent;
-	parent->num_leaves += borrowed->num_leaves;
-	return;
       }
-    }
-    // every sibling has minimum number of children -- give children to first non-NULL sibling
-    // TODO: try to balance children moves??
-    struct Node **parent_children = parent->children;
-    for (i = 0; i < order; i++) {
-      if ((sibling = *(siblings + i)) != NULL) {
-	struct Node **sibling_children = sibling->children;
-	struct Node *moved_child;
-	// replace sibling's NULL children with parent's children
-	int j, k = 0;
-	for (j = 0; j < order; j++) {
-	  if ((moved_child = *(parent_children + j)) != NULL) {
-	    for (; k < order; k++) {
-	      if (*(sibling_children + k) == NULL) {
-		*(sibling_children + k) = moved_child;
-		moved_child->parent = sibling;
-		sibling->num_children++;
-		sibling->num_leaves += moved_child->num_leaves;
+      // every sibling has minimum number of children -- give children of parent to first non-NULL sibling
+      // TODO: try to balance children moves??
+      struct Node **parent_children = parent->children;
+      for (i = 0; i < order; i++) {
+	if ((sibling = *(siblings + i)) != NULL && sibling != parent) {
+	  struct Node **sibling_children = sibling->children;
+	  struct Node *moved_child;
+	  // replace sibling's NULL children with parent's children
+	  int j, k = 0;
+	  for (j = 0; j < order; j++) {
+	    if ((moved_child = *(parent_children + j)) != NULL) {
+	      for (; k < order; k++) {
+		if (*(sibling_children + k) == NULL) {
+		  *(sibling_children + k) = moved_child;
+		  moved_child->parent = sibling;
+		  sibling->num_children++;
+		}
 	      }
 	    }
 	  }
+	  break;
 	}
-	break;
+      }
+      update_add_hints(sibling, order, 0);
+      remove_node(grandparent, parent, btree);
+    } else if (parent->num_children == 1) { // delete root
+      struct Node *new_root = NULL;
+      for (i = 0; i < order; i++) {
+	if ((new_root = *(parent->children + i)) != NULL) {
+	  new_root->parent = NULL;
+	  btree->root = new_root;
+	  break;
+	}
       }
     }
-    remove_node(grandparent, parent, btree);
+  } else {
+    update_add_hints(parent, order, 1);
   }
 }
 
