@@ -115,16 +115,24 @@ void update_add_hints(struct Node *node, int order, int recurse) {
   // optimum add child subtree has been at least partially filled -- also if lowest_nonfull is height of node and node now has order-many children
   if (btree_data->lowest_nonfull < curr_lowest_nonfull) {
     btree_data->lowest_nonfull = INT_MAX;
-    btree_data->opt_add_child = 0;
-  }
-  for (i = 0; i < node->num_children; i++) {
-    int child_lowest_nonfull = ((struct BTreeNodeData *) ((struct NodeData *) (*(children + i))->data)->tree_node_data)->lowest_nonfull;
-    if (btree_data->lowest_nonfull > child_lowest_nonfull) {
-      btree_data->lowest_nonfull = child_lowest_nonfull;
-      btree_data->opt_add_child = i;
+    // find first non-NULL child and set opt_add to it
+    for (i = 0; i < order; i++) {
+      if (*(children + i) != NULL) {
+	btree_data->opt_add_child = i;
+	break;
+      }
     }
   }
-  // TODO: set opt_add_child to 0?
+  for (i = 0; i < order; i++) {
+    if (*(children + i) != NULL) {
+      int child_lowest_nonfull = ((struct BTreeNodeData *) ((struct NodeData *) (*(children + i))->data)->tree_node_data)->lowest_nonfull;
+      if (btree_data->lowest_nonfull > child_lowest_nonfull) {
+	btree_data->lowest_nonfull = child_lowest_nonfull;
+	btree_data->opt_add_child = i;
+      }
+    }
+  }
+  // TODO: set opt_add_child to first non-NULL?
   if (btree_data->lowest_nonfull == INT_MAX && node->num_children < order)
     btree_data->lowest_nonfull = btree_data->height;
 
@@ -139,8 +147,14 @@ void add_node(struct Node *parent, struct Node *child, struct BTree *btree) {
   int order = btree->order;
   struct BTreeNodeData *parent_data = (struct BTreeNodeData *) ((struct NodeData *) parent->data)->tree_node_data;
   // second case is for group of size 1
-  if (parent->num_children < order && parent->children != NULL) { 
-    *(parent->children + parent->num_children) = child;
+  if (parent->num_children < order && parent->children != NULL) {
+    // find first NULL child add put new child node there
+    int i;
+    for (i = 0; i < order; i++) {
+      if (*(parent->children + i) == NULL) {
+	*(parent->children + i) = child;
+      }
+    }
     parent->num_children++;
     child->parent = parent;
     parent->num_leaves += child->num_leaves;
@@ -267,5 +281,85 @@ struct AddRet btree_add(void *tree, int id) {
   case 1: //random
     break;
   }
+  return ret;
+}
+
+/*
+ * recursively add child to parent. If n=1, parent is the only node in the tree and we create a new root.
+ * TODO: optimizing child borrowing further??
+ */
+void remove_node(struct Node *parent, struct Node *child, struct BTree *btree) {
+  int order = btree->order;
+  parent->num_children--;
+  child = NULL; // TODO: correct?
+  parent->num_leaves -= child->num_leaves;  
+  if (parent->num_children < ceil(order / 2.0)) {
+    struct Node *grandparent = parent->parent;
+    struct Node **siblings = grandparent->children;
+    struct Node *borrowed = NULL;
+    struct Node *sibling;        
+    int i;
+    for (i = 0; i < order; i++) {
+      if ((sibling = *(siblings + i)) != NULL && sibling->num_children > ceil(order / 2.0)) {
+	struct Node **sibling_children = sibling->children;
+	// borrow first non-NULL child of sibling
+	int j;
+	for (j = 0; j < order; j++) {
+	  if (*(sibling_children + j) != NULL) {
+	    borrowed = *(sibling_children + j);
+	    *(sibling_children + j) = NULL;	    
+	    break;
+	  }
+	}
+	sibling->num_children--;
+	sibling->num_leaves -= borrowed->num_leaves;
+	child = borrowed; // TODO: correct?
+	borrowed->parent = parent;
+	parent->num_leaves += borrowed->num_leaves;
+	return;
+      }
+    }
+    // every sibling has minimum number of children -- give children to first non-NULL sibling
+    // TODO: try to balance children moves??
+    struct Node **parent_children = parent->children;
+    for (i = 0; i < order; i++) {
+      if ((sibling = *(siblings + i)) != NULL) {
+	struct Node **sibling_children = sibling->children;
+	struct Node *moved_child;
+	// replace sibling's NULL children with parent's children
+	int j, k = 0;
+	for (j = 0; j < order; j++) {
+	  if ((moved_child = *(parent_children + j)) != NULL) {
+	    for (; k < order; k++) {
+	      if (*(sibling_children + k) == NULL) {
+		*(sibling_children + k) = moved_child;
+		moved_child->parent = sibling;
+		sibling->num_children++;
+		sibling->num_leaves += moved_child->num_leaves;
+	      }
+	    }
+	  }
+	}
+	break;
+      }
+    }
+    remove_node(grandparent, parent, btree);
+  }
+}
+
+/*
+ * remove leaf node from tree
+ */
+struct RemRet btree_rem(void *tree, struct Node *node) {
+  struct BTree *btree = (struct BTree *) tree;
+  struct RemRet ret = { -1, NULL };
+
+  if (node == btree->root)
+    die_with_error("Cannot delete root");
+  struct NodeData *data = (struct NodeData *) node->data;
+  ret.id = data->id;
+
+  struct Node *parent = node->parent;
+  remove_node(parent, node, btree);
   return ret;
 }

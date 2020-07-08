@@ -60,7 +60,7 @@ struct RemRet {
 };
 
 void traverse_tree(struct Node *root, void (*f)(void *));
-void pretty_traverse_tree(struct Node *root, int space, void (*f)(void *));
+void pretty_traverse_tree(void *tree, struct Node *root, int space, void (*f)(void *));
 void pretty_traverse_skeleton(struct SkeletonNode *root, int space, void (*f)(void *));
 
 //DESTROYS DATA TOO
