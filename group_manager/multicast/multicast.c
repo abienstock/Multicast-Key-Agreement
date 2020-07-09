@@ -127,6 +127,9 @@ struct MultInitRet mult_init(int n, int crypto, int *tree_flags, int tree_type, 
   if (tree_type == 0) {
     tree_ret = lbbt_init(ids, n, *tree_flags, *(tree_flags + 1), users);
     tree = tree_ret.tree;
+  } else if (tree_type == 1) {
+    tree_ret = btree_init(ids, n, *tree_flags, *(tree_flags + 1), users);
+    tree = tree_ret.tree;
   }
   
   struct List *oob_seeds = NULL;
@@ -138,12 +141,12 @@ struct MultInitRet mult_init(int n, int crypto, int *tree_flags, int tree_type, 
     get_seed_size(generator, &seed_size);
   }
 
-  struct Multicast *lbbt_multicast = malloc_check(sizeof(struct Multicast));
+  struct Multicast *multicast_ptr = malloc_check(sizeof(struct Multicast));
   struct Multicast multicast = { 1, users, tree, counts, tree_type, crypto, prg_out_size, seed_size };
-  *lbbt_multicast = multicast;
-  ret.multicast = lbbt_multicast;
+  *multicast_ptr = multicast;
+  ret.multicast = multicast_ptr;
   ret.skeleton = tree_ret.skeleton;
-  free(secret_gen(lbbt_multicast, ret.skeleton, oob_seeds, sampler, generator));
+  free(secret_gen(multicast_ptr, ret.skeleton, oob_seeds, sampler, generator));
   ret.oob_seeds = oob_seeds;
   return ret;
 }
