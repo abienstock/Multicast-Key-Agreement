@@ -130,6 +130,9 @@ struct MultInitRet mult_init(int n, int crypto, int *tree_flags, int tree_type, 
   } else if (tree_type == 1) {
     tree_ret = btree_init(ids, n, *tree_flags, *(tree_flags + 1), users);
     tree = tree_ret.tree;
+  } else if (tree_type == 2) {
+    tree_ret = rbtree_init(ids, n, *tree_flags, *(tree_flags + 1), users);
+    tree = tree_ret.tree;
   }
   
   struct List *oob_seeds = NULL;
