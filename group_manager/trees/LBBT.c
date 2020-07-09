@@ -50,11 +50,10 @@ struct _InitRet init_perfect(int h, int leftmost_id, int *ids, struct List *user
   
   struct SkeletonNode **skel_children = malloc_check(sizeof(struct skeletonNode *) * 2);
   int *children_color = malloc_check(sizeof(int) * 2);
-  
   skeleton->children = skel_children;
+  skeleton->children_color = children_color;  
   *children_color++ = 0;
   *children_color-- = 1;
-  skeleton->children_color = children_color;
   
   data->id = rand();
   skeleton->node_id = data->id;
@@ -81,7 +80,7 @@ struct _InitRet init_perfect(int h, int leftmost_id, int *ids, struct List *user
 /*
  * initialize the root of a subtree in the lbbt with n leaves starting at id leftmost_id
  */
-struct _InitRet root_init(int n, int leftmost_id, int *ids, struct List *users){
+struct _InitRet lbbt_root_init(int n, int leftmost_id, int *ids, struct List *users){
   struct _InitRet ret = { NULL, NULL };
 
   struct SkeletonNode *skeleton = malloc_check(sizeof(struct SkeletonNode));
@@ -131,7 +130,7 @@ struct _InitRet root_init(int n, int leftmost_id, int *ids, struct List *users){
     right_ret = init_perfect((int) h-1, leftmost_id + (1 << (int) (h-1)), ids, users);
   } else { // always left skel child; n- (1 << h_flr) = 1: no right skel child
     left_ret = init_perfect((int) h_flr, leftmost_id, ids, users);
-    right_ret = root_init(n - (1 << (int) h_flr), leftmost_id  + (1 << (int) h_flr), ids, users);
+    right_ret = lbbt_root_init(n - (1 << (int) h_flr), leftmost_id  + (1 << (int) h_flr), ids, users);
   }
   *skel_children++ = left_ret.skeleton;
   *skel_children-- = right_ret.skeleton;
@@ -158,7 +157,7 @@ struct InitRet lbbt_init(int *ids, int n, int add_strat, int trunc_strat, struct
     die_with_error("n has to be at least 1");
 
   struct LBBT *tree = malloc_check(sizeof(struct LBBT));
-  struct SkeletonNode *skeleton = root_init(n, 0, ids, users).skeleton;
+  struct SkeletonNode *skeleton = lbbt_root_init(n, 0, ids, users).skeleton;
   skeleton->parent = NULL;
   struct Node *root = skeleton->node;
   root->parent = NULL;
