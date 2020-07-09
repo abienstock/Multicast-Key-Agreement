@@ -16,7 +16,7 @@ struct _InitRet {
 /*
  * initialize the root of a subtree in the order b-tree with height h and n leaves starting at id leftmost_id
  */
-struct _InitRet root_init(int order, int h, int n, int leftmost_id, int *ids, struct List *users) {
+struct _InitRet btree_root_init(int order, int h, int n, int leftmost_id, int *ids, struct List *users) {
   struct _InitRet ret = { NULL, NULL };
 
   int prop_children = ceil((double) n / pow(order, h - 1));
@@ -24,7 +24,8 @@ struct _InitRet root_init(int order, int h, int n, int leftmost_id, int *ids, st
   int num_children = prop_children;
   if (prop_children < min_children)
     num_children = min_children;
-  
+
+  struct SkeletonNode *skeleton = malloc_check(sizeof(struct SkeletonNode));
   struct Node *root = malloc_check(sizeof(struct Node));
   struct NodeData *data = malloc_check(sizeof(struct NodeData));
   root->data = data;
@@ -34,20 +35,30 @@ struct _InitRet root_init(int order, int h, int n, int leftmost_id, int *ids, st
   data->tree_node_data = btree_data;
   btree_data->height = h;  
   root->num_leaves = n;
+  skeleton->node = root;
+  skeleton->ciphertexts = NULL;  
   if (n == 1) { // root is a leaf
     data->id = *(ids+leftmost_id);
+    skeleton->node_id = data->id;
     btree_data->lowest_nonfull = INT_MAX; // TODO: no btree_data at all?
     btree_data->opt_add_child = -1;
     root->children = NULL;
     root->num_children = 0;
     addAfter(users, users->tail, (void *) root);
-    // TODO: skeleton??
-    ret.skeleton = NULL;
+    skeleton->children_color = NULL;
+    skeleton->children = NULL;
+    ret.skeleton = skeleton;
     ret.node = root;
     return ret;
   }
 
+  struct SkeletonNode **skel_children = malloc_check(sizeof(struct skeletonNode *) * num_children);
+  int *children_color = malloc_check(sizeof(int) * num_children);
+  skeleton->children = skel_children;
+  skeleton->children_color = children_color;  
+  
   data->id = rand();
+  skeleton->node_id = data->id;
   struct Node **children = malloc_check(sizeof(struct Node *) * num_children);
   root->children = children;
   root->num_children = num_children;
@@ -59,10 +70,17 @@ struct _InitRet root_init(int order, int h, int n, int leftmost_id, int *ids, st
   int opt_add_child = 0;
   int i;
   for (i = 0; i < num_children; i++) {
+    if (i == 0)
+      *children_color++ = 0;
+    else
+      *children_color++ = 1;
+    
     int extra = 0;
     if (i < r)
       extra = 1;
-    struct _InitRet init_ret = root_init(order, h-1, m + extra, leftmost_id + m * i + extras, ids, users);
+    struct _InitRet init_ret = btree_root_init(order, h-1, m + extra, leftmost_id + m * i + extras, ids, users);
+    *skel_children++ = init_ret.skeleton;
+    init_ret.skeleton->parent = skeleton;
     struct Node *child = init_ret.node;
     *children++ = child;
     child->parent = root;
@@ -79,8 +97,7 @@ struct _InitRet root_init(int order, int h, int n, int leftmost_id, int *ids, st
   btree_data->opt_add_child = opt_add_child;
 
   ret.node = root;
-  // TODO: skeleton??
-  ret.skeleton = NULL;
+  ret.skeleton = skeleton;
   return ret;
 }
 
@@ -94,13 +111,15 @@ struct InitRet btree_init(int *ids, int n, int add_strat, int order, struct List
   struct BTree *tree = malloc_check(sizeof(struct BTree));
   double h = log(n) / log(order);
   double h_ceil = ceil(h);
-  struct Node *root = root_init(order, (int) h_ceil, n, 0, ids, users).node;
+  struct SkeletonNode *skeleton = btree_root_init(order, (int) h_ceil, n, 0, ids, users).skeleton;
+  skeleton->parent = NULL;
+  struct Node *root = skeleton->node;
   root->parent = NULL;
   tree->root = root;
   tree->order = order;
   tree->add_strat = add_strat;
 
-  struct InitRet ret = { (void *) tree, NULL };
+  struct InitRet ret = { (void *) tree, skeleton };
   return ret;
 }
 
