@@ -9,6 +9,12 @@ struct LBBTNodeData {
   struct ListNode *rightmost_blank;
 };
 
+enum LLRBTreeColor {BLACK, RED};
+struct LLRBTreeNodeData {
+  enum LLRBTreeColor colorL, colorR;
+  int heightBlack; // only for correctness check
+};
+
 struct NodeData {
   int id;
   void *key;
@@ -36,6 +42,12 @@ struct BTree {
   struct Node *root;
   int order;
   int add_strat;
+};
+
+struct LLRBTree {
+  struct Node *root;
+  int add_strat;
+  int mode_order;
 };
 
 struct InitRet {
@@ -75,5 +87,19 @@ struct InitRet btree_init(int n);
 struct AddRet btree_add(void *tree, int id);
 
 struct RemRet btree_rem(void *tree, struct Node *node);
+
+// LLRBTree
+
+static const int LLRBTree_STRAT_GREEDY = 0;
+static const int LLRBTree_STRAT_RANDOM = 1;
+
+static const int LLRBTree_MODE_23 = 3;
+static const int LLRBTree_MODE_234 = 4;
+
+struct InitRet LLRBTree_init(int *ids, int n, int add_strat, int mode_order, struct List *users);
+
+struct AddRet LLRBTree_add(void *tree, int id);
+
+struct RemRet LLRBTree_rem(void *tree, struct Node *node);
 
 #endif /* #ifndef _TREES_H_ */
