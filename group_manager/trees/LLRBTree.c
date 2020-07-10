@@ -132,11 +132,10 @@ static void LLRBTree_replaceChild(SNode *parent, SNode *node, SNode *nodeReplace
     } else {
         assert(false, "LLRB: broken parent-child relationship (@replace).");
     }
-    return;
+    parent->num_leaves = parent->children[0]->num_leaves + parent->children[1]->num_leaves;
 }
 static void LLRBTree_replaceSelf(SNode *node, SNode *nodeReplace) {
     LLRBTree_replaceChild(node->parent, node, nodeReplace);
-    return;
 }
 
 // skeleton types
