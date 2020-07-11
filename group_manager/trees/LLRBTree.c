@@ -31,6 +31,7 @@ static SNode *LLRBTree_new(int id, SNode *childL, Color colorL, SNode *childR, C
         assert(colorL == BLACK && colorR == BLACK, "LLRB: red NULL.");
         getData(node)->colorL = colorL;
         getData(node)->colorR = colorR;
+        getData(node)->num_optimal = 1;
         getData(node)->heightBlack = 0;
         return node;
     }
@@ -50,6 +51,13 @@ static SNode *LLRBTree_new(int id, SNode *childL, Color colorL, SNode *childR, C
     }
     getData(node)->colorL = colorL;
     getData(node)->colorR = colorR;
+    if (childL->num_leaves < childR->num_leaves) {
+        getData(node)->num_optimal = getData(childL)->num_optimal;
+    } else if (childL->num_leaves > childR->num_leaves) {
+        getData(node)->num_optimal = getData(childR)->num_optimal;
+    } else {
+        getData(node)->num_optimal = getData(childL)->num_optimal + getData(childR)->num_optimal;
+    }
     int heightBlackL = getData(childL)->heightBlack + (int)(colorL == BLACK), heightBlackR = getData(childR)->heightBlack + (int)(colorR == BLACK);
     assert(heightBlackL == heightBlackR, "LLRB: unbalanced.");
     getData(node)->heightBlack = heightBlackL;
@@ -133,6 +141,13 @@ static void LLRBTree_replaceChild(SNode *parent, SNode *node, SNode *nodeReplace
         assert(false, "LLRB: broken parent-child relationship (@replace).");
     }
     parent->num_leaves = parent->children[0]->num_leaves + parent->children[1]->num_leaves;
+    if (parent->children[0]->num_leaves < parent->children[1]->num_leaves) {
+        getData(parent)->num_optimal = getData(parent->children[0])->num_optimal;
+    } else if (parent->children[0]->num_leaves > parent->children[1]->num_leaves) {
+        getData(parent)->num_optimal = getData(parent->children[1])->num_optimal;
+    } else {
+        getData(parent)->num_optimal = getData(parent->children[0])->num_optimal + getData(parent->children[1])->num_optimal;
+    }
 }
 static void LLRBTree_replaceSelf(SNode *node, SNode *nodeReplace) {
     LLRBTree_replaceChild(node->parent, node, nodeReplace);
@@ -454,6 +469,23 @@ struct InitRet LLRBTree_init(int *ids, int n, int add_strat, int mode_order, str
     return result;
 }
 
+static SNode *getRandomOptimalLeaf(SNode *node) {
+    if (node->num_children == 0) {
+        return node;
+    }
+    if (node->children[0]->num_leaves < node->children[1]->num_leaves) {
+        return getRandomOptimalLeaf(node->children[0]);
+    } else if (node->children[0]->num_leaves > node->children[1]->num_leaves) {
+        return getRandomOptimalLeaf(node->children[1]);
+    } else {
+        int r = rand() % getData(node)->num_optimal;
+        if (r < getData(node->children[0])->num_optimal) {
+            return getRandomOptimalLeaf(node->children[0]);
+        } else {
+            return getRandomOptimalLeaf(node->children[1]);
+        }
+    }
+}
 struct AddRet LLRBTree_add(void *tree, int id) {
     SNode *root = ((struct LLRBTree *) tree)->root;
     int add_strat = ((struct LLRBTree *) tree)->add_strat;
@@ -463,7 +495,7 @@ struct AddRet LLRBTree_add(void *tree, int id) {
     SNode *nodeAddPos;
     switch (add_strat) {
         case LLRBTree_STRAT_GREEDY: {
-            assert(false, "LLRB: not implemented.");
+            nodeAddPos = getRandomOptimalLeaf(root);
         } break;
         case LLRBTree_STRAT_RANDOM: {
             nodeAddPos = getRandomLeaf(root);

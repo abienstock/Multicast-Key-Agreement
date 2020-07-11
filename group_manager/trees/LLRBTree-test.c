@@ -72,7 +72,7 @@ static void LLRBTree_test(int add_strat, int mode_order, int n, int T, int verbo
 int main() {
     srand(time(NULL));
 
-    int add_strat_list[] = {LLRBTree_STRAT_RANDOM};//{LLRBTree_STRAT_GREEDY, LLRBTree_STRAT_RANDOM};
+    int add_strat_list[] = {LLRBTree_STRAT_GREEDY, LLRBTree_STRAT_RANDOM};
     int mode_order_list[] = {LLRBTree_MODE_23};//{LLRBTree_MODE_23, LLRBTree_MODE_234};
     for (int i = 0; i < sizeof(add_strat_list) / sizeof(int); ++i) {
         int add_strat = add_strat_list[i];

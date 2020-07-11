@@ -12,6 +12,7 @@ struct LBBTNodeData {
 enum LLRBTreeColor {BLACK, RED};
 struct LLRBTreeNodeData {
   enum LLRBTreeColor colorL, colorR;
+  int num_optimal; // for greedy strategy
   int heightBlack; // only for correctness check
 };
 
