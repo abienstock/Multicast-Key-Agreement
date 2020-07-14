@@ -7,6 +7,7 @@ void die_with_error(char *error_msg) {
   exit(1);
 }
 
+#ifndef assert
 #include <execinfo.h>
 void assert(bool cond, char *msg) {
   if (!cond) {
@@ -31,6 +32,7 @@ void assert(bool cond, char *msg) {
     die_with_error(msg);
   }
 }
+#endif
 
 void *malloc_check(size_t size) {
   void *ptr = malloc(size);
