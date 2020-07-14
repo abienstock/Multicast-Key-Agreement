@@ -70,6 +70,8 @@ static void LLRBTree_test(int add_strat, int mode_order, int n, int T, int verbo
             if (verbose >= 3) printTree(((struct LLRBTree *) tree)->root, 0);
         }
     }
+    removeAllNodes(&users);
+    free(ids);
 }
 
 int main() {
