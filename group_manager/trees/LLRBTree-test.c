@@ -45,6 +45,7 @@ static void LLRBTree_test(int add_strat, int mode_order, int n, int T, int verbo
     initList(&users);
     struct InitRet resultInit = LLRBTree_init(ids, n, add_strat, mode_order, &users);
     void *tree = resultInit.tree;
+    assert(((struct LLRBTree *) tree)->root->num_leaves == users.len, "incorrect leaves.");
     if (verbose >= 1) printf("init: %d\n", n);
     if (verbose >= 3) printTree(((struct LLRBTree *) tree)->root, 0);
     int id = n;
@@ -54,7 +55,8 @@ static void LLRBTree_test(int add_strat, int mode_order, int n, int T, int verbo
         for (int i = 0; i < addN; ++i) {
             struct AddRet resultAdd = LLRBTree_add(tree, id++);
             addAfter(&users, users.tail, (void *) resultAdd.added);
-            assert(traceSkeleton(resultAdd.skeleton) == resultAdd.added, "");
+            assert(traceSkeleton(resultAdd.skeleton) == resultAdd.added, "incorrect trace.");
+            assert(((struct LLRBTree *) tree)->root->num_leaves == users.len, "incorrect leaves.");
             if (verbose >= 2) printf("add: %d\n", id);
             if (verbose >= 3) printTree(((struct LLRBTree *) tree)->root, 0);
         }
@@ -63,6 +65,7 @@ static void LLRBTree_test(int add_strat, int mode_order, int n, int T, int verbo
         for (int i = 0; i < removeN; ++i) {
             struct Node *nodeRemove = (struct Node *) findAndRemoveNode(&users, rand() % users.len);
             struct RemRet resultRemove = LLRBTree_rem(tree, nodeRemove);
+            assert(((struct LLRBTree *) tree)->root->num_leaves == users.len, "incorrect leaves.");
             if (verbose >= 2) printf("remove: %d\n", resultRemove.id);
             if (verbose >= 3) printTree(((struct LLRBTree *) tree)->root, 0);
         }

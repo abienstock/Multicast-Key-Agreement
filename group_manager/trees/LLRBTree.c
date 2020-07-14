@@ -140,14 +140,17 @@ static void LLRBTree_replaceChild(SNode *parent, SNode *node, SNode *nodeReplace
     } else {
         assert(false, "LLRB: broken parent-child relationship (@replace).");
     }
-    parent->num_leaves = parent->children[0]->num_leaves + parent->children[1]->num_leaves;
-    if (parent->children[0]->num_leaves < parent->children[1]->num_leaves) {
-        getData(parent)->num_optimal = getData(parent->children[0])->num_optimal;
-    } else if (parent->children[0]->num_leaves > parent->children[1]->num_leaves) {
-        getData(parent)->num_optimal = getData(parent->children[1])->num_optimal;
-    } else {
-        getData(parent)->num_optimal = getData(parent->children[0])->num_optimal + getData(parent->children[1])->num_optimal;
-    }
+    do {
+        parent->num_leaves = parent->children[0]->num_leaves + parent->children[1]->num_leaves;
+        if (parent->children[0]->num_leaves < parent->children[1]->num_leaves) {
+            getData(parent)->num_optimal = getData(parent->children[0])->num_optimal;
+        } else if (parent->children[0]->num_leaves > parent->children[1]->num_leaves) {
+            getData(parent)->num_optimal = getData(parent->children[1])->num_optimal;
+        } else {
+            getData(parent)->num_optimal = getData(parent->children[0])->num_optimal + getData(parent->children[1])->num_optimal;
+        }
+        parent = parent->parent;
+    } while (parent != NULL);
 }
 static void LLRBTree_replaceSelf(SNode *node, SNode *nodeReplace) {
     LLRBTree_replaceChild(node->parent, node, nodeReplace);
