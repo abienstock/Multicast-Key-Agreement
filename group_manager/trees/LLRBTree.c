@@ -261,6 +261,15 @@ static TreeResult LLRBTree_addSibling_23(SNode *node, SNode *nodeAdd, SSkeletonN
     } else { // B1 -> (R2 -> B4* B5*) B3 + B' => B2 -> B4 B5 + B'' -> B3 B'
         SNode *grandparent = parent->parent;
         assert(grandparent != NULL, "LLRB: invalid red root.");
+        /* for comparing with 2-3-4 mode more clearly, it is equivalent to hoist the following code snippet: */
+        // if (nodeReplace != NULL) {
+        //     LLRBTree_replaceChild(parent, node, nodeReplace); // @Note: `nodeReplace` inherits the color `BLACK` of `node`.
+        // }
+        // SSkeletonNode *skeletonParent = Skeleton_newInternal(parent,
+        //     nodeReplace == parent->children[0] ? skeletonReplace : NULL,
+        //     nodeReplace == parent->children[1] ? skeletonReplace : NULL,
+        // nodeReplace);
+        /* end hoist */
         assert(parent == grandparent->children[0], "LLRB: invalid red right child.");
         SNode *parentSibling = grandparent->children[1];
         assert(getColor(parentSibling) == BLACK, "LLRB: invalid red right sibling.");
@@ -275,9 +284,78 @@ static TreeResult LLRBTree_addSibling_23(SNode *node, SNode *nodeAdd, SSkeletonN
     }
 }
 static TreeResult LLRBTree_addSibling_234(SNode *node, SNode *nodeAdd, SSkeletonNode *skeletonAdd, SNode *nodeReplace, SSkeletonNode *skeletonReplace) {
-    assert(false, "LLRB: not implemented.");
-    TreeResult result = {};
-    return result;
+/****************************************
+ * begin same code as 2-3 mode
+ ****************************************/
+    SNode *parent = node->parent;
+    if (parent == NULL) { // B1 + B' => B'' -> B1 B'
+        SNode *nodeNew = LLRBTree_new(rand(), nodeReplace != NULL ? nodeReplace : node, BLACK, nodeAdd, BLACK);
+        TreeResult result = {
+            nodeNew,
+            Skeleton_new(nodeNew, skeletonReplace, skeletonAdd, nodeAdd),
+        };
+        return result;
+    }
+    if (getColor(parent) == BLACK) {
+        SNode *sibling = getSibling(node);
+        if (getColor(sibling) == BLACK) { // B1 -> B2* B3* + B' => B'' -> (R1 -> B2 B3) B'
+            if (nodeReplace != NULL) {
+                LLRBTree_replaceChild(parent, node, nodeReplace); // @Note: `nodeReplace` inherits the color `BLACK` of `node`.
+            }
+            SNode *grandparent = parent->parent; // @Note: Should cache `grandparent` before `parent` becomes child of `nodeNew`.
+            SNode *nodeNew = LLRBTree_new(rand(), parent, RED, nodeAdd, BLACK);
+            LLRBTree_replaceChild(grandparent, parent, nodeNew);
+            TreeResult result = {
+                getRoot(nodeNew),
+                Skeleton_wholeDirectPath(Skeleton_new(nodeNew,
+                    Skeleton_newInternal(parent,
+                        nodeReplace == parent->children[0] ? skeletonReplace : NULL,
+                        nodeReplace == parent->children[1] ? skeletonReplace : NULL,
+                    nodeReplace),
+                    skeletonAdd,
+                nodeAdd)),
+            };
+            return result;
+        } else { // B1 -> (R2 -> B4 B5) B3* + B' => B2 -> B4 B5 + B'' -> B3 B'
+            assert(node == parent->children[1], "LLRB: invalid (black,red) children.");
+            SNode *nodeNew = LLRBTree_new(rand(), nodeReplace != NULL ? nodeReplace : node, BLACK, nodeAdd, BLACK);
+            return LLRBTree_addSibling_234(parent, nodeNew, Skeleton_new(nodeNew, skeletonReplace, skeletonAdd, nodeAdd), sibling, NULL); // @Note: The color is automatically flipped as `nodeReplace` is always inserted into the tree with color `BLACK` in every branch.
+        }
+    } else {
+        SNode *grandparent = parent->parent;
+        assert(grandparent != NULL, "LLRB: invalid red root.");
+        if (nodeReplace != NULL) {
+            LLRBTree_replaceChild(parent, node, nodeReplace); // @Note: `nodeReplace` inherits the color `BLACK` of `node`.
+        }
+        SSkeletonNode *skeletonParent = Skeleton_newInternal(parent,
+            nodeReplace == parent->children[0] ? skeletonReplace : NULL,
+            nodeReplace == parent->children[1] ? skeletonReplace : NULL,
+        nodeReplace);
+/****************************************
+ * end same code as 2-3 mode
+ ****************************************/
+        SNode *parentSibling = getSibling(parent);
+        if (getColor(parentSibling) == BLACK) { // B1 -> (R2 -> B4* B5*) B3 => B''' -> (R2 -> B4 B5) (R'' -> B3 B')
+            assert(parent == grandparent->children[0], "LLRB: invalid red right child.");
+            SNode *nodeNew = LLRBTree_new(rand(), parentSibling, BLACK, nodeAdd, BLACK);
+            SNode *grandparentNew = LLRBTree_new(rand(), parent, RED, nodeNew, RED);
+            LLRBTree_replaceSelf(grandparent, grandparentNew);
+            TreeResult result = {
+                getRoot(grandparentNew),
+                Skeleton_wholeDirectPath(Skeleton_new(grandparentNew,
+                    skeletonParent,
+                    Skeleton_new(nodeNew,
+                        NULL,
+                        skeletonAdd,
+                    nodeAdd),
+                nodeNew)),
+            };
+            return result;
+        } else { // B1 -> (R2 -> B4* B5*) (R3 -> B6* B7*) => (B2 -> B4 B5) (B'' (R3 -> B6 B7) B') or 2,4,5 <-> 3,6,7
+            SNode *nodeNew = LLRBTree_new(rand(), parent, RED, nodeAdd, BLACK);
+            return LLRBTree_addSibling_234(grandparent, nodeNew, Skeleton_new(nodeNew, skeletonParent, skeletonAdd, nodeAdd), parentSibling, NULL); // @Note: The color is automatically flipped as `nodeReplace` is always inserted into the tree with color `BLACK` in every branch.
+        }
+    }
 }
 
 static TreeResult LLRBTree_removeSelf_23(SNode *node, SNode *nodeToReplace, SNode *nodeReplace, SSkeletonNode *skeletonReplace) {
@@ -341,7 +419,7 @@ static TreeResult LLRBTree_removeSelf_23(SNode *node, SNode *nodeToReplace, SNod
             SNode *grandparent = parent->parent;
             if (grandparent == NULL) { // shrink: B1 -> B2* B3* => B2 or 2 <-> 3
                 if (nodeToReplace == NULL) {
-                    sibling->parent = NULL; // @Note: == LLRBTree_replaceChild(grandparent, parent, sibling)
+                    sibling->parent = NULL;
                 }
                 TreeResult result = {
                     nodeToReplace != NULL ? nodeReplace : sibling,
@@ -413,9 +491,192 @@ static TreeResult LLRBTree_removeSelf_23(SNode *node, SNode *nodeToReplace, SNod
     }
 }
 static TreeResult LLRBTree_removeSelf_234(SNode *node, SNode *nodeToReplace, SNode *nodeReplace, SSkeletonNode *skeletonReplace) {
-    assert(false, "LLRB: not implemented.");
-    TreeResult result = {};
-    return result;
+/****************************************
+ * begin same code as 2-3 mode
+ ****************************************/
+    // @Warn: Need to use `getColorWithHint` instead of `getColor` when querying the color of certain siblings due to broken parent-child relationship of certain sibling; see the @Warn at the end of this function.
+    SNode *parent = node->parent;
+    assert(parent != NULL, "LLRB: removing last node.");
+    SNode *sibling = getSibling(node);
+    if (getColor(parent) == RED) {
+        SNode *grandparent = parent->parent;
+        assert(grandparent != NULL, "LLRB: invalid red root.");
+/****************************************
+ * end same code as 2-3 mode
+ ****************************************/
+        SNode *parentSibling = getSibling(parent);
+        if (getColorWithHint(parentSibling, grandparent) == RED) { // B1 -> (R2 -> B4* B5*) (R3 -> B6* B7*) => B' -> (R2 -> B4 B5) B6 or 2,4,5 <-> 3,6,7
+            SNode *nodeNew = LLRBTree_new(rand(), parentSibling, RED, nodeToReplace == sibling ? nodeReplace : sibling, BLACK);
+            if (nodeToReplace != NULL && nodeToReplace != sibling) {
+                LLRBTree_replaceChild(parentSibling, nodeToReplace, nodeReplace);
+            }
+            LLRBTree_replaceSelf(grandparent, nodeNew);
+            TreeResult result = {
+                getRoot(nodeNew),
+                Skeleton_wholeDirectPath(Skeleton_new(nodeNew,
+                    Skeleton_newInternal(parentSibling,
+                        nodeReplace == parentSibling->children[0] ? skeletonReplace : NULL,
+                        nodeReplace == parentSibling->children[1] ? skeletonReplace : NULL,
+                    nodeReplace),
+                    nodeToReplace == sibling ? skeletonReplace : NULL,
+                nodeReplace)),
+            };
+            return result;
+/****************************************
+ * begin same code as 2-3 mode
+ *
+ * except:
+ * - `parentSiblingsIsomorph` has at most length 3 instead of 2
+ * - color of "RB6" is not necessarily `BLACK`
+ * and the code changes only in accordance with these differences
+ ****************************************/
+        } else { // B1 -> (R2 -> B4* B5*) B3 => B' -> B3 B4 or 4 <-> 5
+            assert(parent == grandparent->children[0], "LLRB: invalid red right child.");
+            assert(nodeToReplace == NULL || nodeToReplace == parentSibling || nodeToReplace == sibling, "LLRB: node to replace is not sibling.");
+            SNode *nodeNew = LLRBTree_new(rand(), nodeToReplace == parentSibling ? nodeReplace : parentSibling, BLACK, nodeToReplace == sibling ? nodeReplace : sibling, BLACK);
+            LLRBTree_replaceSelf(grandparent, nodeNew);
+            TreeResult result = {
+                getRoot(nodeNew),
+                Skeleton_wholeDirectPath(Skeleton_new(nodeNew,
+                    nodeReplace == nodeNew->children[0] ? skeletonReplace : NULL,
+                    nodeReplace == nodeNew->children[1] ? skeletonReplace : NULL,
+                nodeReplace)),
+            };
+            return result;
+        }
+    } else {
+        if (getColorWithHint(sibling, parent) == RED) { // B1 -> (R2 -> B4 B5) B3* => B2 -> B4 B5
+            assert(sibling == parent->children[0], "LLRB: invalid right red sibling.");
+            if (nodeReplace != NULL) {
+                LLRBTree_replaceChild(sibling, nodeToReplace, nodeReplace);
+            }
+            LLRBTree_replaceSelf(parent, sibling); // @Note: The color is automatically flipped as `sibling` inherits the color `BLACK` of `parent`.
+            SSkeletonNode *skeletonSibling = Skeleton_newInternal(sibling,
+                nodeReplace == sibling->children[0] ? skeletonReplace : NULL,
+                nodeReplace == sibling->children[1] ? skeletonReplace : NULL,
+            nodeReplace);
+            if (skeletonSibling == NULL) {
+                SNode *grandparent = sibling->parent;
+                if (grandparent == NULL) {
+                    TreeResult result = {
+                        sibling, // @Note: == getRoot(sibling)
+                        NULL,
+                    };
+                    return result;
+                }
+                TreeResult result = {
+                    getRoot(grandparent),
+                    Skeleton_wholeDirectPath(Skeleton_new(grandparent,
+                        NULL,
+                        NULL,
+                    sibling)), // @Note: `sibling` is equivalent to NULL and both children are NULL.
+                };
+                return result;
+            }
+            TreeResult result = {
+                getRoot(sibling),
+                Skeleton_wholeDirectPath(skeletonSibling),
+            };
+            return result;
+        } else { // B1 -> B2* B3* => shrink or borrow or merge
+            assert(nodeToReplace == NULL || nodeToReplace == sibling, "LLRB: node to replace is not sibling.");
+            SNode *grandparent = parent->parent;
+            if (grandparent == NULL) { // shrink: B1 -> B2* B3* => B2 or 2 <-> 3
+                if (nodeToReplace == NULL) {
+                    sibling->parent = NULL;
+                }
+                TreeResult result = {
+                    nodeToReplace != NULL ? nodeReplace : sibling,
+                    nodeToReplace != NULL ? skeletonReplace : NULL,
+                };
+                return result;
+            }
+            SNode *parentSiblingsIsomorph[3] = {NULL, NULL, NULL};
+            SNode *grandparentIsomorph = grandparent;
+            {
+                SNode *parentSibling = getSibling(parent);
+                if (getColorWithHint(parentSibling, grandparent) == BLACK) {
+                    parentSiblingsIsomorph[0] = parentSibling;
+                    if (getColor(grandparent) == RED) {
+                        SNode *grandgrandParent = grandparent->parent;
+                        SNode *grandparentSibling = getSibling(grandparent);
+                        if (getColor(grandparentSibling) == RED) {
+                            parentSiblingsIsomorph[1] = grandparentSibling->children[0];
+                            parentSiblingsIsomorph[2] = grandparentSibling->children[1];
+                        } else {
+                            parentSiblingsIsomorph[1] = grandparentSibling;
+                        }
+                        grandparentIsomorph = grandgrandParent;
+                    }
+                } else {
+                    parentSiblingsIsomorph[0] = parentSibling->children[0];
+                    parentSiblingsIsomorph[1] = parentSibling->children[1];
+                }
+            }
+            for (int i = 0; i < 3; ++i) { // try borrow cousin from some parent's sibling (under isomorphism): B1 -> B2* B3* ++ B4 -> (R5 -> B7 B8) RB6) => B' -> RB6 B2 ++ B5 -> B7 B8 or 2 <-> 3
+                if (parentSiblingsIsomorph[i] == NULL) {
+                    continue;
+                }
+                SNode *parentSibling = parentSiblingsIsomorph[i];
+                if (getColor(parentSibling->children[0]) != RED) {
+                    continue;
+                }
+                SNode *parentNew = LLRBTree_new(rand(), parentSibling->children[1], getColor(parentSibling->children[1]), nodeToReplace != NULL ? nodeReplace : sibling, BLACK);
+                SNode *grandparentNew = LLRBTree_new(rand(), parentNew, BLACK, parentSibling->children[0], BLACK);
+                SSkeletonNode *skeletonGrandparentNew = Skeleton_new(grandparentNew,
+                    Skeleton_new(parentNew,
+                        NULL,
+                        nodeToReplace != NULL ? skeletonReplace : NULL,
+                    nodeReplace),
+                    NULL,
+                parentNew);
+                SNode *parentSiblingOther1 = parentSiblingsIsomorph[(int)(i == 0)], *parentSiblingOther2 = parentSiblingsIsomorph[2 - (int)(i == 2)];
+                if (parentSiblingOther1 == NULL && parentSiblingOther2 == NULL) {
+                    LLRBTree_replaceSelf(grandparentIsomorph, grandparentNew);
+                    TreeResult result = {
+                        getRoot(grandparentNew),
+                        Skeleton_wholeDirectPath(skeletonGrandparentNew),
+                    };
+                    return result;
+                } else if (parentSiblingOther2 == NULL) {
+                    SNode *nodeNew = LLRBTree_new(rand(), grandparentNew, RED, parentSiblingOther1, BLACK);
+                    LLRBTree_replaceSelf(grandparentIsomorph, nodeNew);
+                    TreeResult result = {
+                        getRoot(nodeNew),
+                        Skeleton_wholeDirectPath(Skeleton_new(nodeNew,
+                            skeletonGrandparentNew,
+                            NULL,
+                        grandparentNew)),
+                    };
+                    return result;
+                } else {
+                    SNode *grandparentSiblingNew = LLRBTree_new(rand(), parentSiblingOther1, BLACK, parentSiblingOther2, BLACK);
+                    SNode *nodeNew = LLRBTree_new(rand(), grandparentNew, RED, grandparentSiblingNew, RED);
+                    LLRBTree_replaceSelf(grandparentIsomorph, nodeNew);
+                    TreeResult result = {
+                        getRoot(nodeNew),
+                        Skeleton_wholeDirectPath(Skeleton_new(nodeNew,
+                            skeletonGrandparentNew,
+                            Skeleton_new(grandparentSiblingNew,
+                                NULL,
+                                NULL,
+                            NULL),
+                        grandparentNew)),
+                    };
+                    return result;
+                }
+            }
+            SNode *parentSibling = parentSiblingsIsomorph[0]; // if fail to borrow then merge into parent's arbirtary sibling (under isomorphism): B1 -> B2* B3* ++ B4 -> B5 B6 => B' -> (R4 -> B5 B6) B2 or 2 <-> 3
+            SNode *nodeNew = LLRBTree_new(rand(), parentSibling, RED, nodeToReplace != NULL ? nodeReplace : sibling, BLACK);
+            return LLRBTree_removeSelf_234(parent, parentSibling, nodeNew, Skeleton_new(nodeNew,
+                NULL,
+                nodeToReplace != NULL ? skeletonReplace : NULL,
+            nodeReplace)); // @Warn: `parentSibling` becomes child of `nodeNew` while being sibling (under isomorphism) of `parent` at the beginning of recursion, which forms a (temporary) broken parent-child relationship.
+        }
+    }
+/****************************************
+ * end same code as 2-3 mode
+ ****************************************/
 }
 
 static SNode *LLRBTree_init_23(int *ids, int n, int h) {
@@ -437,8 +698,38 @@ static SNode *LLRBTree_init_23(int *ids, int n, int h) {
         LLRBTree_init_23(ids + n1 + n2, n - n1 - n2, h - 1), BLACK);
 }
 static SNode *LLRBTree_init_234(int *ids, int n, int h) {
-    assert(false, "LLRB: not implemented.");
-    return NULL;
+/****************************************
+ * begin same code as 2-3 mode
+ ****************************************/
+    if (n == 1) {
+        assert(h == 0, "LLRB: impossible height.");
+        return LLRBTree_new(ids[0], NULL, BLACK, NULL, BLACK);
+    }
+    int N = (int) pow(2, h - 1);
+    if (n < 3 * N) {
+        int n1 = n - n / 2; // ceil(n / 2.0)
+        return LLRBTree_new(rand(),
+            LLRBTree_init_234(ids, n1, h - 1), BLACK,
+            LLRBTree_init_234(ids + n1, n - n1, h - 1), BLACK);
+    } else if (n < 4 * N) {
+        int n1 = n / 3 + (int)(n % 3 >= 1), n2 = n / 3 + (int)(n % 3 >= 2);
+        return LLRBTree_new(rand(),
+            LLRBTree_new(rand(),
+                LLRBTree_init_234(ids, n1, h - 1), BLACK,
+                LLRBTree_init_234(ids + n1, n2, h - 1), BLACK), RED,
+            LLRBTree_init_234(ids + n1 + n2, n - n1 - n2, h - 1), BLACK);
+/****************************************
+ * end same code as 2-3 mode
+ ****************************************/
+    }
+    int n1 = n / 4 + (int)(n % 4 >= 1), n2 = n / 4 + (int)(n % 4 >= 2), n3 = n / 4 + (int)(n % 4 >= 3);
+    return LLRBTree_new(rand(),
+        LLRBTree_new(rand(),
+            LLRBTree_init_234(ids, n1, h - 1), BLACK,
+            LLRBTree_init_234(ids + n1, n2, h - 1), BLACK), RED,
+        LLRBTree_new(rand(),
+            LLRBTree_init_234(ids + n1 + n2, n3, h - 1), BLACK,
+            LLRBTree_init_234(ids + n1 + n2 + n3, n - n1 - n2 - n3, h - 1), BLACK), RED);
 }
 
 // LLRB interface operations
