@@ -39,7 +39,7 @@ int main() {
   initList(users);
 
   struct LBBT *lbbt = (struct LBBT *) lbbt_init(ids, n, 0, 0, users).tree;
-  pretty_traverse_tree(lbbt->root, 0, &printIntLine);
+  pretty_traverse_tree(lbbt, lbbt->root, 0, &printIntLine);
   printf("traverse users list:\n");
   traverseList(users, &printIntLine);
   printf("rightmost leaf: %d\n", *(int *) lbbt->rightmost_leaf->data);  
@@ -52,7 +52,7 @@ int main() {
     struct Node *added = lbbt_add(lbbt, i).added;
     addFront(users, (void *) added);
     printf("added: %d\n", *(int *)added->data);
-    pretty_traverse_tree(lbbt->root, 0, &printIntLine);
+    pretty_traverse_tree(lbbt, lbbt->root, 0, &printIntLine);
     printf("traverse users list:\n");
     traverseList(users, &printIntLine);    
     printf("rightmost leaf: %d\n", *(int *) lbbt->rightmost_leaf->data);
@@ -66,7 +66,7 @@ int main() {
   traverseList(users, &printIntLine);  
   id = lbbt_rem((void *) lbbt, rem).id;
   printf("removed node data: %d\n", id);
-  pretty_traverse_tree(lbbt->root, 0, &printIntLine);
+  pretty_traverse_tree(lbbt, lbbt->root, 0, &printIntLine);
   printf("\n traverse blank list \n");
   traverseList(lbbt->blanks, &printIntLine);
   printf("rightmost leaf: %d\n", *(int *) lbbt->rightmost_leaf->data);
@@ -81,7 +81,7 @@ int main() {
   printf("\n traverse blank list \n");
   traverseList(lbbt->blanks, &printIntLine);
 
-  pretty_traverse_tree(lbbt->root, 0, &printIntLine);
+  pretty_traverse_tree(lbbt, lbbt->root, 0, &printIntLine);
   printf("rightmost leaf: %d\n", *(int *) lbbt->rightmost_leaf->data);
 
   printf("\n\n\n==================================\n");
@@ -91,7 +91,7 @@ int main() {
     struct Node *added = lbbt_add(lbbt, i).added;
     printf("added: %d\n", *(int *)added->data);
     addFront(users, (void *) added);    
-    pretty_traverse_tree(lbbt->root, 0, &printIntLine);
+    pretty_traverse_tree(lbbt, lbbt->root, 0, &printIntLine);
     printf("traverse users list:\n");
     traverseList(users, &printIntLine);    
     printf("rightmost leaf: %d\n", *(int *) lbbt->rightmost_leaf->data);
@@ -104,7 +104,7 @@ int main() {
     traverseList(users, &printIntLine);
     id = lbbt_rem((void *) lbbt, rem).id;
     printf("removed node data: %d\n", id);
-    pretty_traverse_tree(lbbt->root, 0, &printIntLine);    
+    pretty_traverse_tree(lbbt, lbbt->root, 0, &printIntLine);    
     printf("\n traverse blank list \n");
     traverseList(lbbt->blanks, &printIntLine);
     printf("rightmost leaf: %d\n", *(int *) lbbt->rightmost_leaf->data);
