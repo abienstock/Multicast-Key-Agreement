@@ -110,7 +110,7 @@ int next_op(struct Multicast **mult_trees, struct List *users, int *max_id, floa
   if (operation < add_wt || num_users == 1) { // force add with n=1
     (*max_id)++; //so adding new users w.l.o.g..
     printf("add: %d\n", *max_id);
-    for (i = 0; i < 3; i++) { //TODO: no hardcode?
+    for (i = 0; i < 2; i++) { //TODO: no hardcode?
       struct MultAddRet add_ret = mult_add(mult_trees[i], *max_id, sampler, generator);
       if (crypto && i == crypto_tree) {
 	struct User *user = init_user(*max_id, mult_trees[i]->prg_out_size, mult_trees[i]->seed_size);
@@ -216,7 +216,7 @@ int main(int argc, char *argv[]) {
     die_with_error(usage);
   }
 
-  struct Multicast *mult_trees[3];
+  struct Multicast *mult_trees[2];
   struct MultInitRet lbbt_init_ret;
   if (crypto && crypto_tree == 0)
     lbbt_init_ret = mult_init(n, 1, lbbt_flags, 0, sampler, generator);
@@ -234,15 +234,13 @@ int main(int argc, char *argv[]) {
   }
   mult_trees[1] = btree_init_ret.multicast;
 
-  struct MultInitRet rbtree_init_ret;
+  /*struct MultInitRet rbtree_init_ret;
   if (crypto && crypto_tree == 1)
     rbtree_init_ret = mult_init(n, 1, btree_flags, 2, sampler, generator);
   else {
     rbtree_init_ret = mult_init(n, 0, btree_flags, 2, sampler, generator);
   }
-  mult_trees[2] = btree_init_ret.multicast;
-
-
+  mult_trees[2] = rbtree_init_ret.multicast;*/
 
   struct MultInitRet crypto_init_ret;  
   if (crypto) {
@@ -255,10 +253,10 @@ int main(int argc, char *argv[]) {
       crypto_init_ret = btree_init_ret;
       break;
     }
-    case 2: {
+      /*case 2: {
       crypto_init_ret = rbtree_init_ret;
       break;
-    }
+      }*/
     }
   }
   
