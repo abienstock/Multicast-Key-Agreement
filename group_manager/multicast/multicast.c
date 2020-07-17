@@ -162,8 +162,9 @@ struct MultAddRet mult_add(struct Multicast *multicast, int id, void *sampler, v
   struct AddRet add_ret = { NULL, NULL };
   if (multicast->tree_type == 0)
     add_ret = lbbt_add(multicast->tree, id);
-  //  else
-  //    added = gen_tree_add(multicast->tree, data, &btree_add);
+  else if (multicast->tree_type == 1)
+    add_ret = btree_add(multicast->tree, id); // TODO: bring back gen funcs!
+    //add_ret = gen_tree_add(multicast->tree, data, &btree_add);
 
   addAfter(multicast->users, multicast->users->tail, (void *) add_ret.added);
   ret.added = add_ret.added;
@@ -190,7 +191,7 @@ struct SkeletonNode *gen_upd_skel(struct Node *node, struct Node *child, struct 
 
     int i, child_pos = 0;
     if (child != NULL) {
-      int *children_color = malloc_check(sizeof(int) * 2);
+      int *children_color = malloc_check(sizeof(int) * node->num_children);
       for (i = 0; i < node->num_children; i++) {
 	if (child == *(node->children + i)) {
 	  child_pos = i;
@@ -247,8 +248,9 @@ struct RemRet mult_rem(struct Multicast *multicast, int user, void *sampler, voi
   struct Node *user_node = (struct Node *) findAndRemoveNode(multicast->users, user);
   if (multicast->tree_type == 0)
     ret = lbbt_rem(multicast->tree, user_node);
-  //    else
-  //      gen_tree_rem(multicast->tree, user, &btree_rem);
+  else if (multicast->tree_type == 1)
+    ret = btree_rem(multicast->tree, user_node);
+    //ret = gen_tree_rem(multicast->tree, user, &btree_rem);
 
   free(secret_gen(multicast, ret.skeleton, NULL, sampler, generator));
   return ret;

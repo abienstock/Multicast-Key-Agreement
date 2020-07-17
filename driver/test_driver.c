@@ -17,28 +17,31 @@
   if (node->children_color == NULL)
     printf("no children");
   else {
-    printf("left: %d, ", *(node->children_color));
-    if (*(node->children_color) == 1) {
-      struct Ciphertext *left_ct = *node->ciphertexts;
-      printf("left ct: %d, parent id: %d, child id: %d, ", *((int *) left_ct->ct), left_ct->parent_id, left_ct->child_id);
-    }
-    printf("right: %d, ", *(node->children_color+1));
-    if (*(node->children_color + 1) == 1) {
-      struct Ciphertext *right_ct = *(node->ciphertexts + 1);
-      printf("right ct: %d, parent id: %d, child id: %d.", *((int *) right_ct->ct), right_ct->parent_id, right_ct->child_id);
-    }
+    int i;
+    for (i = 0; i < node->node->num_children; i++)
+      printf("child %d: %d, ", i, *(node->children_color + i));
+    //if (*(node->children_color + i) == 1) {
+    //  struct Ciphertext *ct = *node->ciphertexts + i;
+    //  printf("ct: %d, parent id: %d, child id: %d, ", *((int *) ct->ct), node->node_id, ct->child_id);
+    //}
   }
+}
+
+static void printIntLine(void *p) {
+  struct NodeData *data = (struct NodeData *) ((struct Node *) p)->data;
+  struct BTreeNodeData *btree_data = (struct BTreeNodeData *) data->tree_node_data;
+  printf("id: %d, height: %d, opt add child: %d, lowest nonfull: %d, num_children: %d, num leaves: %d", data->id, btree_data->height, btree_data->opt_add_child, btree_data->lowest_nonfull, ((struct Node *) p)->num_children, ((struct Node *) p)->num_leaves);
 }
 
 static void printNode(void *p) {
   struct NodeData *data = (struct NodeData *) ((struct Node *) p)->data;
-  if (data->blank == 1)
-    printf("BLANK, id: %d", data->id);
-  else {
-    printf("id: %d, ", data->id);
-    printf("key: %d, ", *((int *)data->key));
-    printf("seed: %d.", *((int *)data->seed));
-  }
+  //if (data->blank == 1)
+  //printf("BLANK, id: %d", data->id);
+  //else {
+  printf("id: %d, ", data->id);
+  //printf("key: %d, ", *((int *)data->key));
+  //printf("seed: %d.", *((int *)data->seed));
+  //}
 }
 
 static void print_secrets(void *data) {
@@ -112,10 +115,10 @@ int next_op(struct Multicast **mult_trees, struct List *users, int *max_id, floa
     printf("add: %d\n", *max_id);
     for (i = 0; i < 2; i++) { //TODO: no hardcode?
       struct MultAddRet add_ret = mult_add(mult_trees[i], *max_id, sampler, generator);
+      skeleton = add_ret.skeleton;
       if (crypto && i == crypto_tree) {
 	struct User *user = init_user(*max_id, mult_trees[i]->prg_out_size, mult_trees[i]->seed_size);
 	addAfter(users, users->tail, (void *) user);
-	skeleton = add_ret.skeleton;
 	oob_seeds = add_ret.oob_seeds;	
       } // TODO: free non-crypto skeletons here?
     }
@@ -123,34 +126,33 @@ int next_op(struct Multicast **mult_trees, struct List *users, int *max_id, floa
     op = 0;
   } else if (operation < add_wt + upd_wt) { // update
     int user_num = rand_int(num_users, distrib, geo_param); // user to update chosen w.r.t. time of addition to group
-    for (i = 0; i < 3; i++) { //TODO: no hardcode
+    for (i = 0; i < 2; i++) { //TODO: no hardcode
       struct MultUpdRet upd_ret = mult_update(mult_trees[i], user_num, sampler, generator);
+      skeleton = upd_ret.skeleton;
       id = ((struct NodeData *) upd_ret.updated->data)->id;      
-      if (crypto && i == crypto_tree) {
-	skeleton = upd_ret.skeleton;
+      if (crypto && i == crypto_tree)
 	oob_seeds = upd_ret.oob_seeds;
-      }
     }
     printf("upd: %d\n", id);    
     op = 1;
   } else { // rem
     int user_num = rand_int(num_users, distrib, geo_param); // user to update chosen w.r.t. time of addition to group 
     printf("user_num: %d\n", user_num);
-    for (i = 0; i < 3; i++) { //TODO: no hardcode?
+    for (i = 0; i < 2; i++) { //TODO: no hardcode?
       struct RemRet rem_ret = mult_rem(mult_trees[i], user_num, sampler, generator);
+      skeleton = rem_ret.skeleton;
       id = rem_ret.id;      
       if (crypto && i  == crypto_tree) {
 	struct User *user = (struct User *) findAndRemoveNode(users, user_num);
 	free_user(user);
-	skeleton = rem_ret.skeleton;
 	oob_seeds = NULL;	
       }
     }
     printf("rem: %d\n", id);
     op = 2;
   }
-  //pretty_traverse_tree(((struct LBBT *)multicast->tree)->root, 0, &printNode);
-  //pretty_traverse_skeleton(add_ret.skeleton, 0, &printSkeleton);  
+  //pretty_traverse_tree(mult_trees[1]->tree, ((struct LBBT *)mult_trees[1]->tree)->root, 0, &printIntLine); //TODO: not just LBBT
+  //pretty_traverse_skeleton(skeleton, 0, &printSkeleton);  
   if (crypto) {
     check_agreement(mult_trees[crypto_tree], users, id, skeleton, oob_seeds, generator);
   }
@@ -224,8 +226,6 @@ int main(int argc, char *argv[]) {
     lbbt_init_ret = mult_init(n, 0, lbbt_flags, 0, sampler, generator);
   }
   mult_trees[0] = lbbt_init_ret.multicast;
-  //pretty_traverse_tree(((struct LBBT *)init_ret.multicast->tree)->root, 0, &printNode);
-  //pretty_traverse_skeleton(init_ret.skeleton, 0, &printSkeleton);
   struct MultInitRet btree_init_ret;
   if (crypto && crypto_tree == 1)
     btree_init_ret = mult_init(n, 1, btree_flags, 1, sampler, generator);
@@ -233,6 +233,8 @@ int main(int argc, char *argv[]) {
     btree_init_ret = mult_init(n, 0, btree_flags, 1, sampler, generator);
   }
   mult_trees[1] = btree_init_ret.multicast;
+  //pretty_traverse_tree(btree_init_ret.multicast->tree, ((struct BTree *)btree_init_ret.multicast->tree)->root, 0, &printIntLine);
+  //pretty_traverse_skeleton(btree_init_ret.skeleton, 0, &printSkeleton);
 
   /*struct MultInitRet rbtree_init_ret;
   if (crypto && crypto_tree == 1)

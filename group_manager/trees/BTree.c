@@ -59,7 +59,7 @@ struct _InitRet btree_root_init(int order, int h, int n, int leftmost_id, int *i
   
   data->id = rand();
   skeleton->node_id = data->id;
-  struct Node **children = malloc_check(sizeof(struct Node *) * num_children);
+  struct Node **children = malloc_check(sizeof(struct Node *) * order);
   root->children = children;
   root->num_children = num_children;
 
@@ -91,6 +91,8 @@ struct _InitRet btree_root_init(int order, int h, int n, int leftmost_id, int *i
     }
     extras += extra;
   }
+  for (; i < order; i++)
+    *children++ = NULL;
   if (lowest_nonfull == INT_MAX && num_children < order)
     lowest_nonfull = h;
   btree_data->lowest_nonfull = lowest_nonfull;
@@ -127,6 +129,7 @@ struct InitRet btree_init(int *ids, int n, int add_strat, int order, struct List
  * recursively update lowest_nonfull and opt_add_child along the direct path of node
  * and build the skeleton consisting of PRGs on the direct path and encryptions on the copath.
  * child and child_skel are always non-NULL.
+ * PARENT IS NEVER A LEAF UNLESS IT IS ALSO THE ROOT!!
  */
 struct SkeletonNode *update_add_hints_build_skel(struct Node *parent, struct Node *child, struct Node *sibling, struct SkeletonNode *child_skel, struct SkeletonNode *sibling_skel, int order, int recurse) {
   struct Node **children = parent->children;
@@ -136,6 +139,12 @@ struct SkeletonNode *update_add_hints_build_skel(struct Node *parent, struct Nod
   parent_skel->node_id = parent_data->id;
   parent_skel->node = parent;
   parent_skel->ciphertexts = NULL;
+  if (children == NULL) {
+    parent_skel->parent = NULL;
+    parent_skel->children_color = NULL;
+    parent_skel->children = NULL;
+    return parent_skel;
+  }
   int *children_color = malloc_check(sizeof(int) * parent->num_children);
   struct SkeletonNode **skel_children = malloc_check(sizeof(struct SkeletonNode *) * parent->num_children);
   
@@ -166,9 +175,12 @@ struct SkeletonNode *update_add_hints_build_skel(struct Node *parent, struct Nod
       if (*(children + i) == child) {
 	*(children_color + j) = 0;
 	*(skel_children + j) = child_skel;
+	child_skel->parent = parent_skel;
       } else if (*(children + i) == sibling) {
 	*(children_color + j) = 1;
 	*(skel_children + j) = sibling_skel;
+	if (sibling_skel != NULL)
+	  sibling_skel->parent = parent_skel;
       } else {
 	*(children_color + j) = 1;
 	*(skel_children + j) = NULL;
@@ -178,9 +190,6 @@ struct SkeletonNode *update_add_hints_build_skel(struct Node *parent, struct Nod
   }
   parent_skel->children_color = children_color;
   parent_skel->children = skel_children;
-  child_skel->parent = parent_skel;
-  if (sibling_skel != NULL)
-    sibling_skel->parent = parent_skel;
   
   // TODO: set opt_add_child to first non-NULL?
   if (parent_btree_data->lowest_nonfull == INT_MAX && parent->num_children < order)
@@ -209,8 +218,10 @@ struct SkeletonNode *add_node(struct Node *parent, struct Node *child, struct No
     // find first NULL child add put new child node there, also adjust skeleton
     int i;
     for (i = 0; i < order; i++) {
-      if (*(parent->children + i) == NULL)
+      if (*(parent->children + i) == NULL) {
 	*(parent->children + i) = child;
+	break;
+      }
     }
     parent->num_children++;
     child->parent = parent;
@@ -233,20 +244,24 @@ struct SkeletonNode *add_node(struct Node *parent, struct Node *child, struct No
     split->children = split_children;    
     *split_children++ = child;
     child->parent = split;      
+    int j = 1;
     if (sibling != NULL) {
       *split_children++ = sibling;
       sibling->parent = split;
+      j++;
     }
     split->num_children = half + 1;
     parent->num_children = ceil(order / 2.0);
-    int i, j = 2;
-    for (i = 0; i < order && j < half + 1; i++) {
-      if (*(parent->children + i) != sibling) {
+    int i;
+    for (i = 0; i < order; i++) {
+      if (j < half + 1 && *(parent->children + i) != sibling) {
 	struct Node *moved_child = *(parent->children + i);
 	*split_children++ = moved_child;
 	*(parent->children + i) = NULL;
 	moved_child->parent = split;
 	j++;
+      } else if (*(parent->children + i) == sibling && sibling != NULL) {
+	*(parent->children + i) = NULL;
       }
     }
     for (; j < order; j++)
@@ -302,7 +317,7 @@ struct SkeletonNode *add_node(struct Node *parent, struct Node *child, struct No
  * If n=1, the parent is the only node in the tree.
  */
 struct Node *find_add_parent(struct Node *root, int order) {
-  if (root->num_leaves <= order)
+  if (root->num_leaves == root->num_children || root->num_children == 0)
     return root;
   int opt_add_child = ((struct BTreeNodeData *) ((struct NodeData *) root->data)->tree_node_data)->opt_add_child;
   return find_add_parent(*(root->children + opt_add_child), order);
@@ -410,6 +425,7 @@ struct SkeletonNode *remove_node(struct Node *parent, struct Node *child, struct
 		  *(sibling_children + k) = moved_child;
 		  moved_child->parent = sibling;
 		  sibling->num_children++;
+		  break;
 		}
 	      }
 	    }
@@ -427,8 +443,12 @@ struct SkeletonNode *remove_node(struct Node *parent, struct Node *child, struct
       }
       new_root->parent = NULL;
       btree->root = new_root;
-      child_sibling_skel->parent = NULL;
-      return child_sibling_skel;
+      if (child_sibling_skel != NULL) {
+	child_sibling_skel->parent = NULL;
+	return child_sibling_skel;
+      } else {
+	return update_add_hints_build_skel(new_root, NULL, NULL, NULL, NULL, order, 1);
+      }
     } else {
       return update_add_hints_build_skel(parent, child_sibling, NULL, child_sibling_skel, NULL, order, 1);
     }
