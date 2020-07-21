@@ -14,7 +14,7 @@ struct BTreeNodeData {
   int lowest_nonfull; // lowest level in subtree in which there is a nonfull node
   int opt_add_child; // 0-indexed child which has lowest nonfull node
   int height; // height of node in tree
-}
+};
   
 enum LLRBTreeColor {BLACK, RED};
 struct LLRBTreeNodeData {
