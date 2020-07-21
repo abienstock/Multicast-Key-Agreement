@@ -24,7 +24,8 @@ static struct Node *traceSkeleton(struct SkeletonNode *skeleton) {
 static void processSkeleton(struct Node *node, struct SkeletonNode *skeleton) {
     assert(skeleton->node == node, "Skeleton: broken skeleton tree.");
     ((struct NodeData *) node->data)->key = malloc_check(1);
-    for (int i = 0; i < node->num_children; ++i) {
+    int i;
+    for (i = 0; i < node->num_children; ++i) {
         if (skeleton->children[i] != NULL) {
             processSkeleton(node->children[i], skeleton->children[i]);
         } else {
@@ -34,7 +35,8 @@ static void processSkeleton(struct Node *node, struct SkeletonNode *skeleton) {
 }
 
 static void printTree(struct Node *root, int depth) {
-    for (int i = 0; i < depth; ++i) {
+    int i;
+    for (i = 0; i < depth; ++i) {
         printf("___");
     }
     printf("\\__");
@@ -51,7 +53,8 @@ static void printTree(struct Node *root, int depth) {
 
 static void verifyTree(struct Node *node) {
     assert(((struct NodeData *) node->data)->key != NULL, "Verify: NULL secret.");
-    for (int i = 0; i < node->num_children; ++i) {
+    int i;
+    for (i = 0; i < node->num_children; ++i) {
         assert(node->children[i] != NULL, "Verify: NULL child.");
         assert(node->children[i]->parent == node, "Verify: broken parent-child relationship.");
         verifyTree(node->children[i]);
@@ -60,7 +63,8 @@ static void verifyTree(struct Node *node) {
 
 static void LLRBTree_test(int add_strat, int mode_order, int n, int T, int verbose) {
     int *ids = malloc_check(sizeof(int) * n);
-    for (int i = 0; i < n; ++i) {
+    int i;
+    for (i = 0; i < n; ++i) {
         ids[i] = i;
     }
     struct List users;
@@ -73,10 +77,12 @@ static void LLRBTree_test(int add_strat, int mode_order, int n, int T, int verbo
     if (verbose >= 3) printTree(((struct LLRBTree *) tree)->root, 0);
     if (((struct LLRBTree *) tree)->root->num_leaves <= 1000) verifyTree(((struct LLRBTree *) tree)->root);
     int id = n;
-    for (int t = 0; t < T; ++t) {
+    int t;
+    for (t = 0; t < T; ++t) {
         int addN = rand() % (n * 2 - users.len);
         if (verbose >= 1) printf("add count: %d\n", addN);
-        for (int i = 0; i < addN; ++i) {
+	int i;
+        for (i = 0; i < addN; ++i) {
             if (verbose >= 3) printf("to add: %d\n", id+1);
             struct AddRet resultAdd = LLRBTree_add(tree, id++);
             if (verbose >= 3) printf("to process skeleton\n");
@@ -90,7 +96,7 @@ static void LLRBTree_test(int add_strat, int mode_order, int n, int T, int verbo
         }
         int removeN = rand() % (users.len - 1);
         if (verbose >= 1) printf("remove count: %d\n", removeN);
-        for (int i = 0; i < removeN; ++i) {
+        for (i = 0; i < removeN; ++i) {
             struct Node *nodeRemove = (struct Node *) findAndRemoveNode(&users, rand() % users.len);
             if (verbose >= 3) printf("to remove: %d\n", ((struct NodeData *) nodeRemove->data)->id);
             struct RemRet resultRemove = LLRBTree_rem(tree, nodeRemove);
@@ -117,9 +123,10 @@ int main() {
 
     int add_strat_list[] = {LLRBTree_STRAT_GREEDY, LLRBTree_STRAT_RANDOM};
     int mode_order_list[] = {LLRBTree_MODE_23, LLRBTree_MODE_234};
-    for (int i = 0; i < sizeof(add_strat_list) / sizeof(int); ++i) {
+    int i;
+    for (i = 0; i < sizeof(add_strat_list) / sizeof(int); ++i) {
         int add_strat = add_strat_list[i];
-        for (int i = 0; i < sizeof(mode_order_list) / sizeof(int); ++i) {
+        for (i = 0; i < sizeof(mode_order_list) / sizeof(int); ++i) {
             int mode_order = mode_order_list[i];
             printf("test small RB tree (strat: %d, mode: %d)\n", add_strat, mode_order);
             LLRBTree_test(add_strat, mode_order, 30, 1000, 0);

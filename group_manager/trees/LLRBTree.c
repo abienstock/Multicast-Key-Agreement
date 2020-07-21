@@ -448,7 +448,8 @@ static TreeResult LLRBTree_removeSelf_23(SNode *node, SNode *nodeToReplace, SNod
                     parentSiblingsIsomorph[1] = parentSibling->children[1];
                 }
             }
-            for (int i = 0; i < 2; ++i) { // try borrow cousin from some parent's sibling (under isomorphism): B1 -> B2* B3* ++ B4 -> (R5 -> B7 B8) RB6) => B' -> RB6 B2 ++ B5 -> B7 B8 or 2 <-> 3
+	    int i;
+            for (i = 0; i < 2; ++i) { // try borrow cousin from some parent's sibling (under isomorphism): B1 -> B2* B3* ++ B4 -> (R5 -> B7 B8) RB6) => B' -> RB6 B2 ++ B5 -> B7 B8 or 2 <-> 3
                 if (parentSiblingsIsomorph[i] == NULL) {
                     continue;
                 }
@@ -619,7 +620,8 @@ static TreeResult LLRBTree_removeSelf_234(SNode *node, SNode *nodeToReplace, SNo
                     parentSiblingsIsomorph[1] = parentSibling->children[1];
                 }
             }
-            for (int i = 0; i < 3; ++i) { // try borrow cousin from some parent's sibling (under isomorphism): B1 -> B2* B3* ++ B4 -> (R5 -> B7 B8) RB6) => B' -> RB6 B2 ++ B5 -> B7 B8 or 2 <-> 3
+	    int i;
+            for (i = 0; i < 3; ++i) { // try borrow cousin from some parent's sibling (under isomorphism): B1 -> B2* B3* ++ B4 -> (R5 -> B7 B8) RB6) => B' -> RB6 B2 ++ B5 -> B7 B8 or 2 <-> 3
                 if (parentSiblingsIsomorph[i] == NULL) {
                     continue;
                 }
@@ -752,10 +754,12 @@ struct InitRet LLRBTree_init(int *ids, int n, int add_strat, int mode_order, str
     SNode *root;
     int h = ceil(log(n) / log(mode_order));
     switch (mode_order) {
-        case LLRBTree_MODE_23: {
+        //case LLRBTree_MODE_23: {
+        case 3: {
             root = LLRBTree_init_23(ids, n, h);
         } break;
-        case LLRBTree_MODE_234: {
+        //case LLRBTree_MODE_234: {
+        case 4: {
             root = LLRBTree_init_234(ids, n, h);
         } break;
         default: {
@@ -797,10 +801,12 @@ struct AddRet LLRBTree_add(void *tree, int id) {
     SSkeletonNode *skeletonAdd = Skeleton_new(nodeAdd, NULL, NULL, NULL);
     SNode *nodeAddPos;
     switch (add_strat) {
-        case LLRBTree_STRAT_GREEDY: {
+        //case LLRBTree_STRAT_GREEDY: {
+        case 0: {
             nodeAddPos = getRandomOptimalLeaf(root);
         } break;
-        case LLRBTree_STRAT_RANDOM: {
+	//case LLRBTree_STRAT_RANDOM: {
+        case 1: {
             nodeAddPos = getRandomLeaf(root);
         } break;
         default: {
@@ -809,10 +815,12 @@ struct AddRet LLRBTree_add(void *tree, int id) {
     }
     TreeResult resultAdd;
     switch (mode_order) {
-        case LLRBTree_MODE_23: {
+        //case LLRBTree_MODE_23: {
+        case 3: {
             resultAdd = LLRBTree_addSibling_23(nodeAddPos, nodeAdd, skeletonAdd, NULL, NULL);
         } break;
-        case LLRBTree_MODE_234: {
+	//case LLRBTree_MODE_234: {
+        case 4: {
             resultAdd = LLRBTree_addSibling_234(nodeAddPos, nodeAdd, skeletonAdd, NULL, NULL);
         } break;
         default: {
@@ -831,10 +839,12 @@ struct RemRet LLRBTree_rem(void *tree, SNode *node) {
     int id = ((SNodeData *) node->data)->id;
     TreeResult resultRemove;
     switch (mode_order) {
-        case LLRBTree_MODE_23: {
+        //case LLRBTree_MODE_23: {
+        case 3: {
             resultRemove = LLRBTree_removeSelf_23(node, NULL, NULL, NULL);
         } break;
-        case LLRBTree_MODE_234: {
+	//case LLRBTree_MODE_234: {
+        case 4: {
             resultRemove = LLRBTree_removeSelf_234(node, NULL, NULL, NULL);
         } break;
         default: {
