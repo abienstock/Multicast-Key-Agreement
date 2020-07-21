@@ -130,10 +130,10 @@ struct MultInitRet mult_init(int n, int crypto, int *tree_flags, int tree_type, 
   } else if (tree_type == 1) {
     tree_ret = btree_init(ids, n, *tree_flags, *(tree_flags + 1), users);
     tree = tree_ret.tree;
-  } /*else if (tree_type == 2) {
-    tree_ret = rbtree_init(ids, n, *tree_flags, *(tree_flags + 1), users);
+  } else if (tree_type == 2) {
+    tree_ret = LLRBTree_init(ids, n, *tree_flags, *(tree_flags + 1), users);
     tree = tree_ret.tree;
-    }*/
+  }
   
   struct List *oob_seeds = NULL;
   size_t prg_out_size = 0, seed_size = 0;
@@ -164,6 +164,8 @@ struct MultAddRet mult_add(struct Multicast *multicast, int id, void *sampler, v
     add_ret = lbbt_add(multicast->tree, id);
   else if (multicast->tree_type == 1)
     add_ret = btree_add(multicast->tree, id); // TODO: bring back gen funcs!
+  else
+    add_ret = LLRBTree_add(multicast->tree, id);
     //add_ret = gen_tree_add(multicast->tree, data, &btree_add);
 
   addAfter(multicast->users, multicast->users->tail, (void *) add_ret.added);
@@ -250,6 +252,8 @@ struct RemRet mult_rem(struct Multicast *multicast, int user, void *sampler, voi
     ret = lbbt_rem(multicast->tree, user_node);
   else if (multicast->tree_type == 1)
     ret = btree_rem(multicast->tree, user_node);
+  else
+    ret = LLRBTree_rem(multicast->tree, user_node);
     //ret = gen_tree_rem(multicast->tree, user, &btree_rem);
 
   free(secret_gen(multicast, ret.skeleton, NULL, sampler, generator));

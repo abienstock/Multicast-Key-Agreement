@@ -114,7 +114,7 @@ int next_op(struct Multicast **mult_trees, struct List *users, int *max_id, floa
   if (operation < add_wt || num_users == 1) { // force add with n=1
     (*max_id)++; //so adding new users w.l.o.g..
     printf("add: %d\n", *max_id);
-    for (i = 0; i < 2; i++) { //TODO: no hardcode?
+    for (i = 0; i < 3; i++) { //TODO: no hardcode?
       struct MultAddRet add_ret = mult_add(mult_trees[i], *max_id, sampler, generator);
       if (crypto && i == crypto_tree) {
 	struct User *user = init_user(*max_id, mult_trees[i]->prg_out_size, mult_trees[i]->seed_size);
@@ -127,7 +127,7 @@ int next_op(struct Multicast **mult_trees, struct List *users, int *max_id, floa
     op = 0;
   } else if (operation < add_wt + upd_wt) { // update
     int user_num = rand_int(num_users, distrib, geo_param); // user to update chosen w.r.t. time of addition to group
-    for (i = 0; i < 2; i++) { //TODO: no hardcode
+    for (i = 0; i < 3; i++) { //TODO: no hardcode
       struct MultUpdRet upd_ret = mult_update(mult_trees[i], user_num, sampler, generator);
       id = ((struct NodeData *) upd_ret.updated->data)->id;      
       if (crypto && i == crypto_tree) {
@@ -140,7 +140,7 @@ int next_op(struct Multicast **mult_trees, struct List *users, int *max_id, floa
   } else { // rem
     int user_num = rand_int(num_users, distrib, geo_param); // user to update chosen w.r.t. time of addition to group 
     printf("user_num: %d\n", user_num);
-    for (i = 0; i < 2; i++) { //TODO: no hardcode?
+    for (i = 0; i < 3; i++) { //TODO: no hardcode?
       struct RemRet rem_ret = mult_rem(mult_trees[i], user_num, sampler, generator);
       id = rem_ret.id;      
       if (crypto && i  == crypto_tree) {
@@ -172,14 +172,14 @@ int main(int argc, char *argv[]) {
 
   srand(time(0));
 
-  char *usage = "Usage: [init group size] [num ops] [add weight] [update weight] [LBBT addition strategy] [LBBT truncation strategy] [B-tree addition strategy] [B-tree degree] [operation distribution] [testing] [geometric distribution parameter] [testing tree] \n\nParameter Description:\n[init group size]: number of users in group at initialization\n[num ops]: number of group operations\n[add weight]: probability that a given operation will be an add (in [0,1])\n[update weight]: probability that a given operation will be an update (in [0,1]). Note: add weight + update weight must be in [0,1], remove weight = 1 - add weight - remove weight (probability that a given operation will be a remove)\n[LBBT addition strategy]: The strategy used to add users in an LBBT tree (ONLY 0 IMPLEMENTED) -- 0 = greedy, 1 = random, 2 = append, 3 = compare all\n[LBBT truncation strategy]: The strategy used to truncate the LBBT tree after removals (ONLY 0 IMPLEMENTED) -- 0 = truncate, 1 = keep, 2 = compare all\n[B-tree addition strategy]: The strategy used to add users in B trees (NOT IMPLEMENTED) -- 0 = greedy, 1 = random, 2 = compare both\n[B-tree degree]: Degree of the B-tree (NOT IMPLEMENTED) -- 3 = 3, 4 = 4, 0 = compare both\n[operation distribution]: The distribution for choosing which users to perform operations (and for the user to be removed, if the operation is a removal) -- 0 = uniform, 1 = geometric\n[testing]: whether or not to test actual key agreement -- 0 = no, 1 = yes\n[geometric distribution parameter]: The p parameter of the geometric distribution, if chosen\n[testing tree]: the tree to use for testing, if chosen -- 0 = LBBT, 1 = BTree, 2 = RB Tree\n";
+  char *usage = "Usage: [init group size] [num ops] [add weight] [update weight] [LBBT addition strategy] [LBBT truncation strategy] [B-tree addition strategy] [B-tree degree] [RB Tree addition strategy] [RB Tree mode] [operation distribution] [testing] [geometric distribution parameter] [testing tree] \n\nParameter Description:\n[init group size]: number of users in group at initialization\n[num ops]: number of group operations\n[add weight]: probability that a given operation will be an add (in [0,1])\n[update weight]: probability that a given operation will be an update (in [0,1]). Note: add weight + update weight must be in [0,1], remove weight = 1 - add weight - remove weight (probability that a given operation will be a remove)\n[LBBT addition strategy]: The strategy used to add users in an LBBT tree (ONLY 0 IMPLEMENTED) -- 0 = greedy, 1 = random, 2 = append, 3 = compare all\n[LBBT truncation strategy]: The strategy used to truncate the LBBT tree after removals (ONLY 0 IMPLEMENTED) -- 0 = truncate, 1 = keep, 2 = compare all\n[B-tree addition strategy]: The strategy used to add users in B trees (ONLY 0 IMPLEMENTED) -- 0 = greedy, 1 = random, 2 = compare both\n[B-tree degree]: Degree of the B-tree -- 3 = 3, 4 = 4, 0 = compare both\n[RB Tree addition strategy]: The strategy used to add users in RB trees (ONLY 0 IMPLEMENTED) -- 0 = greedy, 1 = random, 2 = compare both\n[RB Tree mode]: RB Tree mode -- 0 = 2-3 mode, 1 = 2-3-4 mode\n[operation distribution]: The distribution for choosing which users to perform operations (and for the user to be removed, if the operation is a removal) -- 0 = uniform, 1 = geometric\n[testing]: whether or not to test actual key agreement -- 0 = no, 1 = yes\n[geometric distribution parameter]: The p parameter of the geometric distribution, if chosen\n[testing tree]: the tree to use for testing, if chosen -- 0 = LBBT, 1 = BTree, 2 = RB Tree\n";
   
-  if (argc != 11 && argc != 12 && argc != 13)
+  if (argc != 13 && argc != 14 && argc != 15)
     die_with_error(usage);
 
 
   n = atoi(argv[1]);
-  distrib = atoi(argv[9]);
+  distrib = atoi(argv[11]);
   add_wt = atof(argv[3]);
   upd_wt = atof(argv[4]);
 
@@ -189,38 +189,38 @@ int main(int argc, char *argv[]) {
   
   geo_param = 0;
   if (distrib) {
-    if (argc != 12 && argc != 13)
+    if (argc != 14 && argc != 15)
       die_with_error("no geometric distribution parameter supplied");
-    geo_param = atof(argv[11]);
+    geo_param = atof(argv[13]);
     if(geo_param >= 1 || geo_param <=0)
       die_with_error("p has to be 0 < p < 1");
-  } else if (argc == 13) {
+  } else if (argc == 15) {
     die_with_error(usage);
   }
   
   int lbbt_flags[2] = { atoi(argv[5]), atoi(argv[6]) };
   int btree_flags[2] = { atoi(argv[7]), atoi(argv[8]) };
-  //YI: int rbtree_flags[2] = { argv[], argv[]};
+  int rbtree_flags[2] = { atoi(argv[9]), atoi(argv[10]) };
   int max_id = n-1;
 
   int crypto_tree = -1;  
-  int crypto = atoi(argv[10]);
+  int crypto = atoi(argv[12]);
   if (crypto) {
-    if (distrib && argc != 13)
+    if (distrib && argc != 15)
       die_with_error("crypto tree not specified\n");
-    else if (!distrib && argc != 12)
+    else if (!distrib && argc != 14)
       die_with_error("crypto tree not specified\n");      
     sampler_init(&sampler);
     prg_init(&generator);
     if (distrib)
-      crypto_tree = atoi(argv[12]);
+      crypto_tree = atoi(argv[14]);
     else
-      crypto_tree = atoi(argv[11]);  
-  } else if ((distrib && argc == 13) || (!distrib && argc == 12)) {
+      crypto_tree = atoi(argv[13]);  
+  } else if ((distrib && argc == 15) || (!distrib && argc == 14)) {
     die_with_error(usage);
   }
 
-  struct Multicast *mult_trees[2];
+  struct Multicast *mult_trees[3];
   struct MultInitRet lbbt_init_ret;
   if (crypto && crypto_tree == 0)
     lbbt_init_ret = mult_init(n, 1, lbbt_flags, 0, sampler, generator);
@@ -238,13 +238,13 @@ int main(int argc, char *argv[]) {
   //pretty_traverse_tree(btree_init_ret.multicast->tree, ((struct BTree *)btree_init_ret.multicast->tree)->root, 0, &printIntLine);
   //pretty_traverse_skeleton(btree_init_ret.skeleton, 0, &printSkeleton);
 
-  /*struct MultInitRet rbtree_init_ret;
+  struct MultInitRet rbtree_init_ret;
   if (crypto && crypto_tree == 1)
-    rbtree_init_ret = mult_init(n, 1, btree_flags, 2, sampler, generator);
+    rbtree_init_ret = mult_init(n, 1, rbtree_flags, 2, sampler, generator);
   else {
-    rbtree_init_ret = mult_init(n, 0, btree_flags, 2, sampler, generator);
+    rbtree_init_ret = mult_init(n, 0, rbtree_flags, 2, sampler, generator);
   }
-  mult_trees[2] = rbtree_init_ret.multicast;*/
+  mult_trees[2] = rbtree_init_ret.multicast;
 
   struct MultInitRet crypto_init_ret;  
   if (crypto) {
@@ -257,10 +257,10 @@ int main(int argc, char *argv[]) {
       crypto_init_ret = btree_init_ret;
       break;
     }
-      /*case 2: {
+    case 2: {
       crypto_init_ret = rbtree_init_ret;
       break;
-      }*/
+    }
     }
   }
   
@@ -287,7 +287,8 @@ int main(int argc, char *argv[]) {
 
   printf("# adds: %d, # updates: %d, # rems %d\n", ops[0], ops[1], ops[2]);
   printf("lbbt: # PRGs: %d, # encs: %d\n", *(lbbt_init_ret.multicast->counts), *(lbbt_init_ret.multicast->counts + 1));
-  printf("btree: # PRGs: %d, # encs: %d\n", *(btree_init_ret.multicast->counts), *(btree_init_ret.multicast->counts + 1));  
+  printf("btree: # PRGs: %d, # encs: %d\n", *(btree_init_ret.multicast->counts), *(btree_init_ret.multicast->counts + 1));
+  printf("rbtree: # PRGs: %d, # encs: %d\n", *(rbtree_init_ret.multicast->counts), *(rbtree_init_ret.multicast->counts + 1));    
 
   free_mult(lbbt_init_ret.multicast);
   if (crypto) {
