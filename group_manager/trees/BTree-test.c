@@ -10,8 +10,7 @@ int compareIds(const void *data1, const void *data2) { //TODO: data1 id, data2 u
   return 1;
 }
 
-static void printIntLine(void *p)
-{
+static void printIntLine(void *p) {
   struct NodeData *data = (struct NodeData *) ((struct Node *) p)->data;
   struct BTreeNodeData *btree_data = (struct BTreeNodeData *) data->tree_node_data;
   printf("id: %d, height: %d, opt add child: %d, lowest nonfull: %d, num leaves: %d", data->id, btree_data->height, btree_data->opt_add_child, btree_data->lowest_nonfull, ((struct Node *) p)->num_leaves);

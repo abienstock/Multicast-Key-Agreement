@@ -18,12 +18,13 @@
     printf("no children");
   else {
     int i;
-    for (i = 0; i < node->node->num_children; i++)
+    for (i = 0; i < node->node->num_children; i++) {
       printf("child %d: %d, ", i, *(node->children_color + i));
-    //if (*(node->children_color + i) == 1) {
-    //  struct Ciphertext *ct = *node->ciphertexts + i;
-    //  printf("ct: %d, parent id: %d, child id: %d, ", *((int *) ct->ct), node->node_id, ct->child_id);
-    //}
+      if (*(node->children_color + i) == 1) {
+	struct Ciphertext *ct = *(node->ciphertexts + i);
+	printf("ct: %d, parent id: %d, child id: %d, ", *((int *) ct->ct), node->node_id, ct->child_id);
+      }
+    }
   }
 }
 
@@ -71,7 +72,7 @@ void check_agreement(struct Multicast *multicast, struct List *users, int id, st
     }
     //traverseList(user->secrets, print_secrets);
     void *user_key = proc_ct(user, id, skeleton, oob_seed, generator);
-    //printf("user out key: %d\n", *((int *) user_key));
+    //printf("user %d, out key: %d\n", user->id, *((int *) user_key));
     //traverseList(user->secrets, print_secrets);
     assert(!memcmp(mgr_key, user_key, multicast->prg_out_size));
     free(user_key);
@@ -115,10 +116,10 @@ int next_op(struct Multicast **mult_trees, struct List *users, int *max_id, floa
     printf("add: %d\n", *max_id);
     for (i = 0; i < 2; i++) { //TODO: no hardcode?
       struct MultAddRet add_ret = mult_add(mult_trees[i], *max_id, sampler, generator);
-      skeleton = add_ret.skeleton;
       if (crypto && i == crypto_tree) {
 	struct User *user = init_user(*max_id, mult_trees[i]->prg_out_size, mult_trees[i]->seed_size);
 	addAfter(users, users->tail, (void *) user);
+	skeleton = add_ret.skeleton;
 	oob_seeds = add_ret.oob_seeds;	
       } // TODO: free non-crypto skeletons here?
     }
@@ -128,10 +129,11 @@ int next_op(struct Multicast **mult_trees, struct List *users, int *max_id, floa
     int user_num = rand_int(num_users, distrib, geo_param); // user to update chosen w.r.t. time of addition to group
     for (i = 0; i < 2; i++) { //TODO: no hardcode
       struct MultUpdRet upd_ret = mult_update(mult_trees[i], user_num, sampler, generator);
-      skeleton = upd_ret.skeleton;
       id = ((struct NodeData *) upd_ret.updated->data)->id;      
-      if (crypto && i == crypto_tree)
+      if (crypto && i == crypto_tree) {
 	oob_seeds = upd_ret.oob_seeds;
+	skeleton = upd_ret.skeleton;
+      }
     }
     printf("upd: %d\n", id);    
     op = 1;
@@ -140,18 +142,18 @@ int next_op(struct Multicast **mult_trees, struct List *users, int *max_id, floa
     printf("user_num: %d\n", user_num);
     for (i = 0; i < 2; i++) { //TODO: no hardcode?
       struct RemRet rem_ret = mult_rem(mult_trees[i], user_num, sampler, generator);
-      skeleton = rem_ret.skeleton;
       id = rem_ret.id;      
       if (crypto && i  == crypto_tree) {
 	struct User *user = (struct User *) findAndRemoveNode(users, user_num);
 	free_user(user);
 	oob_seeds = NULL;	
+	skeleton = rem_ret.skeleton;
       }
     }
     printf("rem: %d\n", id);
     op = 2;
   }
-  //pretty_traverse_tree(mult_trees[1]->tree, ((struct LBBT *)mult_trees[1]->tree)->root, 0, &printIntLine); //TODO: not just LBBT
+  //pretty_traverse_tree(mult_trees[crypto_tree]->tree, ((struct LBBT *)mult_trees[crypto_tree]->tree)->root, 0, &printNode); //TODO: not just LBBT
   //pretty_traverse_skeleton(skeleton, 0, &printSkeleton);  
   if (crypto) {
     check_agreement(mult_trees[crypto_tree], users, id, skeleton, oob_seeds, generator);
@@ -275,7 +277,7 @@ int main(int argc, char *argv[]) {
     }
     check_agreement(crypto_mult, users, -1, crypto_init_ret.skeleton, crypto_init_ret.oob_seeds, generator);
   }
-  free_skeleton(lbbt_init_ret.skeleton, 0, crypto); //TODO: free all of them
+  //free_skeleton(lbbt_init_ret.skeleton, 0, crypto); //TODO: free all of them
 
   int ops[3] = { 0, 0, 0 };
 

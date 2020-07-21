@@ -57,7 +57,7 @@ struct Entry find_entry(struct User *user, struct SkeletonNode *skeleton) {
   if (skeleton->ciphertexts != NULL) {
     struct ListNode *path_node;
     for (i = 0; i < skeleton->node->num_children; i++) {
-      if (*(skeleton->ciphertexts + i) != NULL) {
+      if (*(skeleton->ciphertexts + i) != NULL && (skeleton->children == NULL || *(skeleton->children + i) == NULL)) {
 	path_node = find_in_path((*(skeleton->ciphertexts + i))->child_id, user->secrets);
 	if (path_node != NULL) {
 	  entry.path_node = path_node;

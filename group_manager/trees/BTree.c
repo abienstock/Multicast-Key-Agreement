@@ -126,6 +126,31 @@ struct InitRet btree_init(int *ids, int n, int add_strat, int order, struct List
 }
 
 /*
+ * rearrange children so that they are the first num_children of the node's children array
+ *
+ */
+void reorder_children(struct Node *node, int order) {
+  struct Node **children = node->children;
+  int i, first_empty = 0;
+  for (i = 0; i < order; i++) {
+    if (*(children + i) != NULL) {
+      if (i == first_empty) {
+	first_empty++;
+	continue;
+      }
+      int j;
+      for (j = first_empty; j < order; j++) {
+	if (*(children + j) == NULL)
+	  break;
+      }
+      *(children + j) = *(children + i);
+      *(children + i) = NULL;
+      first_empty = j + 1;
+    }
+  }
+}
+
+/*
  * recursively update lowest_nonfull and opt_add_child along the direct path of node
  * and build the skeleton consisting of PRGs on the direct path and encryptions on the copath.
  * child and child_skel are always non-NULL.
@@ -266,6 +291,7 @@ struct SkeletonNode *add_node(struct Node *parent, struct Node *child, struct No
     }
     for (; j < order; j++)
       *split_children++ = NULL;
+    reorder_children(parent, order); //TODO: only do this in remove??
 
     struct SkeletonNode *split_skel = update_add_hints_build_skel(split, child, sibling, child_skel, sibling_skel, order, 0);    
     parent_skel = update_add_hints_build_skel(parent, NULL, NULL, NULL, NULL, order, 0);
@@ -403,6 +429,8 @@ struct SkeletonNode *remove_node(struct Node *parent, struct Node *child, struct
 	  }
 	  parent->num_children++;
 	  borrowed->parent = parent;
+	  reorder_children(parent, order);
+	  reorder_children(sibling, order); //TODO: only do this on parent??
 
 	  struct SkeletonNode *parent_skel = update_add_hints_build_skel(parent, child_sibling, NULL, child_sibling_skel, NULL, order, 0);
 	  struct SkeletonNode *sibling_skel = update_add_hints_build_skel(sibling, NULL, NULL, NULL, NULL, order, 0);
@@ -450,9 +478,11 @@ struct SkeletonNode *remove_node(struct Node *parent, struct Node *child, struct
 	return update_add_hints_build_skel(new_root, NULL, NULL, NULL, NULL, order, 1);
       }
     } else {
+      reorder_children(parent, order);
       return update_add_hints_build_skel(parent, child_sibling, NULL, child_sibling_skel, NULL, order, 1);
     }
   } else {
+    reorder_children(parent, order);
     return update_add_hints_build_skel(parent, child_sibling, NULL, child_sibling_skel, NULL, order, 1);
   }
 }
