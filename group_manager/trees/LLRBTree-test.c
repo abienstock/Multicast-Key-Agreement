@@ -49,6 +49,15 @@ static void printTree(struct Node *root, int depth) {
     printTree(root->children[1], depth + 1);
 }
 
+static void verifyTree(struct Node *node) {
+    assert(((struct NodeData *) node->data)->key != NULL, "Verify: NULL secret.");
+    for (int i = 0; i < node->num_children; ++i) {
+        assert(node->children[i] != NULL, "Verify: NULL child.");
+        assert(node->children[i]->parent == node, "Verify: broken parent-child relationship.");
+        verifyTree(node->children[i]);
+    }
+}
+
 static void LLRBTree_test(int add_strat, int mode_order, int n, int T, int verbose) {
     int *ids = malloc_check(sizeof(int) * n);
     for (int i = 0; i < n; ++i) {
@@ -62,6 +71,7 @@ static void LLRBTree_test(int add_strat, int mode_order, int n, int T, int verbo
     assert(((struct LLRBTree *) tree)->root->num_leaves == users.len, "incorrect leaves.");
     if (verbose >= 1) printf("init: %d\n", n);
     if (verbose >= 3) printTree(((struct LLRBTree *) tree)->root, 0);
+    if (((struct LLRBTree *) tree)->root->num_leaves <= 1000) verifyTree(((struct LLRBTree *) tree)->root);
     int id = n;
     for (int t = 0; t < T; ++t) {
         int addN = rand() % (n * 2 - users.len);
@@ -76,6 +86,7 @@ static void LLRBTree_test(int add_strat, int mode_order, int n, int T, int verbo
             assert(((struct LLRBTree *) tree)->root->num_leaves == users.len, "incorrect leaves.");
             if (verbose >= 2) printf("add: %d\n", id);
             if (verbose >= 3) printTree(((struct LLRBTree *) tree)->root, 0);
+            if (((struct LLRBTree *) tree)->root->num_leaves <= 1000) verifyTree(((struct LLRBTree *) tree)->root);
         }
         int removeN = rand() % (users.len - 1);
         if (verbose >= 1) printf("remove count: %d\n", removeN);
@@ -88,6 +99,7 @@ static void LLRBTree_test(int add_strat, int mode_order, int n, int T, int verbo
             assert(((struct LLRBTree *) tree)->root->num_leaves == users.len, "incorrect leaves.");
             if (verbose >= 2) printf("remove: %d\n", resultRemove.id);
             if (verbose >= 3) printTree(((struct LLRBTree *) tree)->root, 0);
+            if (((struct LLRBTree *) tree)->root->num_leaves <= 1000) verifyTree(((struct LLRBTree *) tree)->root);
         }
     }
     removeAllNodes(&users);
