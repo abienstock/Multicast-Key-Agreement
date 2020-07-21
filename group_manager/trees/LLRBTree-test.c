@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <signal.h>
 #include <time.h>
 #include <stdio.h>
 
@@ -20,6 +21,18 @@ static struct Node *traceSkeleton(struct SkeletonNode *skeleton) {
     return NULL;
 }
 
+static void processSkeleton(struct Node *node, struct SkeletonNode *skeleton) {
+    assert(skeleton->node == node, "Skeleton: broken skeleton tree.");
+    ((struct NodeData *) node->data)->key = malloc_check(1);
+    for (int i = 0; i < node->num_children; ++i) {
+        if (skeleton->children[i] != NULL) {
+            processSkeleton(node->children[i], skeleton->children[i]);
+        } else {
+            assert(((struct NodeData *) node->children[i]->data)->key != NULL, "Skeleton: NULL frontier secret.");
+        }
+    }
+}
+
 static void printTree(struct Node *root, int depth) {
     for (int i = 0; i < depth; ++i) {
         printf("___");
@@ -28,7 +41,7 @@ static void printTree(struct Node *root, int depth) {
     struct NodeData *dataNode = (struct NodeData *) root->data;
     struct LLRBTreeNodeData *data = (struct LLRBTreeNodeData *) dataNode->tree_node_data;
     const char colors[] = {'B', 'R'};
-    printf("%d (%c, %c) [%d]\n", data->heightBlack, colors[data->colorL], colors[data->colorR], dataNode->id);
+    printf("%d (%c, %c) [%d] <%p>\n", data->heightBlack, colors[data->colorL], colors[data->colorR], dataNode->id, dataNode->key);
     if (root->num_children == 0) {
         return;
     }
@@ -45,6 +58,7 @@ static void LLRBTree_test(int add_strat, int mode_order, int n, int T, int verbo
     initList(&users);
     struct InitRet resultInit = LLRBTree_init(ids, n, add_strat, mode_order, &users);
     void *tree = resultInit.tree;
+    processSkeleton(((struct LLRBTree *) tree)->root, resultInit.skeleton);
     assert(((struct LLRBTree *) tree)->root->num_leaves == users.len, "incorrect leaves.");
     if (verbose >= 1) printf("init: %d\n", n);
     if (verbose >= 3) printTree(((struct LLRBTree *) tree)->root, 0);
@@ -53,7 +67,10 @@ static void LLRBTree_test(int add_strat, int mode_order, int n, int T, int verbo
         int addN = rand() % (n * 2 - users.len);
         if (verbose >= 1) printf("add count: %d\n", addN);
         for (int i = 0; i < addN; ++i) {
+            if (verbose >= 3) printf("to add: %d\n", id+1);
             struct AddRet resultAdd = LLRBTree_add(tree, id++);
+            if (verbose >= 3) printf("to process skeleton\n");
+            processSkeleton(((struct LLRBTree *) tree)->root, resultAdd.skeleton);
             addAfter(&users, users.tail, (void *) resultAdd.added);
             assert(traceSkeleton(resultAdd.skeleton) == resultAdd.added, "incorrect trace.");
             assert(((struct LLRBTree *) tree)->root->num_leaves == users.len, "incorrect leaves.");
@@ -64,7 +81,10 @@ static void LLRBTree_test(int add_strat, int mode_order, int n, int T, int verbo
         if (verbose >= 1) printf("remove count: %d\n", removeN);
         for (int i = 0; i < removeN; ++i) {
             struct Node *nodeRemove = (struct Node *) findAndRemoveNode(&users, rand() % users.len);
+            if (verbose >= 3) printf("to remove: %d\n", ((struct NodeData *) nodeRemove->data)->id);
             struct RemRet resultRemove = LLRBTree_rem(tree, nodeRemove);
+            if (verbose >= 3) printf("to process skeleton\n");
+            processSkeleton(((struct LLRBTree *) tree)->root, resultRemove.skeleton);
             assert(((struct LLRBTree *) tree)->root->num_leaves == users.len, "incorrect leaves.");
             if (verbose >= 2) printf("remove: %d\n", resultRemove.id);
             if (verbose >= 3) printTree(((struct LLRBTree *) tree)->root, 0);
@@ -74,7 +94,13 @@ static void LLRBTree_test(int add_strat, int mode_order, int n, int T, int verbo
     free(ids);
 }
 
+static void handler(int signal) {
+    assert(false, "signal received");
+}
+
 int main() {
+    signal(SIGSEGV, handler);
+
     srand(time(NULL));
 
     int add_strat_list[] = {LLRBTree_STRAT_GREEDY, LLRBTree_STRAT_RANDOM};
