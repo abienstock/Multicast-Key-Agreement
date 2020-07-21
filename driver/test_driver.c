@@ -239,7 +239,7 @@ int main(int argc, char *argv[]) {
   //pretty_traverse_skeleton(btree_init_ret.skeleton, 0, &printSkeleton);
 
   struct MultInitRet rbtree_init_ret;
-  if (crypto && crypto_tree == 1)
+  if (crypto && crypto_tree == 2)
     rbtree_init_ret = mult_init(n, 1, rbtree_flags, 2, sampler, generator);
   else {
     rbtree_init_ret = mult_init(n, 0, rbtree_flags, 2, sampler, generator);
