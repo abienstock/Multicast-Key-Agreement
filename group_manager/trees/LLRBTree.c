@@ -838,6 +838,10 @@ struct RemRet LLRBTree_rem(void *tree, SNode *node) {
     struct RemRet result;
     result.id = id;
     ((struct LLRBTree *) tree)->root = resultRemove.node;
-    result.skeleton = resultRemove.skeleton;
+    if (resultRemove.skeleton != NULL) {
+        result.skeleton = resultRemove.skeleton;
+    } else {
+        result.skeleton = Skeleton_new(resultRemove.node, NULL, NULL, NULL);
+    }
     return result;
 }
