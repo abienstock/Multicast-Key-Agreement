@@ -48,7 +48,7 @@ struct _InitRet init_perfect(int h, int leftmost_id, int *ids, struct List *user
     return ret;
   }
   
-  struct SkeletonNode **skel_children = malloc_check(sizeof(struct skeletonNode *) * 2);
+  struct SkeletonNode **skel_children = malloc_check(sizeof(struct SkeletonNode *) * 2);
   int *children_color = malloc_check(sizeof(int) * 2);
   skeleton->children = skel_children;
   skeleton->children_color = children_color;  
@@ -109,7 +109,7 @@ struct _InitRet lbbt_root_init(int n, int leftmost_id, int *ids, struct List *us
     return ret;
   }
 
-  struct SkeletonNode **skel_children = malloc_check(sizeof(struct skeletonNode *) * 2);
+  struct SkeletonNode **skel_children = malloc_check(sizeof(struct SkeletonNode *) * 2);
   int *children_color = malloc_check(sizeof(int) * 2);
   skeleton->children = skel_children;
   *children_color++ = 0;
@@ -189,7 +189,7 @@ int is_perfect(struct Node *root) {
 struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, int id, struct Node **new_leaf) {
   struct SkeletonNode *skeleton = malloc_check(sizeof(struct SkeletonNode));
   int *children_color = malloc_check(sizeof(int) * 2);
-  struct SkeletonNode **skel_children = malloc_check(sizeof(struct skeletonNode *) * 2);
+  struct SkeletonNode **skel_children = malloc_check(sizeof(struct SkeletonNode *) * 2);
 
   // if subtree rooted at node is perfect, create new root with left child as node and right child as new_leaf
   if (is_perfect(node)) {
@@ -306,7 +306,7 @@ struct SkeletonNode *augment_blanks_build_skel(struct Node *node, struct Node *c
 	skeleton->children_color = NULL;
       
       if (child_skel != NULL) {
-	struct SkeletonNode **skel_children = malloc_check(sizeof(struct skeletonNode *) * 2);
+	struct SkeletonNode **skel_children = malloc_check(sizeof(struct SkeletonNode *) * 2);
 	skeleton->children = skel_children;
 	*(skel_children + child_pos) = child_skel;
 	*(skel_children + (1 - child_pos)) = NULL;
@@ -407,7 +407,7 @@ struct TruncRet truncate(struct LBBT *lbbt, struct Node *node, int on_dir_path) 
       *children_color-- = 1;
       skeleton->children = NULL;
     } else {
-      struct SkeletonNode **skel_children = malloc_check(sizeof(struct skeletonNode *) * 2);
+      struct SkeletonNode **skel_children = malloc_check(sizeof(struct SkeletonNode *) * 2);
       trunc_ret.skeleton->parent = skeleton;
       skeleton->children = skel_children;
       *skel_children++ = NULL;
