@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <limits.h>
 #include "user.h"
 #include "../ll/ll.h"
 #include "../skeleton.h"
@@ -10,6 +11,7 @@ struct Entry {
   struct SkeletonNode *skel_node;
   struct ListNode *path_node;
   int child_pos;
+  int height;
 };
 
 void free_path_data(void *data) {
@@ -34,17 +36,27 @@ struct User *init_user(int id, size_t prg_out_size, size_t seed_size) {
   return user;
 }
 
+struct find_in_path_ret {
+  struct ListNode *path_node;
+  int height;
+};
+
 /*
  * find the node with id in direct path secrets list
  */
-struct ListNode *find_in_path(int id, struct List *secrets) {
+struct find_in_path_ret find_in_path(int id, struct List *secrets) {
   struct ListNode *curr = secrets->head;
+  int i = 0;
   while (curr != NULL) {
-    if (((struct PathData *) curr->data)->node_id == id)
-      return curr;
+    if (((struct PathData *) curr->data)->node_id == id) {
+      struct find_in_path_ret ret = { curr, i };
+      return ret;
+    }
     curr = curr->next;
+    i++;
   }
-  return NULL;
+  struct find_in_path_ret ret = { NULL, -1 };
+  return ret;
 }
 
 /*
@@ -53,27 +65,31 @@ struct ListNode *find_in_path(int id, struct List *secrets) {
  */
 struct Entry find_entry(struct User *user, struct SkeletonNode *skeleton) {
   int i;
-  struct Entry entry = { skeleton, NULL, -1 };
+  struct Entry candidate_entry = { skeleton, NULL, -1, INT_MAX  };
   if (skeleton->ciphertexts != NULL) {
-    struct ListNode *path_node;
+    struct find_in_path_ret ret;
     for (i = 0; i < skeleton->node->num_children; i++) {
-      if (*(skeleton->ciphertexts + i) != NULL && (skeleton->children == NULL || *(skeleton->children + i) == NULL)) {
-	path_node = find_in_path((*(skeleton->ciphertexts + i))->child_id, user->secrets);
-	if (path_node != NULL) {
-	  entry.path_node = path_node;
-	  entry.child_pos = i;
-	  return entry;
+      if (*(skeleton->ciphertexts + i) != NULL && (skeleton->children == NULL || *(skeleton->children + i) == NULL)) { // TODO: do this check before looping?
+	ret = find_in_path((*(skeleton->ciphertexts + i))->child_id, user->secrets);
+	if (ret.path_node != NULL) {
+	  candidate_entry.path_node = ret.path_node;
+	  candidate_entry.child_pos = i;
+	  candidate_entry.height = ret.height;
+	  //return candidate_entry;
+	  break;
 	}
       }
     }
   }
+  struct Entry recursive_entry;
   if (skeleton->children != NULL) {
     for (i = 0; i < skeleton->node->num_children; i++) {
-      if (*(skeleton->children + i) != NULL && (entry = find_entry(user, *(skeleton->children + i))).path_node != NULL)
-	return entry;
+      if (*(skeleton->children + i) != NULL && (recursive_entry = find_entry(user, *(skeleton->children + i))).path_node != NULL && recursive_entry.height < candidate_entry.height) {
+	candidate_entry = recursive_entry;
+      }
     }
   }
-  return entry;
+  return candidate_entry;
 }
 
 /*
