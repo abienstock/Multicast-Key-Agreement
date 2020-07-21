@@ -20,12 +20,18 @@ LBBT-test.o: LBBT-test.c trees.h LBBT.o ../../ll/ll.h ../../utils.h
 
 LBBT.o: LBBT.c trees.h ../../ll/ll.h ../../skeleton.h ../../utils.h
 
+LLRBTree-test: LLRBTree-test.o LLRBTree.o tree-utils.o ../../utils.o ../../ll/ll.o
+
+LLRBTree-test.o: LLRBTree-test.c trees.h ../../skeleton.h ../../utils.h ../../ll/ll.h
+
+LLRBTree.o: LLRBTree.c trees.h ../../skeleton.h ../../utils.h ../../ll/ll.h
+
 tree-utils.o: tree-utils.c trees.h ../../skeleton.h
 
 
 .PHONY: clean
 clean:
-	rm -f *.o *~ LBBT-test BTree-test
+	rm -f *.o *~ LBBT-test BTree-test LLRBTree-test
 
 .PHONY: all
 all: clean LBBT-test BTree-test

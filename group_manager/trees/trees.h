@@ -9,10 +9,18 @@ struct LBBTNodeData {
   struct ListNode *rightmost_blank;
 };
 
+
 struct BTreeNodeData {
   int lowest_nonfull; // lowest level in subtree in which there is a nonfull node
   int opt_add_child; // 0-indexed child which has lowest nonfull node
   int height; // height of node in tree
+}
+  
+enum LLRBTreeColor {BLACK, RED};
+struct LLRBTreeNodeData {
+  enum LLRBTreeColor colorL, colorR;
+  int num_optimal; // for greedy strategy
+  int heightBlack; // only for correctness check
 };
 
 struct NodeData {
@@ -42,6 +50,12 @@ struct BTree {
   struct Node *root;
   int order; // max # of children
   int add_strat;
+};
+
+struct LLRBTree {
+  struct Node *root;
+  int add_strat;
+  int mode_order;
 };
 
 struct InitRet {
@@ -81,5 +95,19 @@ struct InitRet btree_init(int *ids, int n, int add_strat, int order, struct List
 struct AddRet btree_add(void *tree, int id);
 
 struct RemRet btree_rem(void *tree, struct Node *node);
+
+// LLRBTree
+
+static const int LLRBTree_STRAT_GREEDY = 0;
+static const int LLRBTree_STRAT_RANDOM = 1;
+
+static const int LLRBTree_MODE_23 = 3;
+static const int LLRBTree_MODE_234 = 4;
+
+struct InitRet LLRBTree_init(int *ids, int n, int add_strat, int mode_order, struct List *users);
+
+struct AddRet LLRBTree_add(void *tree, int id);
+
+struct RemRet LLRBTree_rem(void *tree, struct Node *node);
 
 #endif /* #ifndef _TREES_H_ */
