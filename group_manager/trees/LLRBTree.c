@@ -752,6 +752,9 @@ struct InitRet LLRBTree_init(int *ids, int n, int add_strat, int mode_order, str
         case LLRBTree_MODE_234: {
             root = LLRBTree_init_234(ids, n, h);
         } break;
+        default: {
+            assert(false, "LLRB: invalid mode.");
+        }
     }
     struct InitRet result;
     result.tree = malloc_check(sizeof(struct LLRBTree));
