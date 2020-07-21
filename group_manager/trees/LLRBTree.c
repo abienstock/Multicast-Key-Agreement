@@ -162,10 +162,17 @@ typedef struct SkeletonNode SSkeletonNode;
 
 static SSkeletonNode *Skeleton_new(SNode *node, SSkeletonNode *childL, SSkeletonNode *childR, SNode *childSpecial) {
     SSkeletonNode *skeleton = malloc_check(sizeof(SSkeletonNode));
+    skeleton->ciphertexts = NULL;
     assert(node != NULL, "Skeleton: invalid skeleton of NULL.");
     skeleton->node = node;
     skeleton->node_id = ((SNodeData *) node->data)->id;
     skeleton->parent = NULL;
+    if (node->num_children == 0) {
+        assert(childL == NULL && childR == NULL && childSpecial == NULL, "Skeleton: invalid child of leaf.");
+        skeleton->children = NULL;
+        skeleton->children_color = NULL;
+        return skeleton;
+    }
     skeleton->children = malloc_check(sizeof(SSkeletonNode * [2]));
     skeleton->children[0] = childL;
     if (childL != NULL) {
@@ -179,7 +186,6 @@ static SSkeletonNode *Skeleton_new(SNode *node, SSkeletonNode *childL, SSkeleton
     skeleton->children_color[0] = (int)(childL == NULL || childL->node != childSpecial);
     skeleton->children_color[1] = (int)(childR == NULL || childR->node != childSpecial);
     assert(skeleton->children_color[0] + skeleton->children_color[1] > 0, "Skeleton: multiple special child.");
-    skeleton->ciphertexts = NULL;
     return skeleton;
 }
 
@@ -752,6 +758,9 @@ struct InitRet LLRBTree_init(int *ids, int n, int add_strat, int mode_order, str
         case LLRBTree_MODE_234: {
             root = LLRBTree_init_234(ids, n, h);
         } break;
+        default: {
+            assert(false, "LLRB: invalid mode.");
+        }
     }
     struct InitRet result;
     result.tree = malloc_check(sizeof(struct LLRBTree));
@@ -835,6 +844,10 @@ struct RemRet LLRBTree_rem(void *tree, SNode *node) {
     struct RemRet result;
     result.id = id;
     ((struct LLRBTree *) tree)->root = resultRemove.node;
-    result.skeleton = resultRemove.skeleton;
+    if (resultRemove.skeleton != NULL) {
+        result.skeleton = resultRemove.skeleton;
+    } else {
+        result.skeleton = Skeleton_new(resultRemove.node, NULL, NULL, NULL);
+    }
     return result;
 }
