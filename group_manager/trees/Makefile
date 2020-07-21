@@ -34,4 +34,4 @@ clean:
 	rm -f *.o *~ LBBT-test BTree-test LLRBTree-test
 
 .PHONY: all
-all: clean LBBT-test BTree-test
+all: clean LBBT-test BTree-test LLRBTree-test
