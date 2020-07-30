@@ -36,9 +36,11 @@ struct _InitRet btree_root_init(int order, int h, int n, int leftmost_id, int *i
   btree_data->height = h;  
   root->num_leaves = n;
   skeleton->node = root;
-  skeleton->ciphertexts = NULL;  
+  skeleton->ciphertext_lists = NULL;  
   if (n == 1) { // root is a leaf
+    data->blank = 0;    
     data->id = *(ids+leftmost_id);
+    data->tk_unmerged = NULL;
     skeleton->node_id = data->id;
     btree_data->lowest_nonfull = INT_MAX; // TODO: no btree_data at all?
     btree_data->opt_add_child = -1;
@@ -51,6 +53,10 @@ struct _InitRet btree_root_init(int order, int h, int n, int leftmost_id, int *i
     ret.node = root;
     return ret;
   }
+
+  data->blank = 1;
+  data->tk_unmerged = malloc_check(sizeof(struct List));
+  initList(data->tk_unmerged);
 
   struct SkeletonNode **skel_children = malloc_check(sizeof(struct skeletonNode *) * num_children);
   int *children_color = malloc_check(sizeof(int) * num_children);
@@ -156,20 +162,31 @@ void reorder_children(struct Node *node, int order) {
  * child and child_skel are always non-NULL.
  * PARENT IS NEVER A LEAF UNLESS IT IS ALSO THE ROOT!!
  */
-struct SkeletonNode *update_add_hints_build_skel(struct Node *parent, struct Node *child, struct Node *sibling, struct SkeletonNode *child_skel, struct SkeletonNode *sibling_skel, int order, int recurse) {
+struct SkeletonNode *update_add_hints_build_skel(struct Node *parent, struct Node *child, struct Node *sibling, struct List *unmerged, struct SkeletonNode *child_skel, struct SkeletonNode *sibling_skel, int order, int recurse, int special) {
   struct Node **children = parent->children;
   struct NodeData *parent_data = (struct NodeData *) parent->data;  
   struct BTreeNodeData *parent_btree_data = (struct BTreeNodeData *) parent_data->tree_node_data;
   struct SkeletonNode *parent_skel = malloc_check(sizeof(struct SkeletonNode));
   parent_skel->node_id = parent_data->id;
   parent_skel->node = parent;
-  parent_skel->ciphertexts = NULL;
+  parent_skel->ciphertext_lists = NULL;
+  // if parent is root
   if (children == NULL) {
     parent_skel->parent = NULL;
     parent_skel->children_color = NULL;
     parent_skel->children = NULL;
     return parent_skel;
   }
+  parent_skel->special = special;
+  if (special && !parent_data->blank) {
+    struct ListNode *curr = unmerged->head;
+    while (curr != NULL) {
+      struct Node *unmerged_node = (struct Node *) curr->data;
+      addFront(parent_data->tk_unmerged, unmerged_node);
+      curr = curr->next;
+    }
+  }
+  
   int *children_color = malloc_check(sizeof(int) * parent->num_children);
   struct SkeletonNode **skel_children = malloc_check(sizeof(struct SkeletonNode *) * parent->num_children);
   
@@ -221,7 +238,7 @@ struct SkeletonNode *update_add_hints_build_skel(struct Node *parent, struct Nod
     parent_btree_data->lowest_nonfull = parent_btree_data->height;
 
   if (recurse && parent->parent != NULL)
-    return update_add_hints_build_skel(parent->parent, parent, NULL, parent_skel, NULL, order, recurse);
+    return update_add_hints_build_skel(parent->parent, parent, NULL, unmerged, parent_skel, NULL, order, recurse, special);
   else if (recurse)
     parent_skel->parent = NULL;
   return parent_skel;
@@ -232,7 +249,7 @@ struct SkeletonNode *update_add_hints_build_skel(struct Node *parent, struct Nod
  * child_skel is always non-NULL, sibling_skel is non-NULL if in the previous layer of recursion, the parent node was split.
  * if adding child to parent splits parent, sibling and child are both assigned to the new node.
  */
-struct SkeletonNode *add_node(struct Node *parent, struct Node *child, struct Node *sibling, struct SkeletonNode *child_skel, struct SkeletonNode *sibling_skel, struct BTree *btree) {
+struct SkeletonNode *add_node(struct Node *parent, struct Node *child, struct Node *sibling, struct Node *leaf, struct SkeletonNode *child_skel, struct SkeletonNode *sibling_skel, struct BTree *btree) {
   int order = btree->order;
   struct NodeData *parent_data = (struct NodeData *) parent->data;
   struct BTreeNodeData *parent_btree_data = (struct BTreeNodeData *) parent_data->tree_node_data;
@@ -250,7 +267,10 @@ struct SkeletonNode *add_node(struct Node *parent, struct Node *child, struct No
     }
     parent->num_children++;
     child->parent = parent;
-    return update_add_hints_build_skel(parent, child, sibling, child_skel, sibling_skel, order, 1);
+    struct List unmerged;
+    initList(&unmerged);
+    addFront(&unmerged, leaf);
+    return update_add_hints_build_skel(parent, child, sibling, &unmerged, child_skel, sibling_skel, order, 1, 1);
   } else if (parent->children != NULL) {
     int half = order / 2;
     struct Node *split = malloc_check(sizeof(struct Node));
@@ -259,6 +279,9 @@ struct SkeletonNode *add_node(struct Node *parent, struct Node *child, struct No
     data->key = NULL;
     data->seed = NULL;
     data->id = rand();
+    data->blank = 1;
+    data->tk_unmerged = malloc_check(sizeof(struct List));
+    initList(data->tk_unmerged);
     struct BTreeNodeData *split_btree_data = malloc_check(sizeof(struct BTreeNodeData));
     split_btree_data->lowest_nonfull = INT_MAX;
     split_btree_data->opt_add_child = 0;
@@ -293,11 +316,11 @@ struct SkeletonNode *add_node(struct Node *parent, struct Node *child, struct No
       *split_children++ = NULL;
     reorder_children(parent, order); //TODO: only do this in remove??
 
-    struct SkeletonNode *split_skel = update_add_hints_build_skel(split, child, sibling, child_skel, sibling_skel, order, 0);    
-    parent_skel = update_add_hints_build_skel(parent, NULL, NULL, NULL, NULL, order, 0);
+    struct SkeletonNode *split_skel = update_add_hints_build_skel(split, child, sibling, NULL, child_skel, sibling_skel, order, 0, 0);    
+    parent_skel = update_add_hints_build_skel(parent, NULL, NULL, NULL, NULL, NULL, order, 0, 0);
     
     if (parent->parent != NULL) {
-      return add_node(parent->parent, split, parent, split_skel, parent_skel, btree);
+      return add_node(parent->parent, split, parent, leaf, split_skel, parent_skel, btree);
     } else {
       child = split; // for simplification of joining next part with add to n=1 case
       child_skel = split_skel;
@@ -309,6 +332,7 @@ struct SkeletonNode *add_node(struct Node *parent, struct Node *child, struct No
   data->key = NULL;
   data->seed = NULL;
   data->id = rand();
+  data->blank = 1;
   struct BTreeNodeData *new_root_btree_data = malloc_check(sizeof(struct BTreeNodeData));
   new_root_btree_data->lowest_nonfull = INT_MAX;
   new_root_btree_data->opt_add_child = 0;
@@ -331,7 +355,7 @@ struct SkeletonNode *add_node(struct Node *parent, struct Node *child, struct No
   btree->root = new_root;
 
   //if (parent->children != NULL)
-  return update_add_hints_build_skel(new_root, child, parent, child_skel, parent_skel, order, 1); // recurse on new root too
+  return update_add_hints_build_skel(new_root, child, parent, NULL, child_skel, parent_skel, order, 1, 0);
   //else
   //update_add_hints_build_skel(new_root, child, order, 0); // only update root
   // always return skeleton formed above
@@ -362,6 +386,8 @@ struct AddRet btree_add(void *tree, int id) {
   data->key = NULL;
   data->seed = NULL;
   data->id = id;
+  data->blank = 0; //TODO: not needed?
+  data->tk_unmerged = NULL;
   struct BTreeNodeData *btree_data = malloc_check(sizeof(struct BTreeNodeData));
   btree_data->lowest_nonfull = INT_MAX; // TODO: no btree_data at all?
   btree_data->opt_add_child = -1;
@@ -374,13 +400,14 @@ struct AddRet btree_add(void *tree, int id) {
   struct SkeletonNode *skeleton = malloc_check(sizeof(struct SkeletonNode));
   skeleton->node_id = data->id;
   skeleton->node = new_node;
-  skeleton->ciphertexts = NULL;
+  skeleton->ciphertext_lists = NULL;
   skeleton->children_color = NULL;
   skeleton->children = NULL;
+  skeleton->special = 1; //TODO: check if need this
   switch (btree->add_strat) {
   case 0: { //greedy
     struct Node *add_parent = find_add_parent(btree->root, btree->order);
-    ret.skeleton = add_node(add_parent, new_node, NULL, skeleton, NULL, btree);
+    ret.skeleton = add_node(add_parent, new_node, NULL, new_node, skeleton, NULL, btree);
     ret.added = new_node;
     break;
   }
@@ -395,7 +422,7 @@ struct AddRet btree_add(void *tree, int id) {
  * sibling and sibling_skel are the sibling and skeleton of the sibling of child if recursive removal has occured.
  * TODO: optimizing child borrowing further??
  */
-struct SkeletonNode *remove_node(struct Node *parent, struct Node *child, struct Node *child_sibling, struct SkeletonNode *child_sibling_skel, struct BTree *btree) {
+struct SkeletonNode *remove_node(struct Node *parent, struct Node *child, struct Node *child_sibling, struct List *unmerged, struct SkeletonNode *child_sibling_skel, struct BTree *btree) {
   int order = btree->order;
   parent->num_children--;
   int i;
@@ -432,14 +459,18 @@ struct SkeletonNode *remove_node(struct Node *parent, struct Node *child, struct
 	  reorder_children(parent, order);
 	  reorder_children(sibling, order); //TODO: only do this on parent??
 
-	  struct SkeletonNode *parent_skel = update_add_hints_build_skel(parent, child_sibling, NULL, child_sibling_skel, NULL, order, 0);
-	  struct SkeletonNode *sibling_skel = update_add_hints_build_skel(sibling, NULL, NULL, NULL, NULL, order, 0);
-	  return update_add_hints_build_skel(grandparent, parent, sibling, parent_skel, sibling_skel, order, 1);
+	  struct SkeletonNode *parent_skel = update_add_hints_build_skel(parent, child_sibling, NULL, NULL, child_sibling_skel, NULL, order, 0, 0);
+	  struct SkeletonNode *sibling_skel = update_add_hints_build_skel(sibling, NULL, NULL, NULL, NULL, NULL, order, 0, 0);
+	  return update_add_hints_build_skel(grandparent, parent, sibling, NULL, parent_skel, sibling_skel, order, 1, 0);
 	}
       }
       // every sibling has minimum number of children -- give children of parent to first non-NULL sibling
       // TODO: try to balance children moves??
       struct Node **parent_children = parent->children;
+      if (unmerged == NULL) {
+	unmerged = malloc_check(sizeof(struct List));
+	initList(unmerged);
+      }
       for (i = 0; i < order; i++) {
 	if ((sibling = *(siblings + i)) != NULL && sibling != parent) {
 	  struct Node **sibling_children = sibling->children;
@@ -453,6 +484,7 @@ struct SkeletonNode *remove_node(struct Node *parent, struct Node *child, struct
 		  *(sibling_children + k) = moved_child;
 		  moved_child->parent = sibling;
 		  sibling->num_children++;
+		  addFront(unmerged, moved_child);
 		  break;
 		}
 	      }
@@ -461,8 +493,8 @@ struct SkeletonNode *remove_node(struct Node *parent, struct Node *child, struct
 	  break;
 	}
       }
-      struct SkeletonNode *sibling_skel = update_add_hints_build_skel(sibling, child_sibling, NULL, child_sibling_skel, NULL, order, 0);
-      return remove_node(grandparent, parent, sibling, sibling_skel, btree);
+      struct SkeletonNode *sibling_skel = update_add_hints_build_skel(sibling, child_sibling, NULL, unmerged, child_sibling_skel, NULL, order, 0, 1);
+      return remove_node(grandparent, parent, sibling, unmerged, sibling_skel, btree);
     } else if (parent->num_children == 1) { // delete root
       struct Node *new_root = NULL;
       for (i = 0; i < order; i++) {
@@ -475,15 +507,15 @@ struct SkeletonNode *remove_node(struct Node *parent, struct Node *child, struct
 	child_sibling_skel->parent = NULL;
 	return child_sibling_skel;
       } else {
-	return update_add_hints_build_skel(new_root, NULL, NULL, NULL, NULL, order, 1);
+	return update_add_hints_build_skel(new_root, NULL, NULL, NULL, NULL, NULL, order, 1, 0);
       }
     } else {
       reorder_children(parent, order);
-      return update_add_hints_build_skel(parent, child_sibling, NULL, child_sibling_skel, NULL, order, 1);
+      return update_add_hints_build_skel(parent, child_sibling, NULL, NULL, child_sibling_skel, NULL, order, 1, 0);
     }
   } else {
     reorder_children(parent, order);
-    return update_add_hints_build_skel(parent, child_sibling, NULL, child_sibling_skel, NULL, order, 1);
+    return update_add_hints_build_skel(parent, child_sibling, NULL, NULL, child_sibling_skel, NULL, order, 1, 0);
   }
 }
 
@@ -500,6 +532,6 @@ struct RemRet btree_rem(void *tree, struct Node *node) {
   ret.id = data->id;
 
   struct Node *parent = node->parent;
-  ret.skeleton = remove_node(parent, node, NULL, NULL, btree);
+  ret.skeleton = remove_node(parent, node, NULL, NULL, NULL, btree);
   return ret;
 }

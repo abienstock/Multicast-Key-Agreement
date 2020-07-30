@@ -5,7 +5,6 @@
 #include "../../skeleton.h"
 
 struct LBBTNodeData {
-  int blank; // 0 = notblank, 1 = blank
   struct ListNode *rightmost_blank;
 };
 
@@ -25,6 +24,8 @@ struct LLRBTreeNodeData {
 
 struct NodeData {
   int id;
+  int blank; // 0 = nonblank, 1 = blank. only leaves for MKA, all nodes for TK
+  struct List *tk_unmerged;  
   void *key;
   void *seed;
   void *tree_node_data;

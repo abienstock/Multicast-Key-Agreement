@@ -53,17 +53,17 @@ void free_skeleton(struct SkeletonNode *root, int is_root, int crypto) {
     free(root->children_color);
   if (crypto) {
     if (is_root) {
-      free((*(root->ciphertexts))->ct);
-      free(*root->ciphertexts);
-      free(root->ciphertexts);
-    } else if (root->ciphertexts != NULL) {
+      //free((*(root->ciphertext_lists))->ct);
+      free(*root->ciphertext_lists);
+      free(root->ciphertext_lists);
+    } else if (root->ciphertext_lists != NULL) {
       for (i = 0; i < root->node->num_children; i++) {
-	if (*(root->ciphertexts + i) != NULL) {
-	  free((*(root->ciphertexts + i))->ct);
-	  free(*(root->ciphertexts + i));
+	if (*(root->ciphertext_lists + i) != NULL) {
+	  //free((*(root->ciphertext_lists + i))->ct);
+	  free(*(root->ciphertext_lists + i));
 	}
       }
-      free(root->ciphertexts);    
+      free(root->ciphertext_lists);    
     }
   }
   free(root);

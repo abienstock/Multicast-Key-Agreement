@@ -30,13 +30,14 @@ struct _InitRet init_perfect(int h, int leftmost_id, int *ids, struct List *user
   data->seed = NULL;
   struct LBBTNodeData *lbbt_data = malloc_check(sizeof(struct LBBTNodeData));
   lbbt_data->rightmost_blank = NULL;
-  lbbt_data->blank = 0;
   data->tree_node_data = lbbt_data;
   root->num_leaves = 1 << h;	
   skeleton->node = root;
-  skeleton->ciphertexts = NULL;
+  skeleton->ciphertext_lists = NULL;
   if (h == 0) { // root is a leaf
+    data->blank = 0;    
     data->id = *(ids+leftmost_id);
+    data->tk_unmerged = NULL;
     skeleton->node_id = data->id;
     root->children = NULL;
     root->num_children = 0;
@@ -47,6 +48,10 @@ struct _InitRet init_perfect(int h, int leftmost_id, int *ids, struct List *user
     ret.node = root;
     return ret;
   }
+
+  data->blank = 1;  
+  data->tk_unmerged = malloc_check(sizeof(struct List));
+  initList(data->tk_unmerged);
   
   struct SkeletonNode **skel_children = malloc_check(sizeof(struct SkeletonNode *) * 2);
   int *children_color = malloc_check(sizeof(int) * 2);
@@ -91,13 +96,14 @@ struct _InitRet lbbt_root_init(int n, int leftmost_id, int *ids, struct List *us
   data->seed = NULL;
   struct LBBTNodeData *lbbt_data = malloc_check(sizeof(struct LBBTNodeData));
   lbbt_data->rightmost_blank = NULL;
-  lbbt_data->blank = 0;
   data->tree_node_data = lbbt_data;  
   root->num_leaves = n;
   skeleton->node = root;
-  skeleton->ciphertexts = NULL;
+  skeleton->ciphertext_lists = NULL;
   if (n == 1) { // root is a leaf
+    data->blank = 0;      
     data->id = *(ids+leftmost_id);
+    data->tk_unmerged = NULL;
     skeleton->node_id = data->id;
     root->children = NULL;
     root->num_children = 0;
@@ -108,6 +114,10 @@ struct _InitRet lbbt_root_init(int n, int leftmost_id, int *ids, struct List *us
     ret.node = root;
     return ret;
   }
+
+  data->blank = 1;    
+  data->tk_unmerged = malloc_check(sizeof(struct List));
+  initList(data->tk_unmerged);  
 
   struct SkeletonNode **skel_children = malloc_check(sizeof(struct SkeletonNode *) * 2);
   int *children_color = malloc_check(sizeof(int) * 2);
@@ -151,6 +161,7 @@ struct _InitRet lbbt_root_init(int n, int leftmost_id, int *ids, struct List *us
 
 /*
  * initialize lbbt with n users with ids
+ * TODO: TK init skeleton??
  */
 struct InitRet lbbt_init(int *ids, int n, int add_strat, int trunc_strat, struct List *users) {
   if (n < 1)
@@ -195,6 +206,7 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, int id, s
   if (is_perfect(node)) {
     struct SkeletonNode *root_skeleton = malloc_check(sizeof(struct SkeletonNode));
     skeleton->parent = root_skeleton;
+    root_skeleton->special = 0;
     
     struct Node *leaf = malloc_check(sizeof(struct Node));
     struct NodeData *leaf_data = malloc_check(sizeof(struct NodeData));
@@ -202,8 +214,9 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, int id, s
     leaf_data->key = NULL;
     leaf_data->seed = NULL;
     leaf_data->id = id;
+    leaf_data->tk_unmerged = NULL;
     struct LBBTNodeData *leaf_lbbt_data = malloc_check(sizeof(struct LBBTNodeData));
-    leaf_lbbt_data->blank = 0;
+    leaf_data->blank = 0;
     leaf_lbbt_data->rightmost_blank = NULL;
     leaf_data->tree_node_data = leaf_lbbt_data;
     leaf->children = NULL;
@@ -214,7 +227,7 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, int id, s
     skeleton->node = leaf;
     skeleton->children = NULL;
     skeleton->children_color = NULL;
-    skeleton->ciphertexts = NULL;
+    skeleton->ciphertext_lists = NULL;
 
     struct Node *root = malloc_check(sizeof(struct Node));
     struct NodeData *root_data = malloc_check(sizeof(struct NodeData));
@@ -222,13 +235,15 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, int id, s
     root_data->key = NULL;
     root_data->seed = NULL;
     root_data->id = rand();
+    root_data->tk_unmerged = malloc_check(sizeof(struct List));
+    initList(root_data->tk_unmerged);
     struct LBBTNodeData *root_lbbt_data = malloc_check(sizeof(struct LBBTNodeData));
-    root_lbbt_data->blank = 0;
+    root_data->blank = 1;
     root_lbbt_data->rightmost_blank = NULL;
     root_data->tree_node_data = root_lbbt_data;
     root_skeleton->node_id = root_data->id;
     root_skeleton->node = root;
-    root_skeleton->ciphertexts = NULL;
+    root_skeleton->ciphertext_lists = NULL;
     
     struct Node **root_children = malloc_check(sizeof(struct Node *) * 2);
     *root_children++ = node;
@@ -259,9 +274,10 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, int id, s
   // recursively append new_leaf to right subtree
   skeleton->node_id = ((struct NodeData *) node->data)->id;
   skeleton->node = node;
-  skeleton->ciphertexts = NULL;
+  skeleton->ciphertext_lists = NULL;
   skeleton->children_color = children_color;
   skeleton->children = skel_children;
+  skeleton->special = 1;
 
   struct SkeletonNode *right_skel = lbbt_append(lbbt, *(node->children+1), id, new_leaf);
   right_skel->parent = skeleton;
@@ -269,6 +285,8 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, int id, s
   *skel_children-- = right_skel;
   *children_color++ = 1;
   *children_color-- = 0;
+
+  addFront(((struct NodeData *) node->data)->tk_unmerged, *new_leaf);
   
   struct Node *new_right = right_skel->node;
   *(node->children+1) = new_right;
@@ -281,21 +299,26 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, int id, s
  * recursively resets the rightmost blanks in the subtrees rooted at the nodes along the direct path of node.
  * also recursively builds a skeleton consisting of the nodes along the direct path of node.
  */
-struct SkeletonNode *augment_blanks_build_skel(struct Node *node, struct Node *child, struct SkeletonNode *child_skel, int build_skel) {
+struct SkeletonNode *augment_blanks_build_skel(struct Node *node, struct Node *child, struct Node *leaf, struct SkeletonNode *child_skel, int build_skel, int special) {
   if (node != NULL) {
     struct SkeletonNode *skeleton = NULL;
     if (build_skel) {
       skeleton = malloc_check(sizeof(struct SkeletonNode));
       skeleton->node_id = ((struct NodeData *) node->data)->id;
       skeleton->node = node;
-      skeleton->ciphertexts = NULL;
+      skeleton->ciphertext_lists = NULL;
+
+      skeleton->special = special; //TODO: not needed?
+      struct NodeData *data = (struct NodeData *) node->data;
+      if (child != NULL && special && !data->blank)
+	addFront(data->tk_unmerged, leaf);
       
       int child_pos = 1;
       if (child != NULL) {
 	int *children_color = malloc_check(sizeof(int) * 2);
 	if (child == *(node->children))
 	  child_pos = 0;
-	if (((struct LBBTNodeData *) ((struct NodeData *)child->data)->tree_node_data)->blank == 1)
+	if (child->children == NULL && ((struct NodeData *) child->data)->blank == 1)
 	  *(children_color + child_pos) = -1; // -1 means do nothing
 	else
 	  *(children_color + child_pos) = 0;
@@ -323,7 +346,7 @@ struct SkeletonNode *augment_blanks_build_skel(struct Node *node, struct Node *c
       else
 	lbbt_node_data->rightmost_blank = ((struct LBBTNodeData *) ((struct NodeData *) (*(node->children + 1))->data)->tree_node_data)->rightmost_blank;
     }
-    return augment_blanks_build_skel(node->parent, node, skeleton, build_skel);
+    return augment_blanks_build_skel(node->parent, node, leaf, skeleton, build_skel, special);
   }
   return child_skel;
 }
@@ -344,9 +367,9 @@ struct AddRet lbbt_add(void *tree, int id) {
       struct NodeData *data = (struct NodeData *)new_leaf->data;
       data->id = id;
       struct LBBTNodeData *lbbt_node_data = (struct LBBTNodeData *) data->tree_node_data;
-      lbbt_node_data->blank = 0;
+      data->blank = 0;
       lbbt_node_data->rightmost_blank = NULL;
-      skeleton = augment_blanks_build_skel(new_leaf, NULL, NULL, 1);
+      skeleton = augment_blanks_build_skel(new_leaf, NULL, new_leaf, NULL, 1, 1);
       skeleton->parent = NULL;
     }
     break;
@@ -372,7 +395,7 @@ struct AddRet lbbt_add(void *tree, int id) {
  */
 struct TruncRet truncate(struct LBBT *lbbt, struct Node *node, int on_dir_path) {
   struct TruncRet ret = { NULL, NULL };
-  if (((struct LBBTNodeData *) ((struct NodeData *) node->data)->tree_node_data)->blank == 1) {
+  if (node->children == NULL && ((struct NodeData *) node->data)->blank == 1) {
     popBack(lbbt->blanks);
     free_node(node);
     return ret;
@@ -400,7 +423,8 @@ struct TruncRet truncate(struct LBBT *lbbt, struct Node *node, int on_dir_path) 
     skeleton->node_id = ((struct NodeData *) node->data)->id;
     skeleton->node = node;
     skeleton->children_color = children_color;
-    skeleton->ciphertexts = NULL;
+    skeleton->ciphertext_lists = NULL;
+    skeleton->special = 0;
     
     if (trunc_ret.skeleton == NULL) {
       *children_color++ = 1;
@@ -439,7 +463,8 @@ struct TruncRet truncate(struct LBBT *lbbt, struct Node *node, int on_dir_path) 
     skeleton->node_id = ((struct NodeData *) lbbt->root->data)->id;
     skeleton->node = lbbt->root;
     skeleton->children = NULL;
-    skeleton->ciphertexts = NULL;
+    skeleton->ciphertext_lists = NULL;
+    skeleton->special = 0;
     ret.skeleton = skeleton;
   }
   free_node(node);
@@ -471,23 +496,23 @@ struct RemRet lbbt_rem(void *tree, struct Node *node) {
     if (node == lbbt->root)
       die_with_error("Cannot delete root");
     struct NodeData *data = (struct NodeData *) node->data;
-    struct LBBTNodeData *lbbt_node_data = (struct LBBTNodeData *) data->tree_node_data;
-    lbbt_node_data->blank = 1;
+    data->blank = 1;
     ret.id = data->id;
     struct ListNode *prev_blank = find_prev_blank(node->parent, node);
     struct ListNode *new_list_node = addAfter(lbbt->blanks, prev_blank, node); //insert new blank node into list
+    struct LBBTNodeData *lbbt_node_data = (struct LBBTNodeData *) data->tree_node_data;    
     lbbt_node_data->rightmost_blank = new_list_node;        
 
     // NOTE need augment after truncate too!
     if (node != lbbt->rightmost_leaf) {
-      ret.skeleton = augment_blanks_build_skel(node->parent, node, NULL, 1);
+      ret.skeleton = augment_blanks_build_skel(node->parent, node, NULL, NULL, 1, 0);
       ret.skeleton->parent = NULL;
     } else {
       struct TruncRet trunc_ret = truncate(lbbt, lbbt->root, 1);
       struct SkeletonNode *trunc_skel = trunc_ret.skeleton;
       trunc_skel->parent = NULL;
       ret.skeleton = trunc_skel;
-      augment_blanks_build_skel(lbbt->rightmost_leaf->parent, lbbt->rightmost_leaf, NULL, 0);
+      augment_blanks_build_skel(lbbt->rightmost_leaf->parent, lbbt->rightmost_leaf, NULL, NULL, 0, 0);
     }
     break;
   case 1: //keep

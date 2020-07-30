@@ -162,7 +162,7 @@ typedef struct SkeletonNode SSkeletonNode;
 
 static SSkeletonNode *Skeleton_new(SNode *node, SSkeletonNode *childL, SSkeletonNode *childR, SNode *childSpecial) {
     SSkeletonNode *skeleton = malloc_check(sizeof(SSkeletonNode));
-    skeleton->ciphertexts = NULL;
+    skeleton->ciphertext_lists = NULL; // ALEX: changed this
     assert(node != NULL, "Skeleton: invalid skeleton of NULL.");
     skeleton->node = node;
     skeleton->node_id = ((SNodeData *) node->data)->id;
