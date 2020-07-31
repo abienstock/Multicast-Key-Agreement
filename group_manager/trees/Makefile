@@ -1,3 +1,7 @@
+.PHONY: all
+all: clean LBBT-test BTree-test LLRBTree-test
+
+
 CC = gcc
 CXX = g++
 
@@ -32,6 +36,5 @@ tree-utils.o: tree-utils.c trees.h ../../skeleton.h
 .PHONY: clean
 clean:
 	rm -f *.o *~ LBBT-test BTree-test LLRBTree-test
-
-.PHONY: all
-all: clean LBBT-test BTree-test LLRBTree-test
+	cd ../..; make clean
+	cd ../../ll; make clean
