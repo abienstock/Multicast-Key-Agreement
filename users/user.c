@@ -70,7 +70,7 @@ struct Entry find_entry(struct User *user, struct SkeletonNode *skeleton) {
     struct find_in_path_ret ret;
     for (i = 0; i < skeleton->node->num_children; i++) {
       if (*(skeleton->ciphertext_lists + i) != NULL && (skeleton->children == NULL || *(skeleton->children + i) == NULL)) { // TODO: do this check before looping?
-	struct Ciphertext *ciphertext = popFront(*(skeleton->ciphertext_lists + i));
+	struct Ciphertext *ciphertext = findNode(*(skeleton->ciphertext_lists + i), 0)->data;
 	ret = find_in_path(ciphertext->child_id, user->secrets);
 	if (ret.path_node != NULL) {
 	  candidate_entry.path_node = ret.path_node;
@@ -130,7 +130,7 @@ struct ListNode *path_gen(struct User *user, void *proposed_seed, void *child_se
       seed = proposed_seed;
     } else { 
       free(proposed_seed);
-      struct Ciphertext *ciphertext = popFront(*(skel_node->ciphertext_lists + child_pos));
+      struct Ciphertext *ciphertext = findNode(*(skel_node->ciphertext_lists + child_pos), 0)->data;
       seed = malloc_check(user->seed_size);
       dec(generator, child_key, child_seed, ciphertext->ct, seed, user->seed_size);
     }
@@ -180,7 +180,7 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, void *oo
       skel_node = skeleton;
       path_node = user->secrets->head;
       struct PathData *path_node_data = ((struct PathData *) path_node->data);
-      struct Ciphertext *ciphertext = popFront(*skel_node->ciphertext_lists);
+      struct Ciphertext *ciphertext = findNode(*skel_node->ciphertext_lists, 0)->data;
       seed = malloc_check(user->seed_size);
       dec(generator, path_node_data->key, path_node_data->seed, ciphertext->ct, seed, user->seed_size);
     } else {
@@ -189,7 +189,7 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, void *oo
       path_node = entry.path_node;
       if (entry.path_node != NULL) {
 	struct PathData *path_node_data = ((struct PathData *) path_node->data);
-	struct Ciphertext *ciphertext = popFront(*(skel_node->ciphertext_lists + entry.child_pos));
+	struct Ciphertext *ciphertext = findNode(*(skel_node->ciphertext_lists + entry.child_pos), 0)->data;
 	seed = malloc_check(user->seed_size);
 	dec(generator, path_node_data->key, path_node_data->seed, ciphertext->ct, seed, user->seed_size);
 	if (path_node->next == NULL) { // direct path has been extended by operation

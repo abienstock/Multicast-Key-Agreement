@@ -21,7 +21,7 @@
     for (i = 0; i < node->node->num_children; i++) {
       printf("child %d: %d, ", i, *(node->children_color + i));
       if (*(node->children_color + i) == 1) {
-	struct Ciphertext *ct = *(node->ciphertexts + i);
+	struct Ciphertext *ct = findNode(*(node->ciphertext_lists + i), 0)->data;
 	printf("ct: %d, parent id: %d, child id: %d, ", *((int *) ct->ct), node->node_id, ct->child_id);
       }
     }
@@ -235,7 +235,7 @@ int main(int argc, char *argv[]) {
     btree_init_ret = mult_init(n, 0, btree_flags, 1, sampler, generator);
   }
   mult_trees[1] = btree_init_ret.multicast;
-  //pretty_traverse_tree(btree_init_ret.multicast->tree, ((struct BTree *)btree_init_ret.multicast->tree)->root, 0, &printIntLine);
+  //pretty_traverse_tree(btree_init_ret.multicast->tree, ((struct BTree *) btree_init_ret.multicast->tree)->root, 0, &printIntLine);
   //pretty_traverse_skeleton(btree_init_ret.skeleton, 0, &printSkeleton);
 
   struct MultInitRet rbtree_init_ret;
