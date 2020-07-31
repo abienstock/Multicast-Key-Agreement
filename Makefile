@@ -12,7 +12,7 @@ LDFLAGS = -g -lm -O2
 
 LDLIBS =
 
-SUBDIRS = crypto ll group_manager/trees group_manager/multicast users driver
+SUBDIRS = crypto ll group_manager/trees group_manager/multicast group_manager/treeKEM users driver
 BUILDDIRS = $(SUBDIRS:%=build-%)
 CLEANDIRS = $(SUBDIRS:%=clean-%)
 
