@@ -175,6 +175,7 @@ struct SkeletonNode *update_add_hints_build_skel(struct Node *parent, struct Nod
     parent_skel->parent = NULL;
     parent_skel->children_color = NULL;
     parent_skel->children = NULL;
+    parent_skel->special = 0; //TODO: correct??
     return parent_skel;
   }
   parent_skel->special = special;
@@ -333,6 +334,8 @@ struct SkeletonNode *add_node(struct Node *parent, struct Node *child, struct No
   data->seed = NULL;
   data->id = rand();
   data->blank = 1;
+  data->tk_unmerged = malloc_check(sizeof(struct List));
+  initList(data->tk_unmerged);
   struct BTreeNodeData *new_root_btree_data = malloc_check(sizeof(struct BTreeNodeData));
   new_root_btree_data->lowest_nonfull = INT_MAX;
   new_root_btree_data->opt_add_child = 0;

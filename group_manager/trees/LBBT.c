@@ -228,6 +228,7 @@ struct SkeletonNode *lbbt_append(struct LBBT *lbbt, struct Node *node, int id, s
     skeleton->children = NULL;
     skeleton->children_color = NULL;
     skeleton->ciphertext_lists = NULL;
+    skeleton->special = 1;
 
     struct Node *root = malloc_check(sizeof(struct Node));
     struct NodeData *root_data = malloc_check(sizeof(struct NodeData));

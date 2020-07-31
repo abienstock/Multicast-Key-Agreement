@@ -103,6 +103,7 @@ int ct_gen(struct treeKEM *treeKEM, struct SkeletonNode *skeleton_node, void *se
       struct List *ct_list = NULL;
       if (*(skeleton_node->children_color + i) == 1) {
 	struct List resolution_nodes;
+	initList(&resolution_nodes);
 	get_resolution(&resolution_nodes, skeleton_node->node);
 
 	(*(treeKEM->counts + 1)) += resolution_nodes.len;
@@ -192,7 +193,8 @@ void *secret_gen(struct treeKEM *treeKEM, struct SkeletonNode *skeleton, void *s
 struct SkeletonNode *gen_commit_skel(struct Node *node, struct Node *child, struct SkeletonNode *child_skel) {
   if (node != NULL) {
     struct NodeData *data = (struct NodeData *) node->data;
-    removeAllNodes(data->tk_unmerged);
+    if (node->children != NULL)
+      removeAllNodes(data->tk_unmerged);
     data->blank = 0;
     
     struct SkeletonNode *skeleton = malloc_check(sizeof(struct SkeletonNode));
@@ -226,6 +228,7 @@ struct SkeletonNode *gen_commit_skel(struct Node *node, struct Node *child, stru
 
     return gen_commit_skel(node->parent, node, skeleton);
   }
+  child_skel->parent = NULL;
   return child_skel;
 }
 

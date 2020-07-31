@@ -129,7 +129,7 @@ void commit_proposal(struct treeKEM **treeKEM_trees, int pre_max_id, struct List
 void commit(struct treeKEM **treeKEM_trees, struct List *users, struct List *proposals, int *max_id, int distrib, float geo_param, int crypto, int crypto_tree, void *sampler, void *generator) {
   int pre_max_id = *max_id;
   struct ListNode *curr = proposals->head;
-  while(curr != 0) {
+  while (curr != 0) {
     commit_proposal(treeKEM_trees, pre_max_id, users, curr->data, max_id, distrib, geo_param, crypto, crypto_tree);
     curr = curr->next;
   }
@@ -152,6 +152,7 @@ int unif_sample(int left, int right) {
  * randomly determine the next batch and process it
  */
 void next_batch(struct treeKEM **treeKEM_trees, struct List *proposals, int left_endpoint, int right_endpoint, float add_wt, float upd_wt) {
+  int prev_num_users = treeKEM_trees[0]->users->len;
   int num_proposals = unif_sample(left_endpoint, right_endpoint);
   int i;
   for (i = 0; i < num_proposals; i++) {
@@ -159,15 +160,16 @@ void next_batch(struct treeKEM **treeKEM_trees, struct List *proposals, int left
     //int id;
     //struct SkeletonNode *skeleton;
     //struct List *oob_seeds;
-    int num_users = treeKEM_trees[0]->users->len;
     float operation = (float) rand() / (float) RAND_MAX;
     //int i;
-    if (operation < add_wt || num_users == 1) // force add with n=1
+    if (operation < add_wt) // force add with n=1
       *op = 0;
-    else if (operation < add_wt + upd_wt) // update
+    else if (operation < add_wt + upd_wt || prev_num_users == 1) // update
       *op = 1;
-    else // rem
+    else { // rem
       *op = 2;
+      prev_num_users--;
+    }
     addAfter(proposals, proposals->tail, op);
   }
 }
@@ -295,10 +297,10 @@ int main(int argc, char *argv[]) {
 
   for (i = 0; i < atoi(argv[2]); i++) {
     struct List proposals;
-    initList(&proposals);    
+    initList(&proposals);
     next_batch(treeKEM_trees, &proposals, left_endpoint, right_endpoint, add_wt, upd_wt);
     //next_batch(treeKEM_trees, users, &proposals, &max_id, left_endpoint, right_endpoint, add_wt, upd_wt, distrib, geo_param, crypto, crypto_tree, sampler, generator);    
-    traverseList(&proposals, &print_op);
+    //traverseList(&proposals, &print_op);
     commit(treeKEM_trees, users, &proposals, &max_id, distrib, geo_param, crypto, crypto_tree, sampler, generator);
   }
 
