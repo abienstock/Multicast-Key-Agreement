@@ -5,7 +5,6 @@
 #include "../trees/trees.h"
 
 struct Multicast {
-  int epoch;
   struct List *users; // ll for now... should be hashmap maybe??? users in group at certain time (most recently added in front)
   void *tree;
   int *counts; //0th index is PRGs (from children in skeleton), 1st index is encs (that the grp mgr performs)

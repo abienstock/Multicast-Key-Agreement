@@ -5,10 +5,16 @@
 #include "../../skeleton.h"
 
 struct LBBTNodeData {
-  int blank; // 0 = notblank, 1 = blank
   struct ListNode *rightmost_blank;
 };
 
+
+struct BTreeNodeData {
+  int lowest_nonfull; // lowest level in subtree in which there is a nonfull node
+  int opt_add_child; // 0-indexed child which has lowest nonfull node
+  int height; // height of node in tree
+};
+  
 enum LLRBTreeColor {BLACK, RED};
 struct LLRBTreeNodeData {
   enum LLRBTreeColor colorL, colorR;
@@ -18,6 +24,8 @@ struct LLRBTreeNodeData {
 
 struct NodeData {
   int id;
+  int blank; // 0 = nonblank, 1 = blank. only leaves for MKA, all nodes for TK
+  struct List *tk_unmerged;  
   void *key;
   void *seed;
   void *tree_node_data;
@@ -41,7 +49,7 @@ struct LBBT {
 
 struct BTree {
   struct Node *root;
-  int order;
+  int order; // max # of children
   int add_strat;
 };
 
@@ -67,7 +75,7 @@ struct RemRet {
 };
 
 void traverse_tree(struct Node *root, void (*f)(void *));
-void pretty_traverse_tree(struct Node *root, int space, void (*f)(void *));
+void pretty_traverse_tree(void *tree, struct Node *root, int space, void (*f)(void *));
 void pretty_traverse_skeleton(struct SkeletonNode *root, int space, void (*f)(void *));
 
 //DESTROYS DATA TOO
@@ -83,7 +91,7 @@ struct AddRet lbbt_add(void *tree, int id);
 struct RemRet lbbt_rem(void *tree, struct Node *node);
 
 // needs to add created leaf nodes to users (from left to right?)
-struct InitRet btree_init(int n);
+struct InitRet btree_init(int *ids, int n, int add_strat, int order, struct List *users);
 
 struct AddRet btree_add(void *tree, int id);
 

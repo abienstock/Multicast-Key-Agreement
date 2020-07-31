@@ -53,27 +53,31 @@ void free_skeleton(struct SkeletonNode *root, int is_root, int crypto) {
     free(root->children_color);
   if (crypto) {
     if (is_root) {
-      free((*(root->ciphertexts))->ct);
-      free(*root->ciphertexts);
-      free(root->ciphertexts);
-    } else if (root->ciphertexts != NULL) {
+      //free((*(root->ciphertext_lists))->ct);
+      free(*root->ciphertext_lists);
+      free(root->ciphertext_lists);
+    } else if (root->ciphertext_lists != NULL) {
       for (i = 0; i < root->node->num_children; i++) {
-	if (*(root->ciphertexts + i) != NULL) {
-	  free((*(root->ciphertexts + i))->ct);
-	  free(*(root->ciphertexts + i));
+	if (*(root->ciphertext_lists + i) != NULL) {
+	  //free((*(root->ciphertext_lists + i))->ct);
+	  free(*(root->ciphertext_lists + i));
 	}
       }
-      free(root->ciphertexts);    
+      free(root->ciphertext_lists);    
     }
   }
   free(root);
 }
 
-void pretty_traverse_tree(struct Node *root, int space, void (*f)(void *)) {
+void pretty_traverse_tree(void *tree, struct Node *root, int space, void (*f)(void *)) {
+  struct BTree *btree = (struct BTree *) tree;
+  
   int i;
   space += COUNT;
   if (root == NULL) {
-    printf("Empty skeleton!\n");
+    for (i = COUNT; i < space; i++)
+      printf(" ");    
+    printf("Empty Tree!\n");
   } else if (root->children == NULL) {
     printf("\n");
     for (i = COUNT; i < space; i++)
@@ -82,30 +86,46 @@ void pretty_traverse_tree(struct Node *root, int space, void (*f)(void *)) {
     if (root->parent != NULL) {
       printf(" parent: %d", ((struct NodeData *) root->parent->data)->id);
     }
-    struct LBBTNodeData *lbbt_node_data = (struct LBBTNodeData *) ((struct NodeData *) root->data)->tree_node_data;
+    /*struct LBBTNodeData *lbbt_node_data = (struct LBBTNodeData *) ((struct NodeData *) root->data)->tree_node_data;
     if (lbbt_node_data->rightmost_blank != NULL) {
       printf(" rightmost blank: %d", ((struct NodeData *) lbbt_node_data->rightmost_blank->data)->id);
     } else {
       printf(" no rightmost blank");
-    }
+      }*/
     printf("\n");    
   } else {
-    pretty_traverse_tree(*(root->children+1), space, f);
-    printf("\n");
-    for (i = COUNT; i < space; i++)
-      printf(" ");
-    f(root);
-    if (root->parent != NULL) {
-      printf(" parent: %d", ((struct NodeData *) root->parent->data)->id);
+    for (i = 0; i < btree->order; i++) {
+      pretty_traverse_tree(tree, *(root->children + i), space, f); // TODO: fix
+      printf("\n");
+      if (i == 0) {
+	int j;
+	for (j = COUNT; j < space; j++)
+	  printf(" ");
+	f(root);
+	if (root->parent != NULL) {
+	  printf(" parent: %d", ((struct NodeData *) root->parent->data)->id);
+	}
+      }
     }
-    struct LBBTNodeData *lbbt_node_data = (struct LBBTNodeData *) ((struct NodeData *) root->data)->tree_node_data;
+    /*for (i = 0; i < root->num_children; i++) {
+      pretty_traverse_tree(*(root->children + i), space, f); // TODO: fix
+      printf("\n");
+      if (i == 0) {
+	int j;
+	for (j = COUNT; j < space; j++)
+	  printf(" ");
+	f(root);
+	if (root->parent != NULL) {
+	  printf(" parent: %d", ((struct NodeData *) root->parent->data)->id);
+	}
+      }
+      }*/
+    /*struct LBBTNodeData *lbbt_node_data = (struct LBBTNodeData *) ((struct NodeData *) root->data)->tree_node_data;
     if (lbbt_node_data->rightmost_blank != NULL) {
       printf(" rightmost blank: %d", ((struct NodeData *) lbbt_node_data->rightmost_blank->data)->id);
     } else {
       printf(" no rightmost blank");
-    }
-    printf("\n");    
-    pretty_traverse_tree(*(root->children), space, f);
+      }*/
   }
 }
 
@@ -119,16 +139,17 @@ void pretty_traverse_skeleton(struct SkeletonNode *root, int space, void (*f)(vo
     f(root);
     printf("\n");
   } else {
-    if (*(root->children+1) != NULL) {
-      pretty_traverse_skeleton(*(root->children+1), space, f);
-    }
-    printf("\n");
-    for (i = COUNT; i < space; i++)
-      printf(" ");
-    f(root);
-    printf("\n");
-    if (*(root->children) != NULL) {
-      pretty_traverse_skeleton(*(root->children), space, f);
+    for (i = 0; i < root->node->num_children; i++) {
+      if (*(root->children + i) != NULL) {
+	pretty_traverse_skeleton(*(root->children + i), space, f);
+      }
+      printf("\n");
+      if (i == 0) {
+	int j;
+	for (j = COUNT; j < space; j++)
+	  printf(" ");
+	f(root);
+      }
     }
   }
 }
