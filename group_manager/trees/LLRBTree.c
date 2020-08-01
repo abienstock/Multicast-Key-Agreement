@@ -19,6 +19,8 @@ static SNode *LLRBTree_new(int id, SNode *childL, Color colorL, SNode *childR, C
     SNode *node = malloc_check(sizeof(SNode));
     node->data = malloc_check(sizeof(SNodeData));
     ((SNodeData *) node->data)->id = id;
+    ((SNodeData *) node->data)->blank = 0;
+    ((SNodeData *) node->data)->tk_unmerged = NULL;
     ((SNodeData *) node->data)->key = NULL;
     ((SNodeData *) node->data)->seed = NULL;
     ((SNodeData *) node->data)->tree_node_data = malloc_check(sizeof(SLLRBTreeData));
@@ -167,6 +169,7 @@ static SSkeletonNode *Skeleton_new(SNode *node, SSkeletonNode *childL, SSkeleton
     skeleton->node = node;
     skeleton->node_id = ((SNodeData *) node->data)->id;
     skeleton->parent = NULL;
+    skeleton->special = 0;
     if (node->num_children == 0) {
         assert(childL == NULL && childR == NULL && childSpecial == NULL, "Skeleton: invalid child of leaf.");
         skeleton->children = NULL;
