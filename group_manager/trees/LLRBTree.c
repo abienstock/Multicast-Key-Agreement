@@ -325,11 +325,23 @@ static TreeResult LLRBTree_addSibling_234(SNode *node, SNode *nodeAdd, SSkeleton
                 nodeAdd)),
             };
             return result;
-        } else { // B1 -> (R2 -> B4 B5) B3* + B' => B2 -> B4 B5 + B'' -> B3 B'
+/****************************************
+ * end same code as 2-3 mode
+ ****************************************/
+        } else { // B1 -> (R2 -> B4 B5) B3* + B' => B''' -> (R2 -> B4 B5) (R'' -> B3 B')
             assert(node == parent->children[1], "LLRB: invalid (black,red) children.");
             SNode *nodeNew = LLRBTree_new(rand(), nodeReplace != NULL ? nodeReplace : node, BLACK, nodeAdd, BLACK);
-            return LLRBTree_addSibling_234(parent, nodeNew, Skeleton_new(nodeNew, skeletonReplace, skeletonAdd, nodeAdd), sibling, NULL); // @Note: The color is automatically flipped as `nodeReplace` is always inserted into the tree with color `BLACK` in every branch.
+            getData(parent)->colorR = RED; // @Warn: touching color manually.
+            LLRBTree_replaceChild(parent, node, nodeNew);
+            TreeResult result = {
+                getRoot(nodeNew),
+                Skeleton_wholeDirectPath(Skeleton_new(nodeNew, skeletonReplace, skeletonAdd, nodeAdd)),
+            };
+            return result;
         }
+/****************************************
+ * begin same code as 2-3 mode
+ ****************************************/
     } else {
         SNode *grandparent = parent->parent;
         assert(grandparent != NULL, "LLRB: invalid red root.");
