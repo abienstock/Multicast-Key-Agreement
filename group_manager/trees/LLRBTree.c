@@ -134,10 +134,11 @@ static void LLRBTree_replaceChild(SNode *parent, SNode *node, SNode *nodeReplace
     if (parent == NULL) {
         return;
     }
-    assert(getData(nodeReplace)->heightBlack == getData(node)->heightBlack, "LLRB: unbalanced replace.");
     if (parent->children[0] == node) {
+        assert(getData(nodeReplace)->heightBlack + (int)(getData(parent)->colorL == BLACK) == getData(parent)->heightBlack, "LLRB: unbalanced replace.");
         parent->children[0] = nodeReplace;
     } else if (parent->children[1] == node) {
+        assert(getData(nodeReplace)->heightBlack + (int)(getData(parent)->colorR == BLACK) == getData(parent)->heightBlack, "LLRB: unbalanced replace.");
         parent->children[1] = nodeReplace;
     } else {
         assert(false, "LLRB: broken parent-child relationship (@replace).");
