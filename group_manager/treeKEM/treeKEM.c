@@ -77,11 +77,13 @@ void get_resolution(struct List *resolution_nodes, struct Node *node, int added)
   if (!data->blank) {
     if (!added)
       addFront(resolution_nodes, node);    
-    struct ListNode *curr = data->tk_unmerged->head;
-    while (curr != NULL) {
-      addFront(resolution_nodes, curr->data);
-      get_resolution(resolution_nodes, curr->data, 1);
-      curr = curr->next;
+    if (data->tk_unmerged) {
+      struct ListNode *curr = data->tk_unmerged->head;
+      while (curr != NULL) {
+	addFront(resolution_nodes, curr->data);
+	get_resolution(resolution_nodes, curr->data, 1);
+	curr = curr->next;
+      }
     }
   } else {
     int i;
@@ -195,7 +197,7 @@ void *secret_gen(struct treeKEM *treeKEM, struct SkeletonNode *skeleton, void *s
 struct SkeletonNode *gen_commit_skel(struct Node *node, struct Node *child, struct SkeletonNode *child_skel) {
   if (node != NULL) {
     struct NodeData *data = (struct NodeData *) node->data;
-    if (node->children != NULL)
+    if (node->children != NULL && data->tk_unmerged != NULL) // TODO: init unmerged to NULL all the time?
       removeAllNodes(data->tk_unmerged);
     data->blank = 0;
     

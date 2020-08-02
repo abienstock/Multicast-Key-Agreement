@@ -50,7 +50,8 @@ static void processSkeleton(struct Node *node, struct SkeletonNode *skeleton) {
     } else if (((struct NodeData *) node->data)->key == NULL) {
         ((struct NodeData *) node->data)->key = malloc_check(1);
     }
-    for (int i = 0; i < node->num_children; ++i) {
+    int i;
+    for (i = 0; i < node->num_children; ++i) {
         if (skeleton->children[i] != NULL) {
             processSkeleton(node->children[i], skeleton->children[i]);
         } else {
@@ -79,7 +80,8 @@ static void printTree(struct Node *root, int depth) {
 static void verifyTree(struct Node *node) {
     assert(((struct NodeData *) node->data)->key != NULL, "Verify: NULL secret.");
     assert(((struct NodeData *) node->data)->tk_unmerged == NULL, "Verify: unprocessed node list.");
-    for (int i = 0; i < node->num_children; ++i) {
+    int i;
+    for (i = 0; i < node->num_children; ++i) {
         assert(node->children[i] != NULL, "Verify: NULL child.");
         assert(node->children[i]->parent == node, "Verify: broken parent-child relationship.");
         verifyTree(node->children[i]);

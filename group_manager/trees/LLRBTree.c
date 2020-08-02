@@ -855,10 +855,12 @@ struct AddRet LLRBTree_add(void *tree, int id) {
     }
     TreeResult resultAdd;
     switch (mode_order) {
-        case LLRBTree_MODE_23: {
+        //case LLRBTree_MODE_23: {
+        case 3: {
             resultAdd = LLRBTree_addSibling_23(nodeAddPos, nodeAdd, skeletonAdd, NULL, NULL, nodeAdd);
         } break;
-        case LLRBTree_MODE_234: {
+	//case LLRBTree_MODE_234: {
+        case 4: {
             resultAdd = LLRBTree_addSibling_234(nodeAddPos, nodeAdd, skeletonAdd, NULL, NULL, nodeAdd);
         } break;
         default: {
