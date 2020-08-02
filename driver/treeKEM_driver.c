@@ -50,10 +50,6 @@ static void print_secrets(void *data) {
   printf("id: %d, seed: %d, key %d\n", path_data->node_id, *((int *) path_data->seed), *((int *) path_data->key));
   }*/
 
-static void print_op(int *data) {
-  printf("op: %d\n", *data);
-}
-
 int rand_int(int n, int distrib, float geo_param) {
   int i;
   switch (distrib) {
@@ -99,7 +95,7 @@ void commit_proposal(struct treeKEM **treeKEM_trees, int pre_max_id, struct List
   if (*op == 0) { //add
     (*max_id)++; //so adding new users w.l.o.g..
     printf("add: %d\n", *max_id);
-    for (i = 0; i < 2; i++) { //TODO: no hardcode?
+    for (i = 0; i < 3; i++) { //TODO: no hardcode?
       treeKEM_add(treeKEM_trees[i], *max_id);
       if (crypto && i == crypto_tree) {
 	struct User *user = init_user(*max_id, treeKEM_trees[i]->prg_out_size, treeKEM_trees[i]->seed_size);
@@ -109,13 +105,13 @@ void commit_proposal(struct treeKEM **treeKEM_trees, int pre_max_id, struct List
     id = *max_id;
   } else if (*op == 1) { //update
     int user_num = rand_int(num_users - (*max_id - pre_max_id), distrib, geo_param); // user to update chosen w.r.t. time of addition to group; exclude newly added users before batch
-    for (i = 0; i < 2; i++) //TODO: no hardcode
+    for (i = 0; i < 3; i++) //TODO: no hardcode
       id = treeKEM_update(treeKEM_trees[i], user_num);
     printf("upd: %d\n", id);
   } else { //remove
     int user_num = rand_int(num_users - (*max_id - pre_max_id), distrib, geo_param); // user to update chosen w.r.t. time of addition to group ; exclude newly added users before batch
     printf("user_num: %d\n", user_num);
-    for (i = 0; i < 2; i++) { //TODO: no hardcode?
+    for (i = 0; i < 3; i++) { //TODO: no hardcode?
       id = treeKEM_rem(treeKEM_trees[i], user_num);
       if (crypto && i  == crypto_tree) {
 	struct User *user = (struct User *) findAndRemoveNode(users, user_num);
@@ -136,7 +132,7 @@ void commit(struct treeKEM **treeKEM_trees, struct List *users, struct List *pro
   int committer = rand_int(treeKEM_trees[0]->users->len - (*max_id - pre_max_id), distrib, geo_param); //exclude added users in batch
   //TODO: pick comitter differently
   int i;
-  for (i = 0; i < 2; i++) { //TODO: no hardcode?
+  for (i = 0; i < 3; i++) { //TODO: no hardcode?
     struct SkeletonNode *commit_skel = treeKEM_commit(treeKEM_trees[i], committer, sampler, generator);
     if (crypto && i == crypto_tree)
       check_agreement(treeKEM_trees[i], users, committer, commit_skel, generator);
@@ -252,13 +248,13 @@ int main(int argc, char *argv[]) {
   //pretty_traverse_tree(btree_init_ret.treeKEM->tree, ((struct BTree *)btree_init_ret.treeKEM->tree)->root, 0, &printIntLine);
   //pretty_traverse_skeleton(btree_init_ret.skeleton, 0, &printSkeleton);
 
-  /*struct MultInitRet rbtree_init_ret;
+  struct treeKEMInitRet rbtree_init_ret;
   if (crypto && crypto_tree == 2)
-    rbtree_init_ret = mult_init(n, 1, rbtree_flags, 2, sampler, generator);
+    rbtree_init_ret = treeKEM_init(n, 1, rbtree_flags, 2, sampler, generator);
   else {
-    rbtree_init_ret = mult_init(n, 0, rbtree_flags, 2, sampler, generator);
+    rbtree_init_ret = treeKEM_init(n, 0, rbtree_flags, 2, sampler, generator);
   }
-  treeKEM_trees[2] = rbtree_init_ret.treeKEM;*/
+  treeKEM_trees[2] = rbtree_init_ret.treeKEM;
 
   struct treeKEMInitRet crypto_init_ret;
   if (crypto) {
@@ -271,10 +267,10 @@ int main(int argc, char *argv[]) {
       crypto_init_ret = btree_init_ret;
       break;
     }
-      /*case 2: {
+    case 2: {
       crypto_init_ret = rbtree_init_ret;
       break;
-      }*/
+    }
     }
   }
   
@@ -299,15 +295,13 @@ int main(int argc, char *argv[]) {
     struct List proposals;
     initList(&proposals);
     next_batch(treeKEM_trees, &proposals, left_endpoint, right_endpoint, add_wt, upd_wt);
-    //next_batch(treeKEM_trees, users, &proposals, &max_id, left_endpoint, right_endpoint, add_wt, upd_wt, distrib, geo_param, crypto, crypto_tree, sampler, generator);    
-    //traverseList(&proposals, &print_op);
     commit(treeKEM_trees, users, &proposals, &max_id, distrib, geo_param, crypto, crypto_tree, sampler, generator);
   }
 
   //printf("# adds: %d, # updates: %d, # rems %d\n", ops[0], ops[1], ops[2]);
   printf("lbbt: # PRGs: %d, # encs: %d\n", *(lbbt_init_ret.treeKEM->counts), *(lbbt_init_ret.treeKEM->counts + 1));
   printf("btree: # PRGs: %d, # encs: %d\n", *(btree_init_ret.treeKEM->counts), *(btree_init_ret.treeKEM->counts + 1));
-  //printf("rbtree: # PRGs: %d, # encs: %d\n", *(rbtree_init_ret.treeKEM->counts), *(rbtree_init_ret.treeKEM->counts + 1));    
+  printf("rbtree: # PRGs: %d, # encs: %d\n", *(rbtree_init_ret.treeKEM->counts), *(rbtree_init_ret.treeKEM->counts + 1));    
 
   free_treeKEM(lbbt_init_ret.treeKEM);
   if (crypto) {
