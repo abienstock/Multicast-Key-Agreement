@@ -425,7 +425,7 @@ struct AddRet btree_add(void *tree, int id) {
  * sibling and sibling_skel are the sibling and skeleton of the sibling of child if recursive removal has occured.
  * TODO: optimizing child borrowing further??
  */
-struct SkeletonNode *remove_node(struct Node *parent, struct Node *child, struct Node *child_sibling, struct List *unmerged, struct SkeletonNode *child_sibling_skel, struct BTree *btree) {
+struct SkeletonNode *remove_node(struct Node *parent, struct Node *child, struct Node *child_sibling, struct SkeletonNode *child_sibling_skel, struct BTree *btree) {
   int order = btree->order;
   parent->num_children--;
   int i;
@@ -470,10 +470,8 @@ struct SkeletonNode *remove_node(struct Node *parent, struct Node *child, struct
       // every sibling has minimum number of children -- give children of parent to first non-NULL sibling
       // TODO: try to balance children moves??
       struct Node **parent_children = parent->children;
-      if (unmerged == NULL) {
-	unmerged = malloc_check(sizeof(struct List));
-	initList(unmerged);
-      }
+      struct List unmerged;
+      initList(&unmerged);
       for (i = 0; i < order; i++) {
 	if ((sibling = *(siblings + i)) != NULL && sibling != parent) {
 	  struct Node **sibling_children = sibling->children;
@@ -487,7 +485,7 @@ struct SkeletonNode *remove_node(struct Node *parent, struct Node *child, struct
 		  *(sibling_children + k) = moved_child;
 		  moved_child->parent = sibling;
 		  sibling->num_children++;
-		  addFront(unmerged, moved_child);
+		  addFront(&unmerged, moved_child);
 		  break;
 		}
 	      }
@@ -496,8 +494,8 @@ struct SkeletonNode *remove_node(struct Node *parent, struct Node *child, struct
 	  break;
 	}
       }
-      struct SkeletonNode *sibling_skel = update_add_hints_build_skel(sibling, child_sibling, NULL, unmerged, child_sibling_skel, NULL, order, 0, 1);
-      return remove_node(grandparent, parent, sibling, unmerged, sibling_skel, btree);
+      struct SkeletonNode *sibling_skel = update_add_hints_build_skel(sibling, child_sibling, NULL, &unmerged, child_sibling_skel, NULL, order, 0, 1);
+      return remove_node(grandparent, parent, sibling, sibling_skel, btree);
     } else if (parent->num_children == 1) { // delete root
       struct Node *new_root = NULL;
       for (i = 0; i < order; i++) {
@@ -535,6 +533,6 @@ struct RemRet btree_rem(void *tree, struct Node *node) {
   ret.id = data->id;
 
   struct Node *parent = node->parent;
-  ret.skeleton = remove_node(parent, node, NULL, NULL, NULL, btree);
+  ret.skeleton = remove_node(parent, node, NULL, NULL, btree);
   return ret;
 }

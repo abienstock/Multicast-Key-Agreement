@@ -72,19 +72,21 @@ int treeKEM_rem(struct treeKEM *treeKEM, int user) {
   return ret.id;
 }
 
-void get_resolution(struct List *resolution_nodes, struct Node *node) {
+void get_resolution(struct List *resolution_nodes, struct Node *node, int added) {
   struct NodeData *data = (struct NodeData *) node->data;
   if (!data->blank) {
-    addFront(resolution_nodes, node);
+    if (!added)
+      addFront(resolution_nodes, node);    
     struct ListNode *curr = data->tk_unmerged->head;
     while (curr != NULL) {
       addFront(resolution_nodes, curr->data);
+      get_resolution(resolution_nodes, curr->data, 1);
       curr = curr->next;
     }
   } else {
     int i;
     for (i = 0; i < node->num_children; i++)
-      get_resolution(resolution_nodes, *(node->children + i));
+      get_resolution(resolution_nodes, *(node->children + i), 0);
   }
 }
 
@@ -104,7 +106,7 @@ int ct_gen(struct treeKEM *treeKEM, struct SkeletonNode *skeleton_node, void *se
       if (*(skeleton_node->children_color + i) == 1) {
 	struct List resolution_nodes;
 	initList(&resolution_nodes);
-	get_resolution(&resolution_nodes, skeleton_node->node);
+	get_resolution(&resolution_nodes, skeleton_node->node, 0);
 
 	(*(treeKEM->counts + 1)) += resolution_nodes.len;
 	if (treeKEM->crypto) {
