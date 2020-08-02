@@ -20,7 +20,8 @@ static SNode *LLRBTree_new(int id, SNode *childL, Color colorL, SNode *childR, C
     node->data = malloc_check(sizeof(SNodeData));
     ((SNodeData *) node->data)->id = id;
     ((SNodeData *) node->data)->blank = 0;
-    ((SNodeData *) node->data)->tk_unmerged = NULL;
+    ((SNodeData *) node->data)->tk_unmerged = malloc_check(sizeof(struct List));
+    initList(((SNodeData *) node->data)->tk_unmerged);
     ((SNodeData *) node->data)->key = NULL;
     ((SNodeData *) node->data)->seed = NULL;
     ((SNodeData *) node->data)->tree_node_data = malloc_check(sizeof(SLLRBTreeData));
@@ -196,10 +197,6 @@ static SSkeletonNode *Skeleton_newSpecial(SNode *node, SSkeletonNode *childL, SS
     SSkeletonNode *skeleton = Skeleton_new(node, childL, childR, childSpecial);
     skeleton->special = 1;
     SNodeData *data = (SNodeData *) skeleton->node->data;
-    if (data->tk_unmerged == NULL) {
-        data->tk_unmerged = malloc_check(sizeof(struct List));
-        initList(data->tk_unmerged);
-    }
     addFront(data->tk_unmerged, nodeSpecial);
     return skeleton;
 }

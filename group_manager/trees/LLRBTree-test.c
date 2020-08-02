@@ -34,8 +34,8 @@ static int hasDescendant(struct Node *root, struct Node *node) {
 
 static void processSkeleton(struct Node *node, struct SkeletonNode *skeleton) {
     assert(skeleton->node == node, "Skeleton: broken skeleton tree.");
-    assert(skeleton->special || ((struct NodeData *) node->data)->tk_unmerged == NULL, "Skeleton: non-special node list.");
-    assert(!skeleton->special || ((struct NodeData *) node->data)->tk_unmerged != NULL, "Skeleton: NULL special node list.");
+    assert(skeleton->special || ((struct NodeData *) node->data)->tk_unmerged->len == 0, "Skeleton: non-special node list.");
+    assert(!skeleton->special || ((struct NodeData *) node->data)->tk_unmerged->len > 0, "Skeleton: empty special node list.");
     if (skeleton->special) {
         assert(((struct NodeData *) node->data)->key != NULL, "Skeleton: NULL special secret.");
         struct ListNode *listNode = ((struct NodeData *) node->data)->tk_unmerged->head;
@@ -45,8 +45,6 @@ static void processSkeleton(struct Node *node, struct SkeletonNode *skeleton) {
             listNode = listNode->next;
         }
         removeAllNodes(((struct NodeData *) node->data)->tk_unmerged);
-        free(((struct NodeData *) node->data)->tk_unmerged);
-        ((struct NodeData *) node->data)->tk_unmerged = NULL;
     } else if (((struct NodeData *) node->data)->key == NULL) {
         ((struct NodeData *) node->data)->key = malloc_check(1);
     }
@@ -77,7 +75,7 @@ static void printTree(struct Node *root, int depth) {
 
 static void verifyTree(struct Node *node) {
     assert(((struct NodeData *) node->data)->key != NULL, "Verify: NULL secret.");
-    assert(((struct NodeData *) node->data)->tk_unmerged == NULL, "Verify: unprocessed node list.");
+    assert(((struct NodeData *) node->data)->tk_unmerged->len == 0, "Verify: unprocessed node list.");
     for (int i = 0; i < node->num_children; ++i) {
         assert(node->children[i] != NULL, "Verify: NULL child.");
         assert(node->children[i]->parent == node, "Verify: broken parent-child relationship.");
