@@ -21,11 +21,36 @@ static struct Node *traceSkeleton(struct SkeletonNode *skeleton) {
     return NULL;
 }
 
+static int hasDescendant(struct Node *root, struct Node *node) {
+    struct Node *parent = node->parent;
+    while (parent != NULL) {
+        if (parent == root) {
+            return 1;
+        }
+        parent = parent->parent;
+    }
+    return 0;
+}
+
 static void processSkeleton(struct Node *node, struct SkeletonNode *skeleton) {
     assert(skeleton->node == node, "Skeleton: broken skeleton tree.");
-    ((struct NodeData *) node->data)->key = malloc_check(1);
-    int i;
-    for (i = 0; i < node->num_children; ++i) {
+    assert(skeleton->special || ((struct NodeData *) node->data)->tk_unmerged == NULL, "Skeleton: non-special node list.");
+    assert(!skeleton->special || ((struct NodeData *) node->data)->tk_unmerged != NULL, "Skeleton: NULL special node list.");
+    if (skeleton->special) {
+        assert(((struct NodeData *) node->data)->key != NULL, "Skeleton: NULL special secret.");
+        struct ListNode *listNode = ((struct NodeData *) node->data)->tk_unmerged->head;
+        assert(listNode != NULL, "Skeleton: empty node list.");
+        while(listNode != NULL) {
+            assert(hasDescendant(node, listNode->data), "Skeleton: non-descendant node in node list.");
+            listNode = listNode->next;
+        }
+        removeAllNodes(((struct NodeData *) node->data)->tk_unmerged);
+        free(((struct NodeData *) node->data)->tk_unmerged);
+        ((struct NodeData *) node->data)->tk_unmerged = NULL;
+    } else if (((struct NodeData *) node->data)->key == NULL) {
+        ((struct NodeData *) node->data)->key = malloc_check(1);
+    }
+    for (int i = 0; i < node->num_children; ++i) {
         if (skeleton->children[i] != NULL) {
             processSkeleton(node->children[i], skeleton->children[i]);
         } else {
@@ -53,8 +78,8 @@ static void printTree(struct Node *root, int depth) {
 
 static void verifyTree(struct Node *node) {
     assert(((struct NodeData *) node->data)->key != NULL, "Verify: NULL secret.");
-    int i;
-    for (i = 0; i < node->num_children; ++i) {
+    assert(((struct NodeData *) node->data)->tk_unmerged == NULL, "Verify: unprocessed node list.");
+    for (int i = 0; i < node->num_children; ++i) {
         assert(node->children[i] != NULL, "Verify: NULL child.");
         assert(node->children[i]->parent == node, "Verify: broken parent-child relationship.");
         verifyTree(node->children[i]);
