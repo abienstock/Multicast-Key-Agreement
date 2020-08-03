@@ -78,6 +78,8 @@ void check_agreement(struct treeKEM *treeKEM, struct List *users, int id, struct
   struct ListNode *user_curr = users->head;
   while (user_curr != 0) {
     struct User *user = (struct User *) user_curr->data;
+    if (user->id == id)
+      continue;
     //traverseList(user->secrets, print_secrets);
     void *user_key = proc_ct(user, id, skeleton, NULL, generator);
     //printf("user %d, out key: %d\n", user->id, *((int *) user_key));

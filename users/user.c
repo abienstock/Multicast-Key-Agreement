@@ -12,6 +12,7 @@ struct Entry {
   struct ListNode *path_node;
   int child_pos;
   int height;
+  int list_pos;
 };
 
 void free_path_data(void *data) {
@@ -65,19 +66,25 @@ struct find_in_path_ret find_in_path(int id, struct List *secrets) {
  */
 struct Entry find_entry(struct User *user, struct SkeletonNode *skeleton) {
   int i;
-  struct Entry candidate_entry = { skeleton, NULL, -1, INT_MAX  };
+  struct Entry candidate_entry = { skeleton, NULL, -1, INT_MAX, -1  };
   if (skeleton->ciphertext_lists != NULL) {
     struct find_in_path_ret ret;
     for (i = 0; i < skeleton->node->num_children; i++) {
       if (*(skeleton->ciphertext_lists + i) != NULL && (skeleton->children == NULL || *(skeleton->children + i) == NULL)) { // TODO: do this check before looping?
-	struct Ciphertext *ciphertext = findNode(*(skeleton->ciphertext_lists + i), 0)->data;
-	ret = find_in_path(ciphertext->child_id, user->secrets);
-	if (ret.path_node != NULL) {
-	  candidate_entry.path_node = ret.path_node;
-	  candidate_entry.child_pos = i;
-	  candidate_entry.height = ret.height;
-	  //return candidate_entry;
-	  break;
+	struct ListNode *curr = (*(skeleton->ciphertext_lists + i))->head;
+	int j = 0;
+	while (curr != NULL) {
+	  struct Ciphertext *ciphertext = curr->data;
+	  ret = find_in_path(ciphertext->child_id, user->secrets);
+	  if (ret.path_node != NULL) {
+	    candidate_entry.path_node = ret.path_node;
+	    candidate_entry.child_pos = i;
+	    candidate_entry.height = ret.height;
+	    candidate_entry.list_pos = j;
+	    break;
+	  }
+	  j++;
+	  curr = curr->next;
 	}
       }
     }
@@ -189,7 +196,7 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, void *oo
       path_node = entry.path_node;
       if (entry.path_node != NULL) {
 	struct PathData *path_node_data = ((struct PathData *) path_node->data);
-	struct Ciphertext *ciphertext = findNode(*(skel_node->ciphertext_lists + entry.child_pos), 0)->data;
+	struct Ciphertext *ciphertext = findNode(*(skel_node->ciphertext_lists + entry.child_pos), entry.list_pos)->data;
 	seed = malloc_check(user->seed_size);
 	dec(generator, path_node_data->key, path_node_data->seed, ciphertext->ct, seed, user->seed_size);
 	if (path_node->next == NULL) { // direct path has been extended by operation
