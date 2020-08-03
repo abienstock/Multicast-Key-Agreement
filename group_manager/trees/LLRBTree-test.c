@@ -74,6 +74,7 @@ static void printTree(struct Node *root, int depth) {
 }
 
 static void verifyTree(struct Node *node) {
+    assert(node->num_children >= 0, "Verify: freed node.");
     assert(((struct NodeData *) node->data)->key != NULL, "Verify: NULL secret.");
     assert(((struct NodeData *) node->data)->tk_unmerged->len == 0, "Verify: unprocessed node list.");
     for (int i = 0; i < node->num_children; ++i) {
@@ -93,6 +94,7 @@ static void LLRBTree_test(int add_strat, int mode_order, int n, int T, int verbo
     struct InitRet resultInit = LLRBTree_init(ids, n, add_strat, mode_order, &users);
     void *tree = resultInit.tree;
     processSkeleton(((struct LLRBTree *) tree)->root, resultInit.skeleton);
+    free_skeleton(resultInit.skeleton, 0, 0);
     assert(((struct LLRBTree *) tree)->root->num_leaves == users.len, "incorrect leaves.");
     if (verbose >= 1) printf("init: %d\n", n);
     if (verbose >= 3) printTree(((struct LLRBTree *) tree)->root, 0);
@@ -104,10 +106,11 @@ static void LLRBTree_test(int add_strat, int mode_order, int n, int T, int verbo
         for (int i = 0; i < addN; ++i) {
             if (verbose >= 3) printf("to add: %d\n", id+1);
             struct AddRet resultAdd = LLRBTree_add(tree, id++);
+            assert(traceSkeleton(resultAdd.skeleton) == resultAdd.added, "incorrect trace.");
             if (verbose >= 3) printf("to process skeleton\n");
             processSkeleton(((struct LLRBTree *) tree)->root, resultAdd.skeleton);
+            free_skeleton(resultAdd.skeleton, 0, 0);
             addAfter(&users, users.tail, (void *) resultAdd.added);
-            assert(traceSkeleton(resultAdd.skeleton) == resultAdd.added, "incorrect trace.");
             assert(((struct LLRBTree *) tree)->root->num_leaves == users.len, "incorrect leaves.");
             if (verbose >= 2) printf("add: %d\n", id);
             if (verbose >= 3) printTree(((struct LLRBTree *) tree)->root, 0);
@@ -121,12 +124,15 @@ static void LLRBTree_test(int add_strat, int mode_order, int n, int T, int verbo
             struct RemRet resultRemove = LLRBTree_rem(tree, nodeRemove);
             if (verbose >= 3) printf("to process skeleton\n");
             processSkeleton(((struct LLRBTree *) tree)->root, resultRemove.skeleton);
+            free_skeleton(resultRemove.skeleton, 0, 0);
             assert(((struct LLRBTree *) tree)->root->num_leaves == users.len, "incorrect leaves.");
             if (verbose >= 2) printf("remove: %d\n", resultRemove.id);
             if (verbose >= 3) printTree(((struct LLRBTree *) tree)->root, 0);
             if (((struct LLRBTree *) tree)->root->num_leaves <= 1000) verifyTree(((struct LLRBTree *) tree)->root);
         }
     }
+    free_tree(((struct LLRBTree *) tree)->root);
+    free(tree);
     removeAllNodes(&users);
     free(ids);
 }
