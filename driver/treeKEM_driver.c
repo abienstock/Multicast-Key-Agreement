@@ -69,7 +69,7 @@ int rand_int(int n, int distrib, float geo_param) {
 /*
  * check that output key is same amongst manager and all of users
  */
-void check_agreement(struct treeKEM *treeKEM, struct List *users, int id, struct SkeletonNode *skeleton, void *generator) {
+void check_agreement(struct treeKEM *treeKEM, struct List *users, int id, struct SkeletonNode *skeleton, void *leaf_seed, void *generator) {
   struct NodeData *root_data = (struct NodeData *) skeleton->node->data;
   void *mgr_key = malloc_check(treeKEM->prg_out_size);
   prg(generator, root_data->seed, mgr_key);  
@@ -78,10 +78,8 @@ void check_agreement(struct treeKEM *treeKEM, struct List *users, int id, struct
   struct ListNode *user_curr = users->head;
   while (user_curr != 0) {
     struct User *user = (struct User *) user_curr->data;
-    if (user->id == id)
-      continue;
     //traverseList(user->secrets, print_secrets);
-    void *user_key = proc_ct(user, id, skeleton, NULL, generator);
+    void *user_key = proc_ct(user, id, skeleton, leaf_seed, generator);
     //printf("user %d, out key: %d\n", user->id, *((int *) user_key));
     //traverseList(user->secrets, print_secrets);
     assert(!memcmp(mgr_key, user_key, treeKEM->prg_out_size));
@@ -91,24 +89,32 @@ void check_agreement(struct treeKEM *treeKEM, struct List *users, int id, struct
   free(mgr_key);
 }
 
-void commit_proposal(struct treeKEM **treeKEM_trees, int pre_max_id, struct List *users, int *op, int *max_id, int distrib, float geo_param, int crypto, int crypto_tree) {
+void commit_proposal(struct treeKEM **treeKEM_trees, int pre_max_id, struct List *users, int *op, int *max_id, int distrib, float geo_param, int crypto, int crypto_tree, void *sampler, void *generator) {
   int num_users = treeKEM_trees[0]->users->len;  
+  printf("num_users: %d\n", num_users);
   int i, id;
   if (*op == 0) { //add
     (*max_id)++; //so adding new users w.l.o.g..
     printf("add: %d\n", *max_id);
     for (i = 0; i < 3; i++) { //TODO: no hardcode?
-      treeKEM_add(treeKEM_trees[i], *max_id);
+      struct treeKEMAddRet tk_add_ret = treeKEM_add(treeKEM_trees[i], *max_id, sampler, generator);
       if (crypto && i == crypto_tree) {
 	struct User *user = init_user(*max_id, treeKEM_trees[i]->prg_out_size, treeKEM_trees[i]->seed_size);
+	set_user_secret(user, tk_add_ret.seed, generator);
 	addAfter(users, users->tail, (void *) user);
       } // TODO: free non-crypto skeletons here?
     }
     id = *max_id;
   } else if (*op == 1) { //update
     int user_num = rand_int(num_users - (*max_id - pre_max_id), distrib, geo_param); // user to update chosen w.r.t. time of addition to group; exclude newly added users before batch
-    for (i = 0; i < 3; i++) //TODO: no hardcode
-      id = treeKEM_update(treeKEM_trees[i], user_num);
+    for (i = 0; i < 3; i++) { //TODO: no hardcode
+      struct treeKEMUpdRet tk_upd_ret = treeKEM_update(treeKEM_trees[i], user_num, sampler, generator);
+      id = tk_upd_ret.id;
+      if (crypto && i == crypto_tree) {
+	struct User *user = findNode(users, user_num)->data;
+	set_user_secret(user, tk_upd_ret.seed, generator);
+      }
+    }
     printf("upd: %d\n", id);
   } else { //remove
     int user_num = rand_int(num_users - (*max_id - pre_max_id), distrib, geo_param); // user to update chosen w.r.t. time of addition to group ; exclude newly added users before batch
@@ -128,16 +134,20 @@ void commit(struct treeKEM **treeKEM_trees, struct List *users, struct List *pro
   int pre_max_id = *max_id;
   struct ListNode *curr = proposals->head;
   while (curr != 0) {
-    commit_proposal(treeKEM_trees, pre_max_id, users, curr->data, max_id, distrib, geo_param, crypto, crypto_tree);
+    commit_proposal(treeKEM_trees, pre_max_id, users, curr->data, max_id, distrib, geo_param, crypto, crypto_tree, sampler, generator);
     curr = curr->next;
   }
   int committer = rand_int(treeKEM_trees[0]->users->len - (*max_id - pre_max_id), distrib, geo_param); //exclude added users in batch
+  printf("committer: %d\n", committer);
   //TODO: pick comitter differently
   int i;
   for (i = 0; i < 3; i++) { //TODO: no hardcode?
-    struct SkeletonNode *commit_skel = treeKEM_commit(treeKEM_trees[i], committer, sampler, generator);
-    if (crypto && i == crypto_tree)
-      check_agreement(treeKEM_trees[i], users, committer, commit_skel, generator);
+    struct treeKEMCommitRet tk_comm_ret = treeKEM_commit(treeKEM_trees[i], committer, sampler, generator);
+    if (crypto && i == crypto_tree) {
+      //pretty_traverse_tree(treeKEM_trees[i]->tree, ((struct BTree *)treeKEM_trees[i]->tree)->root, 0, &printIntLine);
+      //pretty_traverse_skeleton(tk_comm_ret.skeleton, 0, &printSkeleton);    
+      check_agreement(treeKEM_trees[i], users, tk_comm_ret.committer_id, tk_comm_ret.skeleton, tk_comm_ret.seed, generator);
+    }
   }
 }
 
@@ -281,13 +291,16 @@ int main(int argc, char *argv[]) {
   struct treeKEM *crypto_treeKEM = NULL;
   if (crypto) { // for checking key agreement from crypto ops
     crypto_treeKEM = treeKEM_trees[crypto_tree];
+    struct ListNode *user_seed_curr = crypto_init_ret.user_seeds->head;
     users = malloc_check(sizeof(struct List));
     initList(users);
     for (i = 0; i < n; i++) {
       struct User *user = init_user(i, crypto_treeKEM->prg_out_size, crypto_treeKEM->seed_size);
+      set_user_secret(user, user_seed_curr->data, generator);
       addAfter(users, users->tail, (void *) user);
+      user_seed_curr = user_seed_curr->next;
     }
-    check_agreement(crypto_treeKEM, users, -1, crypto_init_ret.skeleton, generator);    
+    check_agreement(crypto_treeKEM, users, 0, crypto_init_ret.skeleton, crypto_init_ret.user_seeds->head->data, generator);    
   }
   //free_skeleton(lbbt_init_ret.skeleton, 0, crypto); //TODO: free all of them
 

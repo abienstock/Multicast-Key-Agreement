@@ -32,8 +32,9 @@ void blank_skel(struct SkeletonNode *skeleton) {
 /*
  * add id to the group
  */
-struct Node *treeKEM_add(struct treeKEM *treeKEM, int id) {
-  struct AddRet add_ret = { NULL, NULL };
+struct treeKEMAddRet treeKEM_add(struct treeKEM *treeKEM, int id, void *sampler, void *generator) {
+  struct treeKEMAddRet tk_add_ret = { NULL, NULL };
+  struct AddRet add_ret;
   if (treeKEM->tree_type == 0)
     add_ret = lbbt_add(treeKEM->tree, id);
   else if (treeKEM->tree_type == 1)
@@ -41,18 +42,47 @@ struct Node *treeKEM_add(struct treeKEM *treeKEM, int id) {
   else
     add_ret = LLRBTree_add(treeKEM->tree, id);
     //add_ret = gen_tree_add(treeKEM->tree, data, &btree_add);
+  tk_add_ret.added = add_ret.added;
   blank_skel(add_ret.skeleton);
   addAfter(treeKEM->users, treeKEM->users->tail, (void *) add_ret.added);
-  return add_ret.added;
+  if (treeKEM->crypto) {
+    void *samp_seed = malloc_check(treeKEM->seed_size);
+    sample(sampler, samp_seed);
+    struct NodeData *data = (struct NodeData *) add_ret.added->data;  
+    void *seed = NULL, *key = NULL, *next_seed = NULL, *out = NULL;
+    alloc_prg_out(&out, &seed, &key, &next_seed, treeKEM->prg_out_size, treeKEM->seed_size); //TODO: change to TK stuff
+    prg(generator, samp_seed, out);
+    split(out, seed, key, next_seed, treeKEM->seed_size);
+    free(out);
+    data->key = key;
+    data->seed = seed;
+    tk_add_ret.seed = samp_seed;
+  }
+  return tk_add_ret;
 }
 
 /*
  * update the id that was the user-th added id of the group
  */
-int treeKEM_update(struct treeKEM *treeKEM, int user) { 
+struct treeKEMUpdRet treeKEM_update(struct treeKEM *treeKEM, int user, void *sampler, void *generator) { 
+  struct treeKEMUpdRet tk_upd_ret = { -1, NULL };
   struct Node *user_node = (struct Node *) findNode(treeKEM->users, user)->data;
+  tk_upd_ret.id = ((struct NodeData *) user_node)->id;
   blank_dir_path(user_node->parent);
-  return ((struct NodeData *) user_node)->id;
+  if (treeKEM->crypto) {
+    void *samp_seed = malloc_check(treeKEM->seed_size);
+    sample(sampler, samp_seed);
+    struct NodeData *data = (struct NodeData *) user_node->data;  
+    void *seed = NULL, *key = NULL, *next_seed = NULL, *out = NULL;
+    alloc_prg_out(&out, &seed, &key, &next_seed, treeKEM->prg_out_size, treeKEM->seed_size); //TODO: change to TK stuff
+    prg(generator, samp_seed, out);
+    split(out, seed, key, next_seed, treeKEM->seed_size);
+    free(out);
+    data->key = key;
+    data->seed = seed;
+    tk_upd_ret.seed = samp_seed;
+  }
+  return tk_upd_ret;
 }
 
 /*
@@ -106,9 +136,11 @@ int ct_gen(struct treeKEM *treeKEM, struct SkeletonNode *skeleton_node, void *se
     for (i = 0; i < skeleton_node->node->num_children; i++) {
       struct List *ct_list = NULL;
       if (*(skeleton_node->children_color + i) == 1) {
+	ct_list = malloc_check(sizeof(struct List));
+	initList(ct_list);
 	struct List resolution_nodes;
 	initList(&resolution_nodes);
-	get_resolution(&resolution_nodes, skeleton_node->node, 0);
+	get_resolution(&resolution_nodes, *(skeleton_node->node->children + i), 0);
 
 	(*(treeKEM->counts + 1)) += resolution_nodes.len;
 	if (treeKEM->crypto) {
@@ -135,6 +167,7 @@ int ct_gen(struct treeKEM *treeKEM, struct SkeletonNode *skeleton_node, void *se
     if (treeKEM->crypto) {
       struct List **ct_lists = malloc_check(sizeof(struct List *));
       struct List *ct_list = malloc_check(sizeof(struct List));
+      initList(ct_list);
       *ct_lists = ct_list;
       struct Ciphertext *ct_struct = malloc_check(sizeof(struct Ciphertext));
       void *ct = malloc_check(treeKEM->seed_size);
@@ -152,18 +185,19 @@ int ct_gen(struct treeKEM *treeKEM, struct SkeletonNode *skeleton_node, void *se
 /*
  * recursively generates the secrets on the direct path of a committer and the corresponding ciphertexts
  */
-void *secret_gen(struct treeKEM *treeKEM, struct SkeletonNode *skeleton, void *sampler, void *generator) {
+void *secret_gen(struct treeKEM *treeKEM, struct SkeletonNode *skeleton, void **leaf_seed, void *sampler, void *generator) {
   void *prev_seed = NULL;
   void *next_seed = NULL;
   if (skeleton->children_color != NULL) {
     int i;
     for (i = 0; i < skeleton->node->num_children; i++) {
       if (*(skeleton->children_color + i) == 0)
-	prev_seed = secret_gen(treeKEM, *(skeleton->children + i), sampler, generator);
+	prev_seed = secret_gen(treeKEM, *(skeleton->children + i), leaf_seed, sampler, generator);
     }
   } else if (treeKEM->crypto) { // leaf node
     prev_seed = malloc_check(treeKEM->seed_size);
     sample(sampler, prev_seed);
+    *leaf_seed = prev_seed;
   }
 
   ct_gen(treeKEM, skeleton, prev_seed, generator);
@@ -175,7 +209,6 @@ void *secret_gen(struct treeKEM *treeKEM, struct SkeletonNode *skeleton, void *s
     prg(generator, prev_seed, out);
     split(out, seed, key, next_seed, treeKEM->seed_size);
     free(out);
-    //printf("seed: %s\n", (char *) prev_seed);
     
     if (data->key != NULL)
       free(data->key);
@@ -186,7 +219,7 @@ void *secret_gen(struct treeKEM *treeKEM, struct SkeletonNode *skeleton, void *s
   }
 
   if (skeleton->node->num_leaves > 1 || skeleton->parent == NULL)
-    free(prev_seed); // need to free here if not oob_seed
+    free(prev_seed); // need to free here if not leaf seed
   
   return next_seed;
 }
@@ -236,11 +269,16 @@ struct SkeletonNode *gen_commit_skel(struct Node *node, struct Node *child, stru
   return child_skel;
 }
 
-struct SkeletonNode *treeKEM_commit(struct treeKEM *treeKEM, int committer, void *sampler, void *generator) {
+struct treeKEMCommitRet treeKEM_commit(struct treeKEM *treeKEM, int committer, void *sampler, void *generator) {
+  struct treeKEMCommitRet tk_comm_ret = { NULL, NULL };
   struct Node *commit_user = (struct Node *) findNode(treeKEM->users, committer)->data;
+  tk_comm_ret.committer_id = ((struct NodeData *) commit_user->data)->id;
   struct SkeletonNode *commit_skel = gen_commit_skel(commit_user, NULL, NULL);
-  secret_gen(treeKEM, commit_skel, sampler, generator);
-  return commit_skel;
+  tk_comm_ret.skeleton = commit_skel;
+  void *leaf_seed;
+  secret_gen(treeKEM, commit_skel, &leaf_seed, sampler, generator);
+  tk_comm_ret.seed = leaf_seed;
+  return tk_comm_ret;
 }
 
 /*
@@ -284,12 +322,40 @@ struct treeKEMInitRet treeKEM_init(int n, int crypto, int *tree_flags, int tree_
   struct treeKEM treeKEM = { users, tree, counts, tree_type, crypto, prg_out_size, seed_size };
   *treeKEM_ptr = treeKEM;
 
+  struct List *user_seeds = NULL;
+  if (crypto) {
+    user_seeds = malloc_check(sizeof(struct List));
+    initList(user_seeds);
+    struct ListNode *curr = users->head;
+    while (curr != NULL) { //TODO: make function for this!!
+      void *samp_seed = malloc_check(treeKEM_ptr->seed_size);
+      sample(sampler, samp_seed);
+      struct NodeData *data = (struct NodeData *) ((struct Node *) curr->data)->data;  
+      void *seed = NULL, *key = NULL, *next_seed = NULL, *out = NULL;
+      alloc_prg_out(&out, &seed, &key, &next_seed, treeKEM_ptr->prg_out_size, treeKEM_ptr->seed_size); //TODO: change to TK stuff
+      prg(generator, samp_seed, out);
+      split(out, seed, key, next_seed, treeKEM_ptr->seed_size);
+      free(out);
+      data->key = key;
+      data->seed = seed;
+
+      addAfter(user_seeds, user_seeds->tail, samp_seed);
+      curr = curr->next;
+    }
+  }
+
   struct SkeletonNode *commit_skel = gen_commit_skel(users->head->data, NULL, NULL);
-  secret_gen(treeKEM_ptr, commit_skel, sampler, generator);
+  void *leaf_seed;
+  secret_gen(treeKEM_ptr, commit_skel, &leaf_seed, sampler, generator);
+  if (crypto) {
+    //TODO: make it so don't have to do this??
+    popFront(user_seeds);
+    addFront(user_seeds, leaf_seed);
+  }
 
   ret.treeKEM = treeKEM_ptr;
   ret.skeleton = commit_skel;
-
+  ret.user_seeds = user_seeds;
   return ret;
 }
 

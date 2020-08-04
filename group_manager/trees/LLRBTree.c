@@ -19,7 +19,6 @@ static SNode *LLRBTree_new(int id, SNode *childL, Color colorL, SNode *childR, C
     SNode *node = malloc_check(sizeof(SNode));
     node->data = malloc_check(sizeof(SNodeData));
     ((SNodeData *) node->data)->id = id;
-    ((SNodeData *) node->data)->blank = 0;
     ((SNodeData *) node->data)->tk_unmerged = NULL;
     ((SNodeData *) node->data)->key = NULL;
     ((SNodeData *) node->data)->seed = NULL;
@@ -27,6 +26,7 @@ static SNode *LLRBTree_new(int id, SNode *childL, Color colorL, SNode *childR, C
     node->parent = NULL;
     if (childL == NULL) {
         assert(childR == NULL, "LLRB: not binary.");
+	((SNodeData *) node->data)->blank = 0;
         node->num_children = 0;
         node->children = NULL;
         node->num_leaves = 1;
@@ -37,6 +37,7 @@ static SNode *LLRBTree_new(int id, SNode *childL, Color colorL, SNode *childR, C
         getData(node)->heightBlack = 0;
         return node;
     }
+    ((SNodeData *) node->data)->blank = 1;
     node->num_children = 2;
     node->children = malloc_check(sizeof(SNode * [2]));
     node->children[0] = childL;
@@ -170,13 +171,14 @@ static SSkeletonNode *Skeleton_new(SNode *node, SSkeletonNode *childL, SSkeleton
     skeleton->node = node;
     skeleton->node_id = ((SNodeData *) node->data)->id;
     skeleton->parent = NULL;
-    skeleton->special = 0;
     if (node->num_children == 0) {
         assert(childL == NULL && childR == NULL && childSpecial == NULL, "Skeleton: invalid child of leaf.");
+	skeleton->special = 1;
         skeleton->children = NULL;
         skeleton->children_color = NULL;
         return skeleton;
     }
+    skeleton->special = 0;
     skeleton->children = malloc_check(sizeof(SSkeletonNode * [2]));
     skeleton->children[0] = childL;
     if (childL != NULL) {

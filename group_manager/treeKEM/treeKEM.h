@@ -17,17 +17,34 @@ struct treeKEM {
 struct treeKEMInitRet {
   struct treeKEM *treeKEM;
   struct SkeletonNode *skeleton;
+  struct List *user_seeds;
+};
+
+struct treeKEMAddRet {
+  struct Node *added;
+  void *seed;
+};
+
+struct treeKEMUpdRet {
+  int id;
+  void *seed;
+};
+
+struct treeKEMCommitRet {
+  int committer_id;
+  struct SkeletonNode *skeleton;
+  void *seed;
 };
 
 struct treeKEMInitRet treeKEM_init(int n, int crypto, int *tree_flags, int tree_type, void *sampler, void *prg);
 
-struct Node *treeKEM_add(struct treeKEM *treeKEM, int id); // id is for new user
+struct treeKEMAddRet treeKEM_add(struct treeKEM *treeKEM, int id, void *sampler, void *generator); // id is for new user
 
-int treeKEM_update(struct treeKEM *treeKEM, int user);
+struct treeKEMUpdRet treeKEM_update(struct treeKEM *treeKEM, int user, void *sampler, void *generator);
 
 int treeKEM_rem(struct treeKEM *treeKEM, int user);
 
-struct SkeletonNode *treeKEM_commit(struct treeKEM *treeKEM, int committer, void *sampler, void *generator);
+struct treeKEMCommitRet treeKEM_commit(struct treeKEM *treeKEM, int committer, void *sampler, void *generator);
 
 void free_treeKEM(struct treeKEM *treeKEM);
 

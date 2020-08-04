@@ -37,6 +37,32 @@ struct User *init_user(int id, size_t prg_out_size, size_t seed_size) {
   return user;
 }
 
+void set_user_secret(struct User *user, void *seed, void *generator) {
+  struct PathData *data;
+  if (user->secrets->head == NULL) { // user secrets has not been built yet
+    data = malloc_check(sizeof(struct PathData));
+    data->key = NULL;
+    data->seed = NULL;
+    data->node_id = user->id;
+    addFront(user->secrets, data);
+  } else {
+    struct ListNode *path_node = findNode(user->secrets, 0);
+    data = path_node->data;
+  }
+  void *out, *new_seed, *key, *next_seed;
+  alloc_prg_out(&out, &new_seed, &key, &next_seed, user->prg_out_size, user->seed_size);
+  prg(generator, seed, out);
+  split(out, new_seed, key, next_seed, user->seed_size);
+  //free(seed); (can't free user 0 seed)
+  free(out);
+  if (data->key != NULL)
+    free(data->key);
+  data->key = key;
+  if (data->seed != NULL)
+    free(data->seed);
+  data->seed = new_seed;
+}
+
 struct find_in_path_ret {
   struct ListNode *path_node;
   int height;
@@ -115,6 +141,7 @@ struct SkeletonNode *find_skel_node(int id, struct SkeletonNode *skeleton) {
 	return ret_skel;
     }
   }
+  printf("NULL skeleton!!\n");
   return NULL; // TODO: error checking
 }
 
@@ -182,34 +209,33 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, void *oo
   void *seed; // generating seed of first node on the direct path of user in skeleton
   struct SkeletonNode *skel_node;
   struct ListNode *path_node;
-  if (id != -1 && id != user->id) { // -1 for create
-    if (skeleton->node_id == user->id) { // user is root
-      skel_node = skeleton;
-      path_node = user->secrets->head;
+  if (skeleton->node_id == user->id) { // user is root
+    skel_node = skeleton;
+    path_node = user->secrets->head;
+    struct PathData *path_node_data = ((struct PathData *) path_node->data);
+    struct Ciphertext *ciphertext = findNode(*skel_node->ciphertext_lists, 0)->data;
+    seed = malloc_check(user->seed_size);
+    dec(generator, path_node_data->key, path_node_data->seed, ciphertext->ct, seed, user->seed_size);
+  } else if (id != -1 && id != user->id) { // -1 for create
+    struct Entry entry = find_entry(user, skeleton); // find node on direct path that is in frontier of skeleton
+    skel_node = entry.skel_node;
+    path_node = entry.path_node;
+    if (entry.path_node != NULL) {
       struct PathData *path_node_data = ((struct PathData *) path_node->data);
-      struct Ciphertext *ciphertext = findNode(*skel_node->ciphertext_lists, 0)->data;
+      struct Ciphertext *ciphertext = findNode(*(skel_node->ciphertext_lists + entry.child_pos), entry.list_pos)->data;
       seed = malloc_check(user->seed_size);
       dec(generator, path_node_data->key, path_node_data->seed, ciphertext->ct, seed, user->seed_size);
-    } else {
-      struct Entry entry = find_entry(user, skeleton); // find node on direct path that is in frontier of skeleton
-      skel_node = entry.skel_node;
-      path_node = entry.path_node;
-      if (entry.path_node != NULL) {
-	struct PathData *path_node_data = ((struct PathData *) path_node->data);
-	struct Ciphertext *ciphertext = findNode(*(skel_node->ciphertext_lists + entry.child_pos), entry.list_pos)->data;
-	seed = malloc_check(user->seed_size);
-	dec(generator, path_node_data->key, path_node_data->seed, ciphertext->ct, seed, user->seed_size);
-	if (path_node->next == NULL) { // direct path has been extended by operation
-	  struct PathData *data = malloc_check(sizeof(struct PathData));
-	  data->seed = NULL;
-	  data->key = NULL;
-	  path_node = addAfter(user->secrets, path_node, (void *) data);
-	} else {
-	  path_node = path_node->next;
-	}
+      if (path_node->next == NULL) { // direct path has been extended by operation
+	struct PathData *data = malloc_check(sizeof(struct PathData));
+	data->seed = NULL;
+	data->key = NULL;
+	path_node = addAfter(user->secrets, path_node, (void *) data);
       } else {
-	seed = NULL; // TODO: error checking
+	path_node = path_node->next;
       }
+    } else {
+      printf("NULL entry!!\n");
+      seed = NULL; // TODO: error checking
     }
   } else {
     seed = oob_seed;
@@ -225,7 +251,6 @@ void *proc_ct(struct User *user, int id, struct SkeletonNode *skeleton, void *oo
 
   // generate new secrets on direct path
   struct ListNode *end_node = path_gen(user, seed, NULL, NULL, skel_node, NULL, path_node, generator);
-
   //free rest of path if not at tail
   while (end_node != user->secrets->tail) {
     free_path_data(popBack(user->secrets));
