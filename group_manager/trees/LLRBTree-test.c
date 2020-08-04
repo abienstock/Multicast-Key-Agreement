@@ -35,8 +35,8 @@ static int hasDescendant(struct Node *root, struct Node *node) {
 static void processSkeleton(struct Node *node, struct SkeletonNode *skeleton) {
     assert(skeleton->node == node, "Skeleton: broken skeleton tree.");
     assert(skeleton->special || ((struct NodeData *) node->data)->tk_unmerged->len == 0, "Skeleton: non-special node list.");
-    assert(!skeleton->special || ((struct NodeData *) node->data)->tk_unmerged->len > 0, "Skeleton: empty special node list.");
-    if (skeleton->special) {
+    assert(!skeleton->special || ((struct NodeData *) node->data)->tk_unmerged->len > 0 || node->num_children == 0, "Skeleton: empty special node list.");
+    if (skeleton->special && node->num_children > 0) {
         assert(((struct NodeData *) node->data)->key != NULL, "Skeleton: NULL special secret.");
         struct ListNode *listNode = ((struct NodeData *) node->data)->tk_unmerged->head;
         assert(listNode != NULL, "Skeleton: empty node list.");
@@ -45,7 +45,8 @@ static void processSkeleton(struct Node *node, struct SkeletonNode *skeleton) {
             listNode = listNode->next;
         }
         removeAllNodes(((struct NodeData *) node->data)->tk_unmerged);
-    } else if (((struct NodeData *) node->data)->key == NULL) {
+    }
+    if (((struct NodeData *) node->data)->key == NULL) {
         ((struct NodeData *) node->data)->key = malloc_check(1);
     }
     for (int i = 0; i < node->num_children; ++i) {

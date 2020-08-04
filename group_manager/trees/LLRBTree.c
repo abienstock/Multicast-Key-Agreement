@@ -183,13 +183,14 @@ static SSkeletonNode *Skeleton_new(SNode *node, SSkeletonNode *childL, SSkeleton
     skeleton->node = node;
     skeleton->node_id = ((SNodeData *) node->data)->id;
     skeleton->parent = NULL;
-    skeleton->special = 0;
     if (node->num_children == 0) {
         assert(childL == NULL && childR == NULL && childSpecial == NULL, "Skeleton: invalid child of leaf.");
+        skeleton->special = 1;
         skeleton->children = NULL;
         skeleton->children_color = NULL;
         return skeleton;
     }
+    skeleton->special = 0;
     skeleton->children = malloc_check(sizeof(SSkeletonNode * [2]));
     skeleton->children[0] = childL;
     if (childL != NULL) {
