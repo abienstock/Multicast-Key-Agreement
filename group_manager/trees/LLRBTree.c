@@ -19,7 +19,6 @@ static SNode *LLRBTree_new(int id, SNode *childL, Color colorL, SNode *childR, C
     SNode *node = malloc_check(sizeof(SNode));
     node->data = malloc_check(sizeof(SNodeData));
     ((SNodeData *) node->data)->id = id;
-    ((SNodeData *) node->data)->blank = 0;
     ((SNodeData *) node->data)->tk_unmerged = malloc_check(sizeof(struct List));
     initList(((SNodeData *) node->data)->tk_unmerged);
     ((SNodeData *) node->data)->key = NULL;
@@ -28,6 +27,7 @@ static SNode *LLRBTree_new(int id, SNode *childL, Color colorL, SNode *childR, C
     node->parent = NULL;
     if (childL == NULL) {
         assert(childR == NULL, "LLRB: not binary.");
+        ((SNodeData *) node->data)->blank = 0;
         node->num_children = 0;
         node->children = NULL;
         node->num_leaves = 1;
@@ -38,6 +38,7 @@ static SNode *LLRBTree_new(int id, SNode *childL, Color colorL, SNode *childR, C
         getData(node)->heightBlack = 0;
         return node;
     }
+    ((SNodeData *) node->data)->blank = 1;
     node->num_children = 2;
     node->children = malloc_check(sizeof(SNode * [2]));
     node->children[0] = childL;
